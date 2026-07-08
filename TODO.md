@@ -15,6 +15,7 @@
 - [x] Replaced raw-only Markdown preview with styled donor-ready brief preview while preserving Markdown copy.
 - [x] Installed and initialized Impeccable design context (PRODUCT.md, DESIGN.md, and live configuration).
 - [x] Implemented Impeccable P1 interactive traceability (SRC- and QA- ID pills as button controls, tab mappings, dynamic highlight) and restyled navigation tabs.
+- [x] Implemented Impeccable P2/P3 UI polish (reduced warning banner redundancy, restructured recommendation metadata grid, and upgraded font stack to Inter-style).
 
 ## P1
 

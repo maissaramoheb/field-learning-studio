@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.1.4 - Impeccable P2/P3 UI Polish and Typography Refinements
+
+- Consolidated duplicate warning disclaimer banners: removed large amber banners from Evidence Matrix and Learning Brief tabs, replacing them with minimal inline "Fictional demo data" indicators while keeping the top header warning banner prominent.
+- Improved recommendation cards density: laid out the 8 metadata fields into a structured 2-column key-value grid using a new CompactField helper component.
+- Refined global typography: updated the CSS body font family in `globals.css` to prefer a clean, system-safe Inter-style sans-serif stack.
+- Verified linting and static compilation build compatibility.
+
 ## v0.1.3 - Impeccable P1 Interactive Traceability Fixes
 
 - Converted all source (`SRC-`) and QA checklist (`QA-`) ID pills into clickable, accessible `TraceButton` controls.

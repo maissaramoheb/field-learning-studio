@@ -487,9 +487,8 @@ function EvidenceMatrix({
       eyebrow="Evidence matrix"
       title="Theme-coded evidence"
     >
-      <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
-        This demo uses fictional data only. Do not enter real sensitive field
-        evidence in v0.1.
+      <div className="text-xs font-semibold text-amber-700 bg-amber-50/60 border border-amber-200/50 rounded-lg px-3 py-1.5 w-fit">
+        Fictional demo data
       </div>
 
       <div className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-4">
@@ -796,50 +795,58 @@ function RecommendationsSection({
                   id={traceDomId(recommendation.id)}
                   key={recommendation.id}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
                     <TraceButton
                       id={recommendation.id}
                       onSelect={traceHandlers.onTraceSelect}
                     />
                     <PriorityBadge value={recommendation.priority} />
                   </div>
-                  <h4 className="mt-3 text-base font-semibold leading-7">
+                  <h4 className="mt-3 text-base font-semibold leading-6 text-[var(--foreground)]">
                     {recommendation.recommendation}
                   </h4>
-                  <div className="mt-4 grid gap-3 text-sm">
-                    <LinkedTraceField
-                      id={recommendation.linkedFindingId}
-                      label="Linked finding"
-                      onTraceSelect={traceHandlers.onTraceSelect}
-                    />
-                    <TraceIdList
-                      ids={recommendation.evidenceBase}
-                      label="Evidence base"
-                      onTraceSelect={traceHandlers.onTraceSelect}
-                    />
-                    <LinkedField
+                  <div className="mt-4 border-t border-[var(--border)] pt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 text-xs">
+                    <div className="col-span-2">
+                      <LinkedTraceField
+                        className=""
+                        id={recommendation.linkedFindingId}
+                        label="Linked finding"
+                        onTraceSelect={traceHandlers.onTraceSelect}
+                      />
+                    </div>
+                    <div className="col-span-2">
+                      <TraceIdList
+                        className=""
+                        ids={recommendation.evidenceBase}
+                        label="Evidence base"
+                        onTraceSelect={traceHandlers.onTraceSelect}
+                      />
+                    </div>
+                    <CompactField
                       label="Responsible actor"
                       value={recommendation.responsibleActor}
                     />
-                    <LinkedField
+                    <CompactField
                       label="Timeframe"
                       value={recommendation.timeframe}
                     />
-                    <LinkedField
+                    <CompactField
                       label="Feasibility"
                       value={recommendation.feasibility}
                     />
-                    <LinkedField
+                    <CompactField
                       label="Risk / sensitivity"
                       value={recommendation.riskSensitivity}
                     />
-                    <LinkedField
+                    <CompactField
                       label="Expected benefit"
                       value={recommendation.expectedBenefit}
+                      fullWidth
                     />
-                    <LinkedField
+                    <CompactField
                       label="Success indicator"
                       value={recommendation.successIndicator}
+                      fullWidth
                     />
                   </div>
                 </article>
@@ -916,9 +923,8 @@ function LearningBriefSection({
       eyebrow="Learning brief"
       title="Donor-ready brief preview"
     >
-      <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900">
-        This demo uses fictional data only. Markdown export is for validation
-        and manual review only.
+      <div className="text-xs font-semibold text-amber-700 bg-amber-50/60 border border-amber-200/50 rounded-lg px-3 py-1.5 w-fit">
+        Fictional demo data | Markdown export for validation only
       </div>
 
       <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
@@ -1377,13 +1383,15 @@ function TraceIdList({
   label,
   ids,
   onTraceSelect,
+  className = "mt-4",
 }: {
   label: string;
   ids: string[];
   onTraceSelect: (id: string) => void;
+  className?: string;
 }) {
   return (
-    <div className="mt-4">
+    <div className={className}>
       <p className="text-xs font-semibold uppercase text-[var(--muted)]">
         {label}
       </p>
@@ -1411,13 +1419,21 @@ function Detail({
   );
 }
 
-function LinkedField({ label, value }: { label: string; value: string }) {
+function CompactField({
+  label,
+  value,
+  fullWidth = false,
+}: {
+  label: string;
+  value: string;
+  fullWidth?: boolean;
+}) {
   return (
-    <div>
-      <p className="text-xs font-semibold uppercase text-[var(--muted)]">
+    <div className={fullWidth ? "col-span-2" : "col-span-1"}>
+      <span className="font-semibold text-[var(--muted)] uppercase tracking-wider text-[10px] block mb-0.5">
         {label}
-      </p>
-      <p className="mt-1 leading-6 text-[var(--foreground)]">{value}</p>
+      </span>
+      <span className="text-[var(--foreground)] leading-5 block">{value}</span>
     </div>
   );
 }
@@ -1426,13 +1442,15 @@ function LinkedTraceField({
   label,
   id,
   onTraceSelect,
+  className = "mt-4",
 }: {
   label: string;
   id: string;
   onTraceSelect: (id: string) => void;
+  className?: string;
 }) {
   return (
-    <div>
+    <div className={className}>
       <p className="text-xs font-semibold uppercase text-[var(--muted)]">
         {label}
       </p>

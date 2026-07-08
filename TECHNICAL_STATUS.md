@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.1.3 safe demo MVP includes Impeccable P1 interactive traceability fixes and active tab updates, passing lint/build.
+v0.1.4 safe demo MVP includes Impeccable P1 interactive traceability fixes, P2/P3 warning banner consolidation, recommendation card density improvements, and professional typography styling, passing lint/build.
 
 ## Completed Items
 
@@ -20,6 +20,7 @@ v0.1.3 safe demo MVP includes Impeccable P1 interactive traceability fixes and a
 - Replaced raw-only brief display with a styled donor-ready learning brief preview while preserving Markdown copy/export.
 - Impeccable design context installed and initialized with PRODUCT.md, DESIGN.md, and live configuration sidecars.
 - Implemented Impeccable P1 design fixes: converted all source and QA ID pills into clickable, accessible TraceButton anchors with tab switching, scrolling, and active highlight, and refined active navigation tab visual feedback.
+- Implemented Impeccable P2/P3 design improvements: consolidated duplicate safety warning banners into a single top-level indicator, designed a clean and dense 2-column key-value grid for recommendation metadata, and refined the global typography font stack to a professional, system-safe Inter-style sans-serif.
 
 ## Pending Items
 
@@ -56,4 +57,4 @@ npm run build
 
 ## Last Update
 
-2026-07-08: Impeccable P1 interactive traceability fixes and active tab updates implemented with clean lint/build validation.
+2026-07-08: Impeccable P2/P3 design improvements (banner consolidation, recommendation grid density, and system font refinement) implemented and validated.
