@@ -1,15 +1,15 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "impeccable_p1_p2_p3_fixes_complete",
+  "status": "deployed_live_demo",
   "priority": "high",
-  "current_phase": "v0.1.4 safe demo MVP",
-  "next_action": "Demo P1/P2/P3 user interface enhancements to MEL consultants and evaluators",
+  "current_phase": "v0.1.4-demo MVP",
+  "next_action": "Conduct live user review feedback sessions using the Vercel URL",
   "blocker": null,
   "decision_needed": null,
   "repo_url": null,
   "preview_url": "http://localhost:3000",
-  "production_url": null,
+  "production_url": "https://field-learning-studio.vercel.app/",
   "validation_results": {
     "lint": "passed",
     "build": "passed",
@@ -22,6 +22,6 @@
     "Weak export quality",
     "npm audit reports two moderate PostCSS findings inside the Next.js dependency tree; npm's forced fix would downgrade Next.js and was not applied"
   ],
-  "recommended_next_step": "Prepare user review survey to evaluate visual clarity and interface flow",
-  "notion_page_update": "Field Learning Studio v0.1.4 successfully integrates Impeccable P1, P2, and P3 UI improvements. Refined recommendation metadata cards into a dense 2-column key-value grid, consolidated redundant warning alerts, and updated the global font family to system-safe Inter typography."
+  "recommended_next_step": "Collect evaluation feedback on interactive traceability, active stepper, metadata density, and typography elements",
+  "notion_page_update": "Field Learning Studio v0.1.4-demo is deployed live on Vercel (https://field-learning-studio.vercel.app/). It includes all P1, P2, and P3 UI improvements under Impeccable design guidelines (refactored recommendation metadata cards, consolidated warning alerts, and Inter typography), passing validation checks."
 }

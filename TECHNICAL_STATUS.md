@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.1.4 safe demo MVP includes Impeccable P1 interactive traceability fixes, P2/P3 warning banner consolidation, recommendation card density improvements, and professional typography styling, passing lint/build.
+v0.1.4-demo MVP includes Vercel deployment of the live demo workspace, including Impeccable P1 interactive traceability fixes, P2/P3 warning banner consolidation, recommendation card density improvements, and professional typography styling, passing lint/build.
 
 ## Completed Items
 
@@ -53,8 +53,9 @@ npm run build
 - `npm run lint`: passed.
 - `npm run build`: passed.
 - Local preview HTTP check: passed with `200 OK`.
+- Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (Smoke tested: passed with `200 OK`).
 - Tests: not configured.
 
 ## Last Update
 
-2026-07-08: Impeccable P2/P3 design improvements (banner consolidation, recommendation grid density, and system font refinement) implemented and validated.
+2026-07-08: Vercel deployment recorded for v0.1.4-demo MVP and validated with a live browser smoke test.
