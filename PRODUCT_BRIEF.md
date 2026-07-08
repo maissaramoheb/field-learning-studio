@@ -33,11 +33,12 @@ Raw field evidence -> source inventory -> evidence matrix -> findings -> lessons
 - QA review.
 - Donor-ready learning brief.
 
-## Current Demo Case
+## Current Demo Cases
 
-Community Bridges Initiative: Youth and Women's Participation in Local Peacebuilding.
+- Community Bridges Initiative: Youth and Women's Participation in Local Peacebuilding.
+- School Nutrition & Child Wellbeing Field Learning Case: a sanitized real-world-inspired field synthesis case.
 
-This is a fictional case used to demonstrate the workflow safely without real sensitive field evidence.
+The Community Bridges case is fictional. The School Nutrition case is sanitized and non-identifying. Both cases demonstrate the workflow safely without processing real sensitive user data.
 
 ## Strategic Positioning
 

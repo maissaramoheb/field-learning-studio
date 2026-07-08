@@ -39,6 +39,11 @@
   - [x] Add animated "Run QA Audit" progress scan on QA checklist
   - [x] Style A4 document brief sheet on Brief tab with hidden Markdown source toggle
   - [x] Render clickable workflow pipeline chart on Overview tab
+- [x] Execute v0.3 Impeccable product polish:
+  - [x] Create pre-implementation UI review document
+  - [x] Strengthen first-screen product promise and value pillars
+  - [x] Upgrade case selector into a professional demo pathway chooser
+  - [x] Improve workflow map, guided demo path, traceability drawer, evidence cards, QA review, and brief preview
 - [ ] Review the Next.js/PostCSS audit finding and update safely when a compatible patched Next.js release is available.
 
 ## P2

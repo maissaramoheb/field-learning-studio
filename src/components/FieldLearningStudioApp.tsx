@@ -98,7 +98,7 @@ export function FieldLearningStudioApp({
 
   // v0.2 walkthrough path progress (subtle & professional Suggested Walkthrough)
   const [demoProgress, setDemoProgress] = useState({
-    step1: false,
+    step1: true,
     step2: false,
     step3: false,
     step4: false,
@@ -115,7 +115,7 @@ export function FieldLearningStudioApp({
     setAuditRun(false);
     setDrawerItemId(null);
     setDemoProgress({
-      step1: false,
+      step1: true,
       step2: false,
       step3: false,
       step4: false,
@@ -204,8 +204,6 @@ export function FieldLearningStudioApp({
     setHighlightedId(null);
     if (tabId === "brief") {
       setDemoProgress((prev) => ({ ...prev, step5: true }));
-    } else if (tabId === "evidence" && demoProgress.step1) {
-      setDemoProgress((prev) => ({ ...prev, step2: true }));
     }
   }
 
@@ -219,7 +217,7 @@ export function FieldLearningStudioApp({
     setHighlightedId(id);
     setPendingTraceId(id);
     setDrawerItemId(null);
-    setDemoProgress((prev) => ({ ...prev, step2: true }));
+    setDemoProgress((prev) => ({ ...prev, step3: true }));
   }
 
   async function copyLearningBrief() {
@@ -329,7 +327,7 @@ export function FieldLearningStudioApp({
     setDrawerItemId(null);
     setAuditRun(false);
     setDemoProgress({
-      step1: false,
+      step1: true,
       step2: false,
       step3: false,
       step4: false,
@@ -361,6 +359,8 @@ export function FieldLearningStudioApp({
     let metadata: Array<{ label: string; value: string | React.ReactNode }> = [];
     let linkedIds: string[] = [];
     let linkedLabel = "";
+    let whyThisMatters = "";
+    let safeguardNote = "";
 
     const id = drawerItemId;
     if (id.startsWith("EV-") || id.startsWith("EV-TEMP-") || id.startsWith("TEMP-EV-")) {
@@ -380,6 +380,9 @@ export function FieldLearningStudioApp({
         ];
         linkedIds = [entry.sourceId];
         linkedLabel = "Linked Source Record";
+        whyThisMatters =
+          "Evidence records are the bridge between raw field material and synthesis claims. This item shows what was observed and how the app interprets it before it becomes a finding.";
+        safeguardNote = `Strength: ${entry.evidenceStrength}. Sensitivity: ${entry.sensitivityFlag}. QA status: ${entry.qaStatus}.`;
       }
     } else if (id.startsWith("SRC-") || id.startsWith("SRC-TEMP-")) {
       itemType = "Source Record";
@@ -394,6 +397,9 @@ export function FieldLearningStudioApp({
           { label: "Date", value: source.date },
           { label: "Sensitivity Flag", value: source.sensitivityFlag },
         ];
+        whyThisMatters =
+          "Source records establish provenance. They help reviewers judge whether a claim is grounded in an appropriate stakeholder perspective and source type.";
+        safeguardNote = `Sensitivity: ${source.sensitivityFlag}. Keep source details non-identifying in public demo outputs.`;
       }
     } else if (id.startsWith("FND-")) {
       itemType = "Synthesis Finding";
@@ -408,6 +414,9 @@ export function FieldLearningStudioApp({
         ];
         linkedIds = [...finding.supportingEvidenceIds, ...finding.linkedRecommendationIds];
         linkedLabel = "Linked Evidence & Recommendations";
+        whyThisMatters =
+          "Findings are the main synthesis claims. They should never stand alone; each one must show supporting evidence, limits, and programme implications.";
+        safeguardNote = `Evidence strength: ${finding.evidenceStrength}. Contradictory evidence is shown to reduce overclaiming risk.`;
       }
     } else if (id.startsWith("LES-")) {
       itemType = "Lesson Learned";
@@ -422,6 +431,10 @@ export function FieldLearningStudioApp({
         ];
         linkedIds = lesson.evidenceBase;
         linkedLabel = "Evidence Base";
+        whyThisMatters =
+          "Lessons explain what happened and why, including the conditions that make learning transferable rather than anecdotal.";
+        safeguardNote =
+          "Transferability should be reviewed before reusing this lesson in a different programme context.";
       }
     } else if (id.startsWith("GP-")) {
       itemType = "Good Practice";
@@ -437,6 +450,10 @@ export function FieldLearningStudioApp({
         ];
         linkedIds = practice.evidenceBase;
         linkedLabel = "Evidence Base";
+        whyThisMatters =
+          "Good practices are only useful when replication conditions and limits are visible alongside the positive example.";
+        safeguardNote =
+          "Replication should respect the documented risks, limits, and local conditions.";
       }
     } else if (id.startsWith("REC-")) {
       itemType = "Programmatic Recommendation";
@@ -454,6 +471,9 @@ export function FieldLearningStudioApp({
         ];
         linkedIds = [rec.linkedFindingId, ...rec.evidenceBase];
         linkedLabel = "Linked Finding & Evidence Base";
+        whyThisMatters =
+          "Recommendations are the action layer. This record shows whether a proposed action is tied to a finding, evidence base, owner, timeframe, and success indicator.";
+        safeguardNote = `Priority: ${rec.priority}. Risk/sensitivity: ${rec.riskSensitivity}`;
       }
     } else if (id.startsWith("QA-")) {
       itemType = "QA Checklist Review Item";
@@ -465,12 +485,15 @@ export function FieldLearningStudioApp({
           { label: "Check Status", value: qa.status },
           { label: "Audit Notes", value: qa.notes },
         ];
+        whyThisMatters =
+          "QA checks protect the brief from unsupported claims, weak triangulation, and unsafe use of sensitive field evidence.";
+        safeguardNote = `Status: ${qa.status}. Human review is still required before donor-facing use.`;
       }
     }
 
     if (!itemType) {
       return (
-        <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl border-l border-[var(--border)] p-6 flex flex-col justify-between">
+        <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] border-l border-[var(--border)] p-6 flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-center pb-3 border-b border-[var(--border)]">
               <h3 className="font-semibold text-lg">Not Found</h3>
@@ -494,7 +517,7 @@ export function FieldLearningStudioApp({
           onClick={() => setDrawerItemId(null)}
         />
 
-        <div className="relative w-full max-w-md bg-white shadow-2xl flex flex-col p-6 overflow-y-auto border-l border-[var(--border)] transition-transform duration-300">
+        <div className="relative w-full max-w-md bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex flex-col p-6 overflow-y-auto border-l border-[var(--border)] transition-transform duration-300">
           <div className="flex justify-between items-start pb-4 border-b border-[var(--border)]">
             <div>
               <span className="font-mono text-[10px] uppercase font-semibold text-[var(--accent)] tracking-wider block">
@@ -519,9 +542,14 @@ export function FieldLearningStudioApp({
                 {title}
               </h4>
               {textContent && (
-                <p className="mt-2 text-sm leading-6 text-[var(--muted)] bg-[var(--surface-muted)] p-3 rounded-lg border border-[var(--border)]">
-                  {textContent}
-                </p>
+                <div className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3">
+                  <p className="text-[10px] font-semibold uppercase text-[var(--muted)]">
+                    Record summary
+                  </p>
+                  <p className="mt-1 text-sm leading-6 text-[var(--foreground)]">
+                    {textContent}
+                  </p>
+                </div>
               )}
             </div>
 
@@ -552,6 +580,23 @@ export function FieldLearningStudioApp({
                 </dl>
               </div>
             )}
+
+            {whyThisMatters ? (
+              <div className="border-t border-[var(--border)] pt-4">
+                <h5 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--muted)] mb-2">
+                  Why this matters
+                </h5>
+                <p className="text-sm leading-6 text-[var(--foreground)]">
+                  {whyThisMatters}
+                </p>
+              </div>
+            ) : null}
+
+            {safeguardNote ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium leading-5 text-amber-900">
+                {safeguardNote}
+              </div>
+            ) : null}
 
             {linkedIds.length > 0 && (
               <div className="border-t border-[var(--border)] pt-4">
@@ -622,7 +667,7 @@ export function FieldLearningStudioApp({
               filters={filters}
               onFiltersChange={setFilters}
               sensitivityFlags={sensitivityFlags}
-              sources={currentBaseCase.sources}
+              sources={activeDemoCase.sources}
               stakeholderTypes={stakeholderTypes}
               themes={themes}
               traceHandlers={traceHandlers}
@@ -676,6 +721,28 @@ export function FieldLearningStudioApp({
   );
 }
 
+function caseProfile(demoCase: DemoCase) {
+  if (demoCase.id === "school-nutrition") {
+    return {
+      useCase: "School nutrition / child wellbeing / field monitoring",
+      sensitivity: "Sanitized real-world-inspired case",
+      demonstrates:
+        "Safeguarding-aware evidence synthesis from field monitoring patterns",
+      note:
+        "Sanitized demo derived from prior fieldwork. No identifiable school, child, staff, or community data is displayed.",
+    };
+  }
+
+  return {
+    useCase: "Peacebuilding / social cohesion learning",
+    sensitivity: "Fictional safe demo case",
+    demonstrates:
+      "Evidence-to-learning workflow for participation, access, and coordination",
+    note:
+      "Fictional demo data for product validation. No real sensitive field evidence is processed.",
+  };
+}
+
 function CaseSelector({
   selectedId,
   onSelect,
@@ -684,49 +751,100 @@ function CaseSelector({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="border-b border-[var(--border)] bg-zinc-50/50 py-5 px-4">
+    <div
+      className="border-b border-[var(--border)] bg-[var(--background)] px-4 py-5"
+      id="case-selector"
+    >
       <div className="mx-auto max-w-7xl">
-        <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-3">
-          Select Active Field Synthesis Case
-        </h3>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase text-[var(--accent)]">
+              Choose a demo pathway
+            </p>
+            <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">
+              Select the evidence context you want to inspect
+            </h2>
+          </div>
+          <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
+            Each case uses static demo data to show how field evidence becomes
+            findings, recommendations, QA checks, and a donor-ready brief.
+          </p>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
           {demoCases.map((c) => {
             const isSelected = c.id === selectedId;
+            const profile = caseProfile(c);
             return (
               <button
                 key={c.id}
                 onClick={() => onSelect(c.id)}
                 type="button"
-                className={`text-left p-4 rounded-lg border transition cursor-pointer flex flex-col justify-between ${
+                className={`text-left rounded-lg border p-5 transition cursor-pointer ${
                   isSelected
-                    ? "border-[var(--accent)] bg-white shadow-xs ring-1 ring-[var(--accent)]"
-                    : "border-[var(--border)] bg-white hover:bg-zinc-50 hover:border-zinc-300"
+                    ? "border-[var(--accent)] bg-white ring-1 ring-[var(--accent)]"
+                    : "border-[var(--border)] bg-white hover:border-zinc-300 hover:bg-zinc-50"
                 }`}
               >
                 <div>
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="font-bold text-sm text-[var(--foreground)]">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <span className="text-base font-semibold leading-6 text-[var(--foreground)]">
                       {c.project}
                     </span>
                     <span
-                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                      className={`inline-flex items-center rounded px-2 py-1 text-[10px] font-bold uppercase ${
                         c.id === "school-nutrition"
-                          ? "bg-teal-50 text-teal-800 border border-teal-200"
-                          : "bg-zinc-100 text-zinc-800 border border-zinc-200"
+                          ? "border border-teal-200 bg-teal-50 text-teal-800"
+                          : "border border-zinc-200 bg-zinc-100 text-zinc-800"
                       }`}
                     >
                       {c.status}
                     </span>
                   </div>
-                  <p className="text-xs text-[var(--muted)] mt-1.5 leading-relaxed font-medium">
+                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
                     {c.subtitle}
                   </p>
                 </div>
-                <div className="mt-3 flex items-center justify-between text-[10px] text-[var(--muted)] border-t border-zinc-100 pt-2.5 font-semibold">
-                  <span>{c.phaseStatus || "Phase 1"}</span>
-                  <span className="font-mono">
-                    {c.evidenceBase.sourceRecords} Sources · {c.evidenceBase.evidenceEntries} Evidence
-                  </span>
+
+                <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+                  <div>
+                    <dt className="font-semibold uppercase text-[var(--muted)]">
+                      Use case
+                    </dt>
+                    <dd className="mt-1 leading-5 text-[var(--foreground)]">
+                      {profile.useCase}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold uppercase text-[var(--muted)]">
+                      Evidence base
+                    </dt>
+                    <dd className="mt-1 font-mono leading-5 text-[var(--foreground)]">
+                      {c.evidenceBase.sourceRecords} sources / {c.evidenceBase.evidenceEntries} evidence entries
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold uppercase text-[var(--muted)]">
+                      Sensitivity level
+                    </dt>
+                    <dd className="mt-1 leading-5 text-[var(--foreground)]">
+                      {profile.sensitivity}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="font-semibold uppercase text-[var(--muted)]">
+                      Demonstrates
+                    </dt>
+                    <dd className="mt-1 leading-5 text-[var(--foreground)]">
+                      {profile.demonstrates}
+                    </dd>
+                  </div>
+                </dl>
+
+                <div className="mt-4 border-t border-[var(--border)] pt-3">
+                  <p className="text-xs font-medium leading-5 text-[var(--muted)]">
+                    {profile.note}
+                  </p>
                 </div>
               </button>
             );
@@ -740,27 +858,53 @@ function CaseSelector({
 function AppHeader({ demoCase }: { demoCase: DemoCase }) {
   return (
     <header className="border-b border-[var(--border)] bg-[var(--surface)]">
-      <div className="mx-auto grid w-full max-w-7xl gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[1.25fr_0.75fr] lg:px-8">
+      <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.25fr_0.75fr] lg:px-8">
         <div>
-          <div className="w-fit rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
-            {demoCase.id === "school-nutrition"
-              ? "Sanitized real-world-inspired demo. No identifiable field data is displayed."
-              : "Demo Mode: This version uses fictional data only. Do not enter real sensitive field evidence."}
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex w-fit rounded border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]">
+              v0.3 demo workbench
+            </span>
+            <span className="inline-flex w-fit rounded border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
+              {demoCase.id === "school-nutrition"
+                ? "Sanitized demo - no identifiable field data"
+                : "Fictional demo - local-only sandbox"}
+            </span>
           </div>
-          <p className="mt-5 text-sm font-semibold uppercase text-[var(--accent)]">
-            Field evidence to learning brief
+          <p className="mt-6 text-sm font-semibold uppercase text-[var(--accent)]">
+            Evidence-to-learning workspace
           </p>
-          <h1 className="mt-2 text-4xl font-semibold tracking-normal text-[var(--foreground)] sm:text-5xl">
-            Field Learning Studio
+          <h1 className="mt-2 max-w-4xl text-4xl font-semibold tracking-normal text-[var(--foreground)] sm:text-5xl">
+            Turn field evidence into traceable programme learning.
           </h1>
-          <p className="mt-3 max-w-3xl text-lg leading-8 text-[var(--muted)]">
-            AI-assisted evidence synthesis for MEL, evaluation, and donor-ready
-            learning briefs.
+          <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--muted)]">
+            Field Learning Studio helps MEL, evaluation, and programme teams
+            transform raw monitoring notes into findings, lessons,
+            recommendations, QA checks, and a structured learning brief.
           </p>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {[
+              ["Structure messy evidence", "Turn notes and source records into a coded evidence matrix."],
+              ["Trace every claim", "Follow IDs from source to evidence, finding, recommendation, QA, and brief."],
+              ["Produce donor-ready learning", "Preview a measured brief while preserving Markdown export."],
+            ].map(([title, body]) => (
+              <div
+                className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
+                key={title}
+              >
+                <h2 className="text-sm font-semibold text-[var(--foreground)]">
+                  {title}
+                </h2>
+                <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                  {body}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-5">
-          <p className="text-sm font-semibold text-[var(--accent)]">
+          <p className="text-xs font-semibold uppercase text-[var(--accent)]">
             Active demo case
           </p>
           <h2 className="mt-2 text-2xl font-semibold">{demoCase.project}</h2>
@@ -776,6 +920,9 @@ function AppHeader({ demoCase }: { demoCase: DemoCase }) {
               value={demoCase.evidenceBase.recommendations}
             />
           </div>
+          <p className="mt-5 rounded-lg border border-[var(--border)] bg-white px-4 py-3 text-xs leading-5 text-[var(--muted)]">
+            {demoCase.safetyNote}
+          </p>
         </div>
       </div>
     </header>
@@ -845,53 +992,113 @@ function OverviewTab({
     step5: boolean;
   };
 }) {
-  const pipelineSteps: Array<{ id: WorkspaceTabId; label: string }> = [
-    { id: "evidence", label: "Raw Evidence" },
-    { id: "findings", label: "Findings" },
-    { id: "lessons", label: "Lessons Learned" },
-    { id: "recommendations", label: "Recommendations" },
-    { id: "qa", label: "QA Review" },
-    { id: "brief", label: "Learning Brief" },
+  const pipelineSteps: Array<{
+    id: WorkspaceTabId;
+    label: string;
+    description: string;
+  }> = [
+    {
+      id: "overview",
+      label: "Field notes",
+      description: "Local sandbox note or selected demo case",
+    },
+    {
+      id: "evidence",
+      label: "Source inventory",
+      description: "Provenance and stakeholder context",
+    },
+    {
+      id: "evidence",
+      label: "Evidence matrix",
+      description: "Theme-coded observations and meaning",
+    },
+    {
+      id: "findings",
+      label: "Findings",
+      description: "Evidence-backed synthesis claims",
+    },
+    {
+      id: "lessons",
+      label: "Lessons & practices",
+      description: "Reusable learning with conditions",
+    },
+    {
+      id: "recommendations",
+      label: "Recommendations",
+      description: "Actions tied to findings",
+    },
+    {
+      id: "qa",
+      label: "QA review",
+      description: "Safeguards against weak claims",
+    },
+    {
+      id: "brief",
+      label: "Learning brief",
+      description: "Donor-ready output with trace annex",
+    },
   ];
 
   return (
     <div className="flex flex-col gap-6">
-      {/* 1. Hero promise section */}
-      <section className="rounded-lg border border-[var(--border)] bg-teal-50/10 p-8 shadow-xs relative overflow-hidden">
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-1.5 rounded bg-amber-50 border border-amber-200/60 px-2.5 py-1 text-xs font-semibold text-amber-900 mb-4 select-none">
+      <section className="rounded-lg border border-[var(--border)] bg-white p-6 sm:p-8">
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+          <div>
+            <div className="mb-4 inline-flex items-center gap-1.5 rounded border border-amber-200/60 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 select-none">
             {demoCase.id === "school-nutrition"
               ? "Sanitized Real-World-Inspired Demo Case"
               : "Fictional Sandbox Demo Mode — Safe Workspace"}
+            </div>
+            <h2 className="max-w-3xl text-2xl font-semibold tracking-normal text-[var(--foreground)] sm:text-3xl">
+              From field note to defensible learning output.
+            </h2>
+            <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--muted)]">
+              This workspace makes the analytical chain visible: what was
+              observed, how it was interpreted, which claim it supports, what
+              recommendation follows, and what QA safeguard should be checked.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                onClick={() => {
+                  document.getElementById("guided-demo-path")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="min-h-10 rounded-lg bg-[var(--accent)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--accent-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
+              >
+                Start guided demo
+              </button>
+              <button
+                onClick={() => {
+                  const text = demoCase.id === "school-nutrition"
+                    ? "Children are skipping the dry meal snack because there is no clean drinking water available during lunch, and some report stomach aches from unpackaged cheese stored in open bins."
+                    : "Women report feeling unsafe at evening peacebuilding committee meetings due to poor street lighting and lack of public transport.";
+                  setSandboxText(text);
+                  document.getElementById("sandbox-note-textarea")?.focus();
+                  document.getElementById("sandbox-note-section")?.scrollIntoView({ behavior: "smooth" });
+                }}
+                className="min-h-10 rounded-lg border border-[var(--border)] bg-white px-5 text-sm font-semibold text-[var(--foreground)] transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
+              >
+                Try sample field note
+              </button>
+            </div>
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[var(--foreground)] text-wrap-balance">
-            Turn field notes into traceable programme learning.
-          </h1>
-          <p className="mt-3 text-base sm:text-lg leading-7 text-[var(--muted)] text-wrap-balance">
-            An evidence-first workspace for MEL, evaluation, and donor-reporting teams. synthesis is grounded in visible source records and auditable linkages.
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button 
-              onClick={() => {
-                document.getElementById("guided-demo-path")?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="min-h-10 px-5 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white font-semibold text-sm rounded-lg cursor-pointer transition shadow-xs"
-            >
-              Start Guided Demo
-            </button>
-            <button 
-              onClick={() => {
-                const text = demoCase.id === "school-nutrition"
-                  ? "Children are skipping the dry meal snack because there is no clean drinking water available during lunch, and some report stomach aches from unpackaged cheese stored in open bins."
-                  : "Women report feeling unsafe at evening peacebuilding committee meetings due to poor street lighting and lack of public transport.";
-                setSandboxText(text);
-                document.getElementById("sandbox-note-textarea")?.focus();
-                document.getElementById("sandbox-note-section")?.scrollIntoView({ behavior: "smooth" });
-              }}
-              className="min-h-10 px-5 bg-white border border-[var(--border)] text-[var(--foreground)] font-semibold text-sm rounded-lg hover:bg-zinc-50 cursor-pointer transition"
-            >
-              Try Sample Field Note
-            </button>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-5">
+            <h3 className="text-sm font-semibold text-[var(--foreground)]">
+              What a senior reviewer should see
+            </h3>
+            <ul className="mt-4 space-y-3 text-sm leading-6 text-[var(--muted)]">
+              {[
+                "The case is safe to demo and clearly labelled.",
+                "Every finding can be inspected back to evidence IDs.",
+                "Recommendations show the finding and evidence base behind them.",
+                "QA checks flag overclaiming, sensitivity, and donor-readiness before export.",
+              ].map((item) => (
+                <li className="flex gap-3" key={item}>
+                  <span className="mt-2 h-2 w-2 flex-none rounded-full bg-[var(--accent)]" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
@@ -903,7 +1110,7 @@ function OverviewTab({
           <section id="guided-demo-path" className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xs scroll-mt-20">
             <div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-4">
               <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--foreground)]">
-                Suggested Walkthrough Path
+                Suggested demo path
               </h3>
               <span className="text-[10px] text-[var(--muted)] font-mono">
                 {Object.values(demoProgress).filter(Boolean).length} / 5 tasks completed
@@ -922,19 +1129,18 @@ function OverviewTab({
                 </span>
                 <div className="flex-1">
                   <p className="font-semibold text-[var(--foreground)]">
-                    Ingest a Field Note
+                    Select a case
                   </p>
                   <p className="text-[var(--muted)]">
-                    Type a qualitative log or click the &apos;Try Sample Field Note&apos; template button to simulate ingestion.
+                    Start with the fictional pathway or the sanitized real-world-inspired case.
                   </p>
                   <button 
                     onClick={() => {
-                      document.getElementById("sandbox-note-section")?.scrollIntoView({ behavior: "smooth" });
-                      document.getElementById("sandbox-note-textarea")?.focus();
+                      document.getElementById("case-selector")?.scrollIntoView({ behavior: "smooth", block: "start" });
                     }}
                     className="text-[var(--accent)] hover:underline font-semibold mt-1 cursor-pointer"
                   >
-                    Go to Ingest Area &rarr;
+                    Review case choices &rarr;
                   </button>
                 </div>
               </div>
@@ -950,16 +1156,19 @@ function OverviewTab({
                 </span>
                 <div className="flex-1">
                   <p className="font-semibold text-[var(--foreground)]">
-                    Review Coded Evidence Grid
+                    Try a sample field note
                   </p>
                   <p className="text-[var(--muted)]">
-                    Verify how raw notes are assigned to thematic tags, stakeholders, and sensitivity levels.
+                    Use a template note to see local deterministic parsing into evidence.
                   </p>
                   <button 
-                    onClick={() => onTabChange("evidence")}
+                    onClick={() => {
+                      document.getElementById("sandbox-note-section")?.scrollIntoView({ behavior: "smooth" });
+                      document.getElementById("sandbox-note-textarea")?.focus();
+                    }}
                     className="text-[var(--accent)] hover:underline font-semibold mt-1 cursor-pointer"
                   >
-                    View Evidence Matrix &rarr;
+                    Go to sandbox note &rarr;
                   </button>
                 </div>
               </div>
@@ -975,10 +1184,10 @@ function OverviewTab({
                 </span>
                 <div className="flex-1">
                   <p className="font-semibold text-[var(--foreground)]">
-                    Inspect Context-Preserving Traceability Chain
+                    Inspect the evidence chain
                   </p>
                   <p className="text-[var(--muted)]">
-                    Click any ID pill to inspect its lineage trail in the side drawer without switching tabs.
+                    Click any ID pill to open its lineage in the traceability drawer.
                   </p>
                   <button 
                     onClick={() => onTabChange("evidence")}
@@ -1000,16 +1209,16 @@ function OverviewTab({
                 </span>
                 <div className="flex-1">
                   <p className="font-semibold text-[var(--foreground)]">
-                    Execute Safeguards QA Audit
+                    Run QA review
                   </p>
                   <p className="text-[var(--muted)]">
-                    Run the animated compliance checklist to verify triangulation and sensitivity safeguards.
+                    Check overclaiming, sensitivity, traceability, and donor-readiness safeguards.
                   </p>
                   <button 
                     onClick={() => onTabChange("qa")}
                     className="text-[var(--accent)] hover:underline font-semibold mt-1 cursor-pointer"
                   >
-                    Run QA Review Audit &rarr;
+                    Open QA review &rarr;
                   </button>
                 </div>
               </div>
@@ -1025,10 +1234,10 @@ function OverviewTab({
                 </span>
                 <div className="flex-1">
                   <p className="font-semibold text-[var(--foreground)]">
-                    Review and Copy Learning Brief
+                    Review the learning brief
                   </p>
                   <p className="text-[var(--muted)]">
-                    Inspect the formatted printable deliverable page and copy the structured Markdown payload.
+                    Inspect the document preview, then copy the Markdown export if needed.
                   </p>
                   <button 
                     onClick={() => onTabChange("brief")}
@@ -1042,27 +1251,32 @@ function OverviewTab({
           </section>
 
           {/* 3. Synthesis Pipeline Flowchart */}
-          <section className="rounded-lg border border-[var(--border)] bg-white p-5 shadow-xs">
+          <section className="rounded-lg border border-[var(--border)] bg-white p-5">
             <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
-              Synthesis Pipeline Flow
+              Evidence-to-learning workflow
             </h3>
             <p className="mt-1 text-xs text-[var(--muted)]">
-              Click any pipeline node to inspect that synthesis workspace step.
+              The product logic is intentionally linear: source material first,
+              then interpretation, QA, and final communication. Click any stage
+              to inspect the relevant workspace.
             </p>
-            <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-3 overflow-x-auto pb-2">
+            <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
               {pipelineSteps.map((step, idx) => (
-                <React.Fragment key={step.id}>
+                <React.Fragment key={`${step.label}-${idx}`}>
                   <button
-                    className="w-full md:w-auto min-h-11 px-4 py-2.5 rounded-lg border border-teal-200 bg-teal-50/50 hover:bg-teal-50 text-xs font-semibold text-[var(--accent-strong)] cursor-pointer text-center transition flex-1 hover:border-[var(--accent)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    className="min-h-28 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 text-left transition hover:border-[var(--accent)] hover:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                     onClick={() => onTabChange(step.id)}
                   >
-                    {step.label}
-                  </button>
-                  {idx < pipelineSteps.length - 1 && (
-                    <span className="text-[var(--muted)] font-bold text-sm select-none rotate-90 md:rotate-0">
-                      &rarr;
+                    <span className="font-mono text-[10px] font-semibold text-[var(--accent)]">
+                      {String(idx + 1).padStart(2, "0")}
                     </span>
-                  )}
+                    <span className="mt-2 block text-sm font-semibold text-[var(--foreground)]">
+                      {step.label}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-[var(--muted)]">
+                      {step.description}
+                    </span>
+                  </button>
                 </React.Fragment>
               ))}
             </div>
@@ -1073,10 +1287,10 @@ function OverviewTab({
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h3 className="text-base font-bold text-amber-900">
-                  Ingest Local Field Note Log
+                  Try a local sandbox field note
                 </h3>
                 <p className="mt-1 text-xs text-amber-800/80 leading-5">
-                  Deterministic demo parsing — no AI call, no upload, no storage. Do not enter real sensitive field evidence.
+                  Deterministic demo parsing only: no AI call, no upload, no storage. Do not enter real sensitive field evidence.
                 </p>
               </div>
               {hasSandboxItems && (
@@ -1155,7 +1369,7 @@ function OverviewTab({
                   disabled={!sandboxText.trim()}
                   onClick={onParse}
                 >
-                  Parse into Evidence
+                  Parse into evidence
                 </button>
               </div>
             </div>
@@ -1195,7 +1409,28 @@ function OverviewTab({
               />
             </dl>
             <div className="mt-5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900 leading-relaxed">
-              This workspace uses fictional sandbox data only. Any custom content remains local in component state.
+              {demoCase.id === "school-nutrition"
+                ? "Sanitized demo derived from prior fieldwork. No identifiable school, child, staff, or community data is displayed. Any custom sandbox content remains local in component state."
+                : "This workspace uses fictional demo data only. Any custom sandbox content remains local in component state."}
+            </div>
+          </section>
+          <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--foreground)]">
+              Signature traceability path
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              The drawer turns each ID into a verifiable chain, so a reviewer
+              can test whether a donor-facing claim is grounded in evidence.
+            </p>
+            <div className="mt-4 flex flex-wrap items-center gap-2 font-mono text-[10px] font-semibold text-[var(--muted)]">
+              {["Source", "Evidence", "Finding", "Recommendation", "QA", "Brief"].map((label, index, list) => (
+                <React.Fragment key={label}>
+                  <span className="rounded border border-[var(--border)] bg-[var(--surface-muted)] px-2 py-1">
+                    {label}
+                  </span>
+                  {index < list.length - 1 ? <span>&rarr;</span> : null}
+                </React.Fragment>
+              ))}
             </div>
           </section>
         </div>
@@ -1233,6 +1468,7 @@ function EvidenceTab({
         filters={filters}
         onFiltersChange={onFiltersChange}
         sensitivityFlags={sensitivityFlags}
+        sources={sources}
         stakeholderTypes={stakeholderTypes}
         themes={themes}
         traceHandlers={traceHandlers}
@@ -1295,6 +1531,7 @@ function EvidenceMatrix({
   filters,
   onFiltersChange,
   themes,
+  sources,
   stakeholderTypes,
   evidenceStrengths,
   sensitivityFlags,
@@ -1304,6 +1541,7 @@ function EvidenceMatrix({
   filters: EvidenceFilters;
   onFiltersChange: (filters: EvidenceFilters) => void;
   themes: string[];
+  sources: SourceRecord[];
   stakeholderTypes: string[];
   evidenceStrengths: string[];
   sensitivityFlags: string[];
@@ -1311,12 +1549,12 @@ function EvidenceMatrix({
 }) {
   return (
     <Section
-      description="This demo uses fictional data only. Evidence IDs are clickable traceability anchors."
+      description="Evidence IDs are clickable traceability anchors. Demo data remains static and safe for product validation."
       eyebrow="Evidence matrix"
       title="Theme-coded evidence"
     >
       <div className="text-xs font-semibold text-amber-700 bg-amber-50/60 border border-amber-200/50 rounded-lg px-3 py-1.5 w-fit">
-        Fictional demo data
+        Static demo data
       </div>
 
       <div className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-4">
@@ -1356,6 +1594,7 @@ function EvidenceMatrix({
         {evidence.map((entry) => {
           const isHighlighted = traceHandlers.highlightedId === entry.id;
           const isSandbox = entry.id.startsWith("EV-TEMP-");
+          const source = sources.find((item) => item.id === entry.sourceId);
 
           return (
             <article
@@ -1368,20 +1607,26 @@ function EvidenceMatrix({
               key={entry.id}
             >
               <div>
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-100 pb-3 mb-4">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-100 pb-3 mb-4">
+                  <div>
                     <TraceButton
                       id={entry.id}
                       onSelect={traceHandlers.onTraceSelect}
                     />
+                    <h3 className="mt-3 text-lg font-semibold leading-7 text-[var(--foreground)]">
+                      {entry.primaryTheme}
+                    </h3>
+                    <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                      {entry.stakeholderType}
+                      {source ? ` from ${source.sourceType}` : ""}
+                    </p>
                     {isSandbox && (
-                      <span className="text-[9px] font-bold uppercase text-amber-700 bg-amber-50 border border-amber-200/50 rounded px-1.5 py-0.5 animate-pulse">
+                      <span className="mt-2 inline-flex text-[9px] font-bold uppercase text-amber-700 bg-amber-50 border border-amber-200/50 rounded px-1.5 py-0.5">
                         Sandbox evidence item — local demo only, not validated.
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-medium text-[var(--muted)]">Source:</span>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
                     <TraceButton
                       id={entry.sourceId}
                       onSelect={traceHandlers.onTraceSelect}
@@ -1391,20 +1636,20 @@ function EvidenceMatrix({
                 </div>
 
                 <div className="space-y-4">
-                  <div>
-                    <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wider block mb-1">
-                      Observation Summary
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
+                    <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider block mb-1">
+                      Observation summary
                     </span>
-                    <blockquote className="text-sm font-medium leading-relaxed text-[var(--foreground)] italic border-l-2 border-teal-600/30 pl-3">
+                    <blockquote className="text-sm font-medium leading-6 text-[var(--foreground)]">
                       &ldquo;{entry.rawEvidence}&rdquo;
                     </blockquote>
                   </div>
 
-                  <div className="bg-zinc-50 border border-zinc-200/60 p-3 rounded-lg text-xs leading-relaxed">
+                  <div className="rounded-lg border border-teal-200 bg-teal-50/40 p-3 text-xs leading-relaxed">
                     <span className="font-bold text-[var(--foreground)] uppercase tracking-wider text-[9px] block mb-1">
-                      Synthesized Finding Interpretation
+                      Interpreted meaning
                     </span>
-                    <p className="text-[var(--muted)] font-medium">
+                    <p className="text-[var(--foreground)] font-medium">
                       {entry.potentialFinding}
                     </p>
                   </div>
@@ -1413,17 +1658,14 @@ function EvidenceMatrix({
 
               <div className="mt-5 border-t border-zinc-100 pt-4 flex flex-wrap items-center gap-1.5">
                 <span className="text-[10px] font-semibold bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded border border-zinc-200/40">
-                  {entry.stakeholderType}
-                </span>
-                <span className="text-[10px] font-semibold bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded border border-zinc-200/40">
-                  {entry.primaryTheme}
+                  {entry.secondaryTheme}
                 </span>
                 <StrengthBadge value={entry.evidenceStrength} />
                 <StatusBadge label={entry.sensitivityFlag} tone="sensitivity" />
                 
                 <button
                   onClick={() => traceHandlers.onTraceSelect(entry.id)}
-                  className="ml-auto text-xs font-semibold text-[var(--accent)] hover:text-[var(--accent-strong)] hover:underline cursor-pointer flex items-center gap-1 focus:outline-none"
+                  className="ml-auto min-h-8 rounded border border-teal-200 bg-white px-3 text-xs font-semibold text-[var(--accent)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] cursor-pointer flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
                 >
                   Inspect Chain &rarr;
                 </button>
@@ -1756,6 +1998,23 @@ function QAReviewSection({
     const score = { "Warning": 3, "Needs Review": 2, "Pass": 1 };
     return (score[b.status] || 0) - (score[a.status] || 0);
   });
+  const qaGroups: Array<{ status: QAReviewStatus; label: string; items: QAReviewItem[] }> = [
+    {
+      status: "Warning",
+      label: "Warnings",
+      items: sortedQaItems.filter((item) => item.status === "Warning"),
+    },
+    {
+      status: "Needs Review",
+      label: "Needs review",
+      items: sortedQaItems.filter((item) => item.status === "Needs Review"),
+    },
+    {
+      status: "Pass",
+      label: "Passed checks",
+      items: sortedQaItems.filter((item) => item.status === "Pass"),
+    },
+  ];
 
   return (
     <Section
@@ -1763,20 +2022,66 @@ function QAReviewSection({
       eyebrow="QA review"
       title="Human review required"
     >
+      <div className="rounded-lg border border-[var(--border)] bg-white p-5">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="max-w-3xl">
+            <h3 className="text-base font-semibold text-[var(--foreground)]">
+              QA checks help prevent overclaiming and protect sensitive field evidence.
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+              This deterministic demo review checks whether claims are linked,
+              limitations are visible, sensitive evidence is flagged, and the
+              brief remains suitable for human donor-facing review.
+            </p>
+          </div>
+          <span className="rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
+            Local deterministic demo check
+          </span>
+        </div>
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border border-red-100 bg-red-50/40 p-4">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-red-800">
+              Warnings
+            </span>
+            <span className="mt-1 block text-2xl font-semibold text-red-800">
+              {stats.warning}
+            </span>
+          </div>
+          <div className="rounded-lg border border-amber-100 bg-amber-50/50 p-4">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-amber-800">
+              Needs review
+            </span>
+            <span className="mt-1 block text-2xl font-semibold text-amber-800">
+              {stats.needsReview}
+            </span>
+          </div>
+          <div className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-4">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-emerald-800">
+              Pass
+            </span>
+            <span className="mt-1 block text-2xl font-semibold text-emerald-800">
+              {stats.pass}
+            </span>
+          </div>
+        </div>
+      </div>
+
       {!auditRun && !isAuditing ? (
-        <div className="rounded-lg border border-[var(--border)] bg-white p-8 text-center max-w-xl mx-auto shadow-xs">
+        <div className="rounded-lg border border-[var(--border)] bg-white p-8 text-center max-w-xl mx-auto">
           <div className="flex justify-center mb-4 text-[var(--accent)]">
             <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
-          <h3 className="text-base font-bold text-[var(--foreground)]">Workspace Audit Required</h3>
+          <h3 className="text-base font-bold text-[var(--foreground)]">Workspace QA review not yet run</h3>
           <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed">
-            Traceability constraints, triangulation quotas, conflict safety thresholds, and structural integrity checks have not been verified for the current workspace.
+            Run the checklist to reveal grouped warnings, needs-review items,
+            and passed safeguards for the selected case.
           </p>
           <div className="mt-6 flex flex-col items-center gap-3">
             <button
-              className="min-h-11 px-5 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white font-semibold text-sm rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent)] shadow-xs transition"
+              className="min-h-11 px-5 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white font-semibold text-sm rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition"
               onClick={onRunAudit}
             >
               Run QA Audit
@@ -1789,7 +2094,7 @@ function QAReviewSection({
       ) : null}
 
       {isAuditing ? (
-        <div className="rounded-lg border border-teal-200 bg-teal-50/30 p-12 text-center max-w-xl mx-auto shadow-xs animate-pulse">
+        <div className="rounded-lg border border-teal-200 bg-teal-50/30 p-12 text-center max-w-xl mx-auto animate-pulse">
           <div className="flex justify-center mb-4">
             <div className="h-10 w-10 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
           </div>
@@ -1802,34 +2107,6 @@ function QAReviewSection({
 
       {auditRun && !isAuditing ? (
         <>
-          {/* Simple audit-oriented statistics counters */}
-          <div className="mb-6 grid gap-4 grid-cols-3">
-            <div className="rounded-lg border border-emerald-100 bg-white p-4 text-center">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-800 block">
-                Passed Checks
-              </span>
-              <span className="mt-1 text-2xl font-bold text-emerald-700 block">
-                {stats.pass}
-              </span>
-            </div>
-            <div className="rounded-lg border border-amber-100 bg-white p-4 text-center">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-amber-800 block">
-                Needs Review
-              </span>
-              <span className="mt-1 text-2xl font-bold text-amber-700 block">
-                {stats.needsReview}
-              </span>
-            </div>
-            <div className="rounded-lg border border-red-100 bg-white p-4 text-center">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-red-800 block">
-                Warnings Flagged
-              </span>
-              <span className="mt-1 text-2xl font-bold text-red-700 block">
-                {stats.warning}
-              </span>
-            </div>
-          </div>
-
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-4">
             <div>
               <p className="text-xs text-[var(--muted)] font-semibold uppercase tracking-wider">
@@ -1847,33 +2124,47 @@ function QAReviewSection({
             </button>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {sortedQaItems.map((item) => (
-              <article
-                className={traceCardClass(
-                  item.id,
-                  traceHandlers.highlightedId,
-                  "p-4",
-                )}
-                id={traceDomId(item.id)}
-                key={item.id}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <TraceButton
-                    id={item.id}
-                    onSelect={traceHandlers.onTraceSelect}
-                  />
-                  <QAStatusBadge value={item.status} />
+          <div className="space-y-6">
+            {qaGroups.map((group) =>
+              group.items.length > 0 ? (
+                <div key={group.status}>
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--foreground)]">
+                      {group.label}
+                    </h3>
+                    <QAStatusBadge value={group.status} />
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                    {group.items.map((item) => (
+                      <article
+                        className={traceCardClass(
+                          item.id,
+                          traceHandlers.highlightedId,
+                          "p-4",
+                        )}
+                        id={traceDomId(item.id)}
+                        key={item.id}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <TraceButton
+                            id={item.id}
+                            onSelect={traceHandlers.onTraceSelect}
+                          />
+                          <QAStatusBadge value={item.status} />
+                        </div>
+                        <h4 className="mt-3 text-base font-semibold">{item.title}</h4>
+                        <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                          {renderTextWithPills(item.reviewQuestion, traceHandlers.onTraceSelect)}
+                        </p>
+                        <p className="mt-3 text-xs leading-5 text-[var(--foreground)] font-medium bg-zinc-50 border border-[var(--border)] p-2.5 rounded">
+                          {renderTextWithPills(item.notes, traceHandlers.onTraceSelect)}
+                        </p>
+                      </article>
+                    ))}
+                  </div>
                 </div>
-                <h3 className="mt-3 text-base font-semibold">{item.title}</h3>
-                <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                  {renderTextWithPills(item.reviewQuestion, traceHandlers.onTraceSelect)}
-                </p>
-                <p className="mt-3 text-xs leading-5 text-[var(--foreground)] font-medium bg-zinc-50 border border-zinc-150 p-2.5 rounded">
-                  {renderTextWithPills(item.notes, traceHandlers.onTraceSelect)}
-                </p>
-              </article>
-            ))}
+              ) : null,
+            )}
           </div>
         </>
       ) : null}
@@ -1896,7 +2187,11 @@ function LearningBriefSection({
 }) {
   return (
     <Section
-      description="Fictional workspace demo data formatted as a printable donor learning brief draft."
+      description={
+        demoCase.id === "school-nutrition"
+          ? "Sanitized real-world-inspired demo data formatted as a donor learning brief draft."
+          : "Fictional workspace demo data formatted as a donor learning brief draft."
+      }
       eyebrow="Learning brief"
       title="Donor-ready brief preview"
     >
@@ -1953,7 +2248,7 @@ function StyledBriefPreview({
 }) {
   return (
     <div className="bg-zinc-100/60 p-4 sm:p-8 rounded-lg border border-[var(--border)] mt-5">
-      <article className="mx-auto max-w-[800px] bg-white shadow-lg border border-[var(--border)] rounded-md overflow-hidden p-8 sm:p-12">
+      <article className="mx-auto max-w-[820px] bg-white border border-[var(--border)] rounded-md overflow-hidden p-8 sm:p-12">
         <header className="border-b border-[var(--border)] pb-6 mb-8">
           <span className="text-[10px] font-bold uppercase text-[var(--accent)] tracking-widest block mb-2">
             Official Programme Learning Brief
@@ -1964,7 +2259,35 @@ function StyledBriefPreview({
           <p className="mt-2 text-sm leading-6 text-[var(--muted)] font-medium">
             {demoCase.subtitle}
           </p>
-          <dl className="mt-6 grid gap-4 grid-cols-2 sm:grid-cols-4 border-t border-[var(--border)] pt-4 text-xs sm:text-sm">
+
+          <div className="mt-5 grid gap-2 border-y border-[var(--border)] py-3 text-xs sm:grid-cols-3">
+            <div>
+              <span className="block font-semibold uppercase text-[var(--muted)]">
+                Case status
+              </span>
+              <span className="mt-1 block text-[var(--foreground)]">
+                {demoCase.status}
+              </span>
+            </div>
+            <div>
+              <span className="block font-semibold uppercase text-[var(--muted)]">
+                Review mode
+              </span>
+              <span className="mt-1 block text-[var(--foreground)]">
+                Human review required
+              </span>
+            </div>
+            <div>
+              <span className="block font-semibold uppercase text-[var(--muted)]">
+                Export
+              </span>
+              <span className="mt-1 block text-[var(--foreground)]">
+                Styled preview plus Markdown
+              </span>
+            </div>
+          </div>
+
+          <dl className="mt-6 grid gap-4 grid-cols-2 sm:grid-cols-4 text-xs sm:text-sm">
             <BriefMetric label="Sources" value={demoCase.evidenceBase.sourceRecords} />
             <BriefMetric label="Evidence entries" value={demoCase.evidenceBase.evidenceEntries} />
             <BriefMetric label="Findings" value={demoCase.evidenceBase.findings} />
@@ -1973,11 +2296,31 @@ function StyledBriefPreview({
               value={demoCase.evidenceBase.recommendations}
             />
           </dl>
+
+          <p className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium leading-5 text-amber-900">
+            {demoCase.safetyNote ||
+              "This demo brief uses safe static data and requires human review before any external use."}
+          </p>
         </header>
 
-      <div className="space-y-8 px-5 py-6 sm:px-8">
+      <div className="space-y-8">
         <BriefSection title="Executive Summary">
           <p>{demoCase.executiveSummary}</p>
+        </BriefSection>
+
+        {demoCase.purposeAndScope ? (
+          <BriefSection title="Purpose and Scope">
+            <p>{demoCase.purposeAndScope}</p>
+          </BriefSection>
+        ) : null}
+
+        <BriefSection title="Evidence Base">
+          <p>
+            This brief is generated from {demoCase.evidenceBase.sourceRecords} source records,
+            {" "}{demoCase.evidenceBase.evidenceEntries} evidence entries,
+            {" "}{demoCase.evidenceBase.findings} findings, and
+            {" "}{demoCase.evidenceBase.recommendations} recommendations in the selected demo case.
+          </p>
         </BriefSection>
 
         <BriefSection title="Key Messages">
@@ -1990,6 +2333,21 @@ function StyledBriefPreview({
             ))}
           </ul>
         </BriefSection>
+
+        {demoCase.keyThemes ? (
+          <BriefSection title="Themes">
+            <div className="flex flex-wrap gap-2">
+              {demoCase.keyThemes.map((theme) => (
+                <span
+                  className="rounded border border-[var(--border)] bg-[var(--background)] px-2.5 py-1 text-xs font-semibold text-[var(--foreground)]"
+                  key={theme}
+                >
+                  {theme}
+                </span>
+              ))}
+            </div>
+          </BriefSection>
+        ) : null}
 
         <BriefSection title="Main Findings">
           <div className="space-y-4">
@@ -2102,6 +2460,12 @@ function StyledBriefPreview({
           </div>
         </BriefSection>
 
+        {(demoCase.safeguardingNotes || demoCase.safetyNote) ? (
+          <BriefSection title="Safeguarding and Sensitivity Note">
+            <p>{demoCase.safeguardingNotes || demoCase.safetyNote}</p>
+          </BriefSection>
+        ) : null}
+
         <BriefSection title="Limitations">
           <ul className="space-y-2">
             {demoCase.limitations.map((limitation) => (
@@ -2124,6 +2488,9 @@ function StyledBriefPreview({
                   id={finding.id}
                   onSelect={traceHandlers.onTraceSelect}
                 />
+                <p className="mt-3 text-sm font-semibold text-[var(--foreground)]">
+                  {finding.statement}
+                </p>
                 <TraceIdList
                   ids={finding.supportingEvidenceIds}
                   label="Evidence"
@@ -2257,7 +2624,7 @@ function TraceButton({
 }) {
   return (
     <button
-      className="inline-flex min-h-7 items-center rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1 font-mono text-xs font-semibold text-[var(--accent-strong)] cursor-pointer transition hover:border-[var(--accent)] hover:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
+      className="inline-flex min-h-7 items-center rounded border border-teal-200 bg-teal-50 px-2.5 py-1 font-mono text-xs font-semibold text-[var(--accent-strong)] cursor-pointer transition hover:border-[var(--accent)] hover:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
       onClick={() => onSelect(id)}
       title={`Trace and view details for ${id}`}
       aria-label={`Trace and view details for ${id}`}
@@ -2406,7 +2773,42 @@ function TraceChain({
         if (ev) sourceId = ev.sourceId;
       }
     }
+  } else if (id.startsWith("LES")) {
+    const lesson = demoCase.lessons.find((l) => l.id === id as LessonLearnedId);
+    if (lesson && lesson.evidenceBase.length > 0) {
+      evidenceId = lesson.evidenceBase[0];
+      const ev = demoCase.evidence.find((e) => e.id === evidenceId);
+      if (ev) sourceId = ev.sourceId;
+      const fnd = demoCase.findings.find((f) =>
+        f.supportingEvidenceIds.includes(evidenceId as EvidenceEntryId)
+      );
+      if (fnd) {
+        findingId = fnd.id;
+        if (fnd.linkedRecommendationIds.length > 0) {
+          recId = fnd.linkedRecommendationIds[0];
+        }
+      }
+    }
+  } else if (id.startsWith("GP")) {
+    const practice = demoCase.goodPractices.find((g) => g.id === id as GoodPracticeId);
+    if (practice && practice.evidenceBase.length > 0) {
+      evidenceId = practice.evidenceBase[0];
+      const ev = demoCase.evidence.find((e) => e.id === evidenceId);
+      if (ev) sourceId = ev.sourceId;
+      const fnd = demoCase.findings.find((f) =>
+        f.supportingEvidenceIds.includes(evidenceId as EvidenceEntryId)
+      );
+      if (fnd) {
+        findingId = fnd.id;
+        if (fnd.linkedRecommendationIds.length > 0) {
+          recId = fnd.linkedRecommendationIds[0];
+        }
+      }
+    }
   }
+
+  const showQaAndBrief = Boolean(sourceId || evidenceId || findingId || recId || id.startsWith("QA"));
+  const qaId = "QA-001";
 
   return (
     <div className="flex flex-wrap items-center gap-1 font-mono text-[10px] text-zinc-400">
@@ -2460,6 +2862,25 @@ function TraceChain({
         >
           {recId}
         </button>
+      )}
+      {showQaAndBrief && <span>&rarr;</span>}
+      {showQaAndBrief && (
+        <button
+          onClick={() => onSelect(qaId)}
+          className={`px-1.5 py-0.5 rounded border hover:bg-teal-50 cursor-pointer transition ${
+            id === qaId
+              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold"
+              : "border-zinc-200 bg-zinc-50 text-zinc-600"
+          }`}
+        >
+          QA
+        </button>
+      )}
+      {showQaAndBrief && <span>&rarr;</span>}
+      {showQaAndBrief && (
+        <span className="px-1.5 py-0.5 rounded border border-zinc-200 bg-white text-zinc-600">
+          Brief
+        </span>
       )}
     </div>
   );

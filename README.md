@@ -8,16 +8,17 @@ Raw field evidence -> source inventory -> evidence matrix -> findings -> lessons
 
 ## Current Stage
 
-v0.2.2-demo (UI/UX Redesign). This is a premium interactive product demonstrator and validation tool, not a production SaaS.
+v0.3-demo (Impeccable Product Polish). This is a premium interactive product demonstrator and validation tool, not a production SaaS.
 
 - **Live Production URL:** https://field-learning-studio.vercel.app/
 - **Deployment Platform:** Vercel
-- **Current Version:** v0.2.2-demo (UI/UX Redesigned Workspace Workbench)
+- **Current Version:** v0.3-demo (Professional Evidence-to-Learning Workbench Polish)
 
 ## Documentation
 
 - [Demo & Validation Pack v0.1](file:///Users/maissaraselim/Library/CloudStorage/OneDrive-Personal/Consultancy/Apps/Field%20Learning%20Studio/docs/demo_validation_pack_v01.md)
 - [Phase 2 Real Case Demo Plan](docs/phase_2_real_case_demo_plan.md)
+- [Impeccable v0.3 UI Review](docs/impeccable_v0.3_ui_review.md)
 
 ## Setup
 
@@ -33,7 +34,7 @@ npm run lint
 npm run build
 ```
 
-## v0.1 Constraints
+## Demo Constraints
 
 - Demo data only.
 - No authentication.
@@ -47,22 +48,21 @@ npm run build
 
 ## Core Workflow
 
-1. Review project context.
-2. Inspect source inventory and evidence matrix.
-3. Trace evidence into findings.
-4. Convert findings into lessons, good practices, and recommendations.
-5. Run QA review.
-6. Preview and copy a Markdown learning brief.
+1. Select a fictional or sanitized real-world-inspired demo case.
+2. Try a local sandbox field note or inspect the static evidence base.
+3. Trace evidence into findings, lessons, good practices, and recommendations.
+4. Run deterministic QA review safeguards.
+5. Preview a donor-ready learning brief and copy the Markdown export.
 
 ## Folder Structure
 
 ```text
 src/app                 App Router route, layout, and global styles
 src/components          Interactive demo UI components
-src/data                Static fictional demo case data
+src/data                Static fictional and sanitized demo case data
 src/lib                 TypeScript models and pure helper functions
 ```
 
 ## Safety Note
 
-This v0.1 app uses fictional demo data only. Do not enter real sensitive field evidence, personal data, or confidential programme material.
+This demo app uses fictional and sanitized demo data only. Do not enter real sensitive field evidence, personal data, or confidential programme material.

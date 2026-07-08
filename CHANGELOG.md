@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.3.0 - Impeccable Product Polish Sprint
+
+- **Pre-Implementation Review:** Added `docs/impeccable_v0.3_ui_review.md` documenting strengths, weaknesses, Impeccable critique findings, priorities, design direction, sprint scope, exclusions, and risks before coding.
+- **Stronger Product Framing:** Reworked the first screen around the promise "Turn field evidence into traceable programme learning" with three clear value pillars.
+- **Professional Case Selector:** Converted the case selector into a polished pathway chooser with use case, evidence base, sensitivity level, demonstration value, and safety notes for each case.
+- **Workflow and Guided Demo Polish:** Clarified the suggested demo path and expanded the workflow map from field notes through source inventory, evidence matrix, findings, lessons/practices, recommendations, QA review, and learning brief.
+- **Traceability Aha Moment:** Improved the traceability drawer with record summaries, linked IDs, safeguard notes, "why this matters" context, and trace chains extending to QA and Brief.
+- **Evidence / QA / Brief Refinements:** Refined evidence cards, grouped QA results by severity, and expanded the brief preview into a more complete donor-ready document canvas while preserving Markdown copy/export.
+- **Validation:** `npm run lint` and `npm run build` passed locally.
+
 ## v0.2.3 - School Nutrition Case and Case Switcher Integration
 
 - **Multi-Case Switcher:** Designed a professional card-based `CaseSelector` component above the workspace tabs, allowing users to switch cases dynamically.

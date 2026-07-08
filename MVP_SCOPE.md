@@ -27,6 +27,15 @@
 - **Suggested Walkthrough Path (P1):** A subtle, professional checklist guiding the user through 5 core workspace steps.
 - **Traceability Chains (P1):** Reusable inline breadcrumb chains mapping object linkages (`SRC → EV → FND → REC`) inside the drawer, findings/recommendations, and the landing page.
 
+## v0.3 Includes
+
+- **Impeccable Product Polish Review (P0):** Created `docs/impeccable_v0.3_ui_review.md` before coding to ground the sprint in PRODUCT.md, DESIGN.md, prior critique history, and local detector results.
+- **Stronger First Impression (P0):** Reworked the top app header into a clearer evidence-to-learning value proposition with three professional value pillars.
+- **Professional Case Selector (P0):** Upgraded case selection into a demo pathway chooser showing use case, evidence base, sensitivity level, and what each case demonstrates.
+- **Workflow Map Refinement (P0):** Reframed the Overview workflow from field notes through source inventory, evidence matrix, findings, lessons/practices, recommendations, QA review, and learning brief.
+- **Traceability Drawer Polish (P0):** Added clearer record summaries, safeguard notes, "why this matters" context, and expanded trace chains that reach QA and Brief.
+- **Evidence/QA/Brief Hierarchy Polish (P1):** Refined evidence cards, QA review grouping, and the brief preview document canvas while preserving static demo data and Markdown export.
+
 ## v0.1 Does Not Include
 
 - Authentication.
