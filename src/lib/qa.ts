@@ -56,7 +56,9 @@ export function generateQAReview(demoCase: DemoCase): QAReviewItem[] {
         "Does the brief avoid making outcome claims beyond the available evidence?",
       status: "Pass",
       notes:
-        "The brief explicitly limits claims about long-term peacebuilding outcomes.",
+        demoCase.id === "school-nutrition"
+          ? "The brief explicitly limits outcome claims, focusing on local acceptability and constraints rather than long-term nutritional changes."
+          : "The brief explicitly limits claims about long-term peacebuilding outcomes.",
     },
     {
       id: "QA-004",
@@ -69,30 +71,42 @@ export function generateQAReview(demoCase: DemoCase): QAReviewItem[] {
     },
     {
       id: "QA-005",
-      title: "Conflict Sensitivity",
+      title: demoCase.id === "school-nutrition" ? "Protection & Safeguarding Safety" : "Conflict Sensitivity",
       reviewQuestion:
-        "Are sensitive conflict dynamics summarized without exposing individuals?",
+        demoCase.id === "school-nutrition"
+          ? "Are child feedback channels and health-related meal risks monitored with adult supervision?"
+          : "Are sensitive conflict dynamics summarized without exposing individuals?",
       status: hasSensitiveEvidence ? "Needs Review" : "Pass",
       notes:
-        "Sensitive evidence is flagged. Human review is required before any donor-facing use.",
+        demoCase.id === "school-nutrition"
+          ? "Sensitive evidence is flagged. Human review is required to verify referral pathways and safety protocols before donor-facing use."
+          : "Sensitive evidence is flagged. Human review is required before any donor-facing use.",
     },
     {
       id: "QA-006",
       title: "Gender Sensitivity",
       reviewQuestion:
-        "Does the synthesis reflect women's access, safety, and voice constraints?",
+        demoCase.id === "school-nutrition"
+          ? "Does the synthesis reflect household caregiver roles and division of nutrition responsibility?"
+          : "Does the synthesis reflect women's access, safety, and voice constraints?",
       status: "Pass",
       notes:
-        "Women's participation appears in findings, lessons, practices, and recommendations.",
+        demoCase.id === "school-nutrition"
+          ? "Caregiver roles and gendered household nutrition responsibility are covered in findings, lessons, and recommendations."
+          : "Women's participation appears in findings, lessons, practices, and recommendations.",
     },
     {
       id: "QA-007",
-      title: "Youth Sensitivity",
+      title: demoCase.id === "school-nutrition" ? "Child-Centred Sensitivity" : "Youth Sensitivity",
       reviewQuestion:
-        "Does the synthesis distinguish youth participation from general attendance?",
+        demoCase.id === "school-nutrition"
+          ? "Does the synthesis reflect child-led committees and peer monitor protection parameters?"
+          : "Does the synthesis distinguish youth participation from general attendance?",
       status: "Pass",
       notes:
-        "Youth engagement is linked to committee routines, small grants, and practical participation.",
+        demoCase.id === "school-nutrition"
+          ? "Child participation and peer health group roles are covered in findings and recommendations."
+          : "Youth engagement is linked to committee routines, small grants, and practical participation.",
     },
     {
       id: "QA-008",
@@ -128,7 +142,9 @@ export function generateQAReview(demoCase: DemoCase): QAReviewItem[] {
         "Does the brief avoid personal data and identifiable sensitive details?",
       status: statusFromCheck(sensitivityFlagsPresent),
       notes:
-        "The demo uses fictional, non-identifying evidence and visible sensitivity flags.",
+        demoCase.id === "school-nutrition"
+          ? "All school names are replaced with School A/B/C/D. Direct quotes are paraphrased and team names removed."
+          : "The demo uses fictional, non-identifying evidence and visible sensitivity flags.",
     },
     {
       id: "QA-012",

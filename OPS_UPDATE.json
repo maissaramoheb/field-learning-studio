@@ -1,13 +1,13 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "v0.2_ui_ux_redesign_completed",
+  "status": "v0.2.3_multi_case_implemented",
   "priority": "high",
-  "current_phase": "v0.2-demo UI/UX Redesign Sprint",
-  "next_action": "Review redesigned v0.2-demo preview and decide whether it is ready for external validation.",
+  "current_phase": "Phase 2 Real-Case Demo Case Integration",
+  "next_action": "Publish live Vercel preview for founder testing and qualitative user demos.",
   "blocker": null,
   "decision_needed": null,
-  "repo_url": null,
+  "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
   "preview_url": "http://localhost:3000",
   "production_url": "https://field-learning-studio.vercel.app/",
   "validation_results": {
@@ -20,10 +20,8 @@
     "Scope creep",
     "Overbuilding before user validation",
     "Accidental sensitive data handling",
-    "Accidental exposure of child-sensitive or school-identifiable field information during Phase 2 case preparation",
-    "Weak export quality",
     "npm audit reports two moderate PostCSS findings inside the Next.js dependency tree; npm's forced fix would downgrade Next.js and was not applied"
   ],
-  "recommended_next_step": "Perform manual walkthrough smoke tests on the redesigned workspace tabs, TraceChain widgets, and interpretation cards.",
-  "notion_page_update": "Completed the product-level UI/UX redesign sprint for Field Learning Studio v0.2-demo. Upgraded the Overview landing page with a hero promise and professional Suggested Walkthrough path checklist. Embedded visual TraceChain breadcrumbs in the context-preserving drawer and findings/recommendations cards. Refactored evidence cards to highlight interpretation summaries, added severity QA metrics, and polished the printable deliverable brief sheet."
+  "recommended_next_step": "Perform manual walkthrough of the School Nutrition case, test local sandbox keyword parsed theme categorization, and verify QA Review checklists.",
+  "notion_page_update": "Implemented multi-case architecture in Field Learning Studio. Created a professional CaseSelector card switcher component. Integrated the sanitized, real-world-inspired School Nutrition & Child Wellbeing Field Learning Case. Set up case-aware warning disclaimers, custom sandbox templates, child protection safeguarding categories, and adapted linter/typecheck verification workflows."
 }

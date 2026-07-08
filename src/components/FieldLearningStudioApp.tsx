@@ -9,7 +9,9 @@ import type {
   Finding,
   FindingId,
   GoodPractice,
+  GoodPracticeId,
   LessonLearned,
+  LessonLearnedId,
   QAReviewItem,
   QAReviewStatus,
   Recommendation,
@@ -21,11 +23,10 @@ import type {
 } from "@/lib/types";
 import { generateQAReview } from "@/lib/qa";
 import { generateLearningBriefMarkdown } from "@/lib/generateBrief";
+import { demoCases } from "@/data/cases";
 
 interface FieldLearningStudioAppProps {
   demoCase: DemoCase;
-  learningBriefMarkdown: string;
-  qaItems: QAReviewItem[];
 }
 
 type EvidenceFilters = {
@@ -77,9 +78,17 @@ export function FieldLearningStudioApp({
     "idle",
   );
 
-  // v0.2 workspace states
-  const [evidenceList, setEvidenceList] = useState<EvidenceEntry[]>(demoCase.evidence);
-  const [sourcesList, setSourcesList] = useState<SourceRecord[]>(demoCase.sources);
+  // Multi-case architecture states
+  const [selectedCaseId, setSelectedCaseId] = useState<string>(demoCase.id);
+
+  const currentBaseCase = useMemo(() => {
+    return demoCases.find((c) => c.id === selectedCaseId) || demoCases[0];
+  }, [selectedCaseId]);
+
+  // v0.2 local session sandbox additions
+  const [sandboxEvidence, setSandboxEvidence] = useState<EvidenceEntry[]>([]);
+  const [sandboxSources, setSandboxSources] = useState<SourceRecord[]>([]);
+
   const [drawerItemId, setDrawerItemId] = useState<string | null>(null);
   const [sandboxText, setSandboxText] = useState("");
   const [sandboxCount, setSandboxCount] = useState(1);
@@ -96,35 +105,53 @@ export function FieldLearningStudioApp({
     step5: false,
   });
 
+  // Clear session sandbox and progress on case change
+  function handleSelectCase(caseId: string) {
+    setSelectedCaseId(caseId);
+    setSandboxEvidence([]);
+    setSandboxSources([]);
+    setSandboxText("");
+    setSandboxCount(1);
+    setAuditRun(false);
+    setDrawerItemId(null);
+    setDemoProgress({
+      step1: false,
+      step2: false,
+      step3: false,
+      step4: false,
+      step5: false,
+    });
+  }
+
+  // Derived dynamic active case data mapping
   const activeDemoCase = useMemo(() => {
     return {
-      ...demoCase,
-      evidence: evidenceList,
-      sources: sourcesList,
+      ...currentBaseCase,
+      evidence: [...sandboxEvidence, ...currentBaseCase.evidence],
+      sources: [...sandboxSources, ...currentBaseCase.sources],
     };
-  }, [evidenceList, sourcesList, demoCase]);
+  }, [sandboxEvidence, sandboxSources, currentBaseCase]);
 
   const themes = useMemo(
-    () => uniqueValues(evidenceList.map((entry) => entry.primaryTheme)),
-    [evidenceList],
+    () => uniqueValues(activeDemoCase.evidence.map((entry) => entry.primaryTheme)),
+    [activeDemoCase.evidence],
   );
   const stakeholderTypes = useMemo(
-    () => uniqueValues(evidenceList.map((entry) => entry.stakeholderType)),
-    [evidenceList],
+    () => uniqueValues(activeDemoCase.evidence.map((entry) => entry.stakeholderType)),
+    [activeDemoCase.evidence],
   );
   const evidenceStrengths = useMemo(
-    () =>
-      uniqueValues(evidenceList.map((entry) => entry.evidenceStrength)),
-    [evidenceList],
+    () => uniqueValues(activeDemoCase.evidence.map((entry) => entry.evidenceStrength)),
+    [activeDemoCase.evidence],
   );
   const sensitivityFlags = useMemo(
-    () => uniqueValues(evidenceList.map((entry) => entry.sensitivityFlag)),
-    [evidenceList],
+    () => uniqueValues(activeDemoCase.evidence.map((entry) => entry.sensitivityFlag)),
+    [activeDemoCase.evidence],
   );
 
   const filteredEvidence = useMemo(
     () =>
-      evidenceList.filter((entry) => {
+      activeDemoCase.evidence.filter((entry) => {
         return (
           (filters.theme === "All" || entry.primaryTheme === filters.theme) &&
           (filters.stakeholderType === "All" ||
@@ -135,7 +162,7 @@ export function FieldLearningStudioApp({
             entry.sensitivityFlag === filters.sensitivityFlag)
         );
       }),
-    [evidenceList, filters],
+    [activeDemoCase.evidence, filters],
   );
 
   const currentQaItems = useMemo(() => {
@@ -213,21 +240,43 @@ export function FieldLearningStudioApp({
     let inferredTheme = "General programme learning";
     let sensitivity: SensitivityFlag = "Low";
 
-    if (text.includes("women") || text.includes("girls") || text.includes("safety") || text.includes("evening") || text.includes("transport") || text.includes("lighting")) {
-      inferredTheme = "Women's safe participation";
-      sensitivity = "Medium";
-    } else if (text.includes("youth") || text.includes("young people") || text.includes("attendance") || text.includes("engagement")) {
-      inferredTheme = "Youth participation";
-      sensitivity = "Low";
-    } else if (text.includes("training") || text.includes("materials") || text.includes("language") || text.includes("translation")) {
-      inferredTheme = "Training accessibility";
-      sensitivity = "Low";
-    } else if (text.includes("reporting") || text.includes("partner") || text.includes("ngo") || text.includes("burden")) {
-      inferredTheme = "Partner coordination";
-      sensitivity = "Low";
-    } else if (text.includes("procurement") || text.includes("budget") || text.includes("delay") || text.includes("supplies")) {
-      inferredTheme = "Operational constraints";
-      sensitivity = "Low";
+    if (selectedCaseId === "school-nutrition") {
+      if (text.includes("water") || text.includes("spoilage") || text.includes("cheese") || text.includes("dairy")) {
+        inferredTheme = "Food acceptability and water safety";
+        sensitivity = "High";
+      } else if (text.includes("father") || text.includes("mother") || text.includes("caregiver") || text.includes("gender")) {
+        inferredTheme = "Gendered household caregiver roles";
+        sensitivity = "Low";
+      } else if (text.includes("teacher") || text.includes("training") || text.includes("volunteer")) {
+        inferredTheme = "Volunteer capacity and training";
+        sensitivity = "Low";
+      } else if (text.includes("child") || text.includes("children") || text.includes("peer") || text.includes("committee")) {
+        inferredTheme = "Child participation mechanisms";
+        sensitivity = "Medium";
+      } else if (text.includes("clinic") || text.includes("screening") || text.includes("health") || text.includes("malnutrition")) {
+        inferredTheme = "Targeting and vulnerability assessment";
+        sensitivity = "Medium";
+      } else if (text.includes("storage") || text.includes("electricity") || text.includes("ventilation") || text.includes("canteen")) {
+        inferredTheme = "School infrastructure and storage constraints";
+        sensitivity = "Medium";
+      }
+    } else {
+      if (text.includes("women") || text.includes("girls") || text.includes("safety") || text.includes("evening") || text.includes("transport") || text.includes("lighting")) {
+        inferredTheme = "Women's safe participation";
+        sensitivity = "Medium";
+      } else if (text.includes("youth") || text.includes("young people") || text.includes("attendance") || text.includes("engagement")) {
+        inferredTheme = "Youth participation";
+        sensitivity = "Low";
+      } else if (text.includes("training") || text.includes("materials") || text.includes("language") || text.includes("translation")) {
+        inferredTheme = "Training accessibility";
+        sensitivity = "Low";
+      } else if (text.includes("reporting") || text.includes("partner") || text.includes("ngo") || text.includes("burden")) {
+        inferredTheme = "Partner coordination";
+        sensitivity = "Low";
+      } else if (text.includes("procurement") || text.includes("budget") || text.includes("delay") || text.includes("supplies")) {
+        inferredTheme = "Operational constraints";
+        sensitivity = "Low";
+      }
     }
 
     const tempId = `EV-TEMP-0${sandboxCount}` as `EV-${string}`;
@@ -246,7 +295,7 @@ export function FieldLearningStudioApp({
       qaStatus: "Needs Review",
     };
 
-    setEvidenceList((prev) => [newEvidenceEntry, ...prev]);
+    setSandboxEvidence((prev) => [newEvidenceEntry, ...prev]);
     setSandboxCount((prev) => prev + 1);
     setSandboxText("");
 
@@ -260,7 +309,7 @@ export function FieldLearningStudioApp({
       sensitivityFlag: sensitivity,
       summary: `User sandbox input: "${sandboxText.trim()}"`,
     };
-    setSourcesList((prev) => [newSourceEntry, ...prev]);
+    setSandboxSources((prev) => [newSourceEntry, ...prev]);
 
     // Walkthrough step mapping
     setDemoProgress((prev) => ({ ...prev, step1: true, step2: true }));
@@ -271,8 +320,8 @@ export function FieldLearningStudioApp({
   }
 
   function handleResetSandbox() {
-    setEvidenceList(demoCase.evidence);
-    setSourcesList(demoCase.sources);
+    setSandboxEvidence([]);
+    setSandboxSources([]);
     setSandboxCount(1);
     setSandboxText("");
     setHighlightedId(null);
@@ -316,7 +365,7 @@ export function FieldLearningStudioApp({
     const id = drawerItemId;
     if (id.startsWith("EV-") || id.startsWith("EV-TEMP-") || id.startsWith("TEMP-EV-")) {
       itemType = "Evidence Record";
-      const entry = evidenceList.find((e) => e.id === id);
+      const entry = activeDemoCase.evidence.find((e) => e.id === id as EvidenceEntryId);
       if (entry) {
         title = `Evidence Note: ${id}`;
         textContent = entry.rawEvidence;
@@ -334,7 +383,7 @@ export function FieldLearningStudioApp({
       }
     } else if (id.startsWith("SRC-") || id.startsWith("SRC-TEMP-")) {
       itemType = "Source Record";
-      const source = demoCase.sources.find((s) => s.id === id);
+      const source = activeDemoCase.sources.find((s) => s.id === id as SourceRecordId);
       if (source) {
         title = source.title;
         textContent = source.summary;
@@ -348,7 +397,7 @@ export function FieldLearningStudioApp({
       }
     } else if (id.startsWith("FND-")) {
       itemType = "Synthesis Finding";
-      const finding = demoCase.findings.find((f) => f.id === id);
+      const finding = activeDemoCase.findings.find((f) => f.id === id as FindingId);
       if (finding) {
         title = finding.statement;
         textContent = finding.explanation;
@@ -362,7 +411,7 @@ export function FieldLearningStudioApp({
       }
     } else if (id.startsWith("LES-")) {
       itemType = "Lesson Learned";
-      const lesson = demoCase.lessons.find((l) => l.id === id);
+      const lesson = activeDemoCase.lessons.find((l) => l.id === id as LessonLearnedId);
       if (lesson) {
         title = `Lesson: ${lesson.statement}`;
         textContent = `What worked / did not work: ${lesson.whatWorkedOrDidNotWork}`;
@@ -376,7 +425,7 @@ export function FieldLearningStudioApp({
       }
     } else if (id.startsWith("GP-")) {
       itemType = "Good Practice";
-      const practice = demoCase.goodPractices.find((g) => g.id === id);
+      const practice = activeDemoCase.goodPractices.find((g) => g.id === id as GoodPracticeId);
       if (practice) {
         title = practice.title;
         textContent = practice.description;
@@ -391,7 +440,7 @@ export function FieldLearningStudioApp({
       }
     } else if (id.startsWith("REC-")) {
       itemType = "Programmatic Recommendation";
-      const rec = demoCase.recommendations.find((r) => r.id === id);
+      const rec = activeDemoCase.recommendations.find((r) => r.id === id as RecommendationId);
       if (rec) {
         title = `Recommendation: ${rec.recommendation}`;
         textContent = `Expected benefit: ${rec.expectedBenefit}`;
@@ -544,7 +593,8 @@ export function FieldLearningStudioApp({
 
   return (
     <main>
-      <AppHeader demoCase={demoCase} />
+      <AppHeader demoCase={activeDemoCase} />
+      <CaseSelector selectedId={selectedCaseId} onSelect={handleSelectCase} />
 
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <WorkspaceTabs
@@ -561,7 +611,7 @@ export function FieldLearningStudioApp({
               setSandboxText={setSandboxText}
               onParse={handleParseSandbox}
               onReset={handleResetSandbox}
-              hasSandboxItems={evidenceList.length > demoCase.evidence.length}
+              hasSandboxItems={sandboxEvidence.length > 0}
               demoProgress={demoProgress}
             />
           ) : null}
@@ -572,7 +622,7 @@ export function FieldLearningStudioApp({
               filters={filters}
               onFiltersChange={setFilters}
               sensitivityFlags={sensitivityFlags}
-              sources={demoCase.sources}
+              sources={currentBaseCase.sources}
               stakeholderTypes={stakeholderTypes}
               themes={themes}
               traceHandlers={traceHandlers}
@@ -580,21 +630,21 @@ export function FieldLearningStudioApp({
           ) : null}
           {activeTab === "findings" ? (
             <FindingsSection
-              findings={demoCase.findings}
+              findings={currentBaseCase.findings}
               traceHandlers={traceHandlers}
               demoCase={activeDemoCase}
             />
           ) : null}
           {activeTab === "lessons" ? (
             <LessonsAndPractices
-              goodPractices={demoCase.goodPractices}
-              lessons={demoCase.lessons}
+              goodPractices={currentBaseCase.goodPractices}
+              lessons={currentBaseCase.lessons}
               traceHandlers={traceHandlers}
             />
           ) : null}
           {activeTab === "recommendations" ? (
             <RecommendationsSection
-              recommendations={demoCase.recommendations}
+              recommendations={currentBaseCase.recommendations}
               traceHandlers={traceHandlers}
               demoCase={activeDemoCase}
             />
@@ -626,14 +676,76 @@ export function FieldLearningStudioApp({
   );
 }
 
+function CaseSelector({
+  selectedId,
+  onSelect,
+}: {
+  selectedId: string;
+  onSelect: (id: string) => void;
+}) {
+  return (
+    <div className="border-b border-[var(--border)] bg-zinc-50/50 py-5 px-4">
+      <div className="mx-auto max-w-7xl">
+        <h3 className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] mb-3">
+          Select Active Field Synthesis Case
+        </h3>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {demoCases.map((c) => {
+            const isSelected = c.id === selectedId;
+            return (
+              <button
+                key={c.id}
+                onClick={() => onSelect(c.id)}
+                type="button"
+                className={`text-left p-4 rounded-lg border transition cursor-pointer flex flex-col justify-between ${
+                  isSelected
+                    ? "border-[var(--accent)] bg-white shadow-xs ring-1 ring-[var(--accent)]"
+                    : "border-[var(--border)] bg-white hover:bg-zinc-50 hover:border-zinc-300"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <span className="font-bold text-sm text-[var(--foreground)]">
+                      {c.project}
+                    </span>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                        c.id === "school-nutrition"
+                          ? "bg-teal-50 text-teal-800 border border-teal-200"
+                          : "bg-zinc-100 text-zinc-800 border border-zinc-200"
+                      }`}
+                    >
+                      {c.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[var(--muted)] mt-1.5 leading-relaxed font-medium">
+                    {c.subtitle}
+                  </p>
+                </div>
+                <div className="mt-3 flex items-center justify-between text-[10px] text-[var(--muted)] border-t border-zinc-100 pt-2.5 font-semibold">
+                  <span>{c.phaseStatus || "Phase 1"}</span>
+                  <span className="font-mono">
+                    {c.evidenceBase.sourceRecords} Sources · {c.evidenceBase.evidenceEntries} Evidence
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AppHeader({ demoCase }: { demoCase: DemoCase }) {
   return (
     <header className="border-b border-[var(--border)] bg-[var(--surface)]">
       <div className="mx-auto grid w-full max-w-7xl gap-5 px-4 py-6 sm:px-6 lg:grid-cols-[1.25fr_0.75fr] lg:px-8">
         <div>
           <div className="w-fit rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
-            Demo Mode: This version uses fictional data only. Do not enter real
-            sensitive field evidence.
+            {demoCase.id === "school-nutrition"
+              ? "Sanitized real-world-inspired demo. No identifiable field data is displayed."
+              : "Demo Mode: This version uses fictional data only. Do not enter real sensitive field evidence."}
           </div>
           <p className="mt-5 text-sm font-semibold uppercase text-[var(--accent)]">
             Field evidence to learning brief
@@ -748,7 +860,9 @@ function OverviewTab({
       <section className="rounded-lg border border-[var(--border)] bg-teal-50/10 p-8 shadow-xs relative overflow-hidden">
         <div className="max-w-3xl">
           <div className="inline-flex items-center gap-1.5 rounded bg-amber-50 border border-amber-200/60 px-2.5 py-1 text-xs font-semibold text-amber-900 mb-4 select-none">
-            Fictional Sandbox Demo Mode — Safe Workspace
+            {demoCase.id === "school-nutrition"
+              ? "Sanitized Real-World-Inspired Demo Case"
+              : "Fictional Sandbox Demo Mode — Safe Workspace"}
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-[var(--foreground)] text-wrap-balance">
             Turn field notes into traceable programme learning.
@@ -767,7 +881,10 @@ function OverviewTab({
             </button>
             <button 
               onClick={() => {
-                setSandboxText("Women report feeling unsafe at evening peacebuilding committee meetings due to poor street lighting and lack of public transport.");
+                const text = demoCase.id === "school-nutrition"
+                  ? "Children are skipping the dry meal snack because there is no clean drinking water available during lunch, and some report stomach aches from unpackaged cheese stored in open bins."
+                  : "Women report feeling unsafe at evening peacebuilding committee meetings due to poor street lighting and lack of public transport.";
+                setSandboxText(text);
                 document.getElementById("sandbox-note-textarea")?.focus();
                 document.getElementById("sandbox-note-section")?.scrollIntoView({ behavior: "smooth" });
               }}
@@ -984,24 +1101,49 @@ function OverviewTab({
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap gap-1.5 items-center">
                   <span className="text-[10px] font-bold uppercase text-amber-800 tracking-wider">Templates:</span>
-                  <button 
-                    className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition"
-                    onClick={() => setSandboxText("Women report feeling unsafe at evening peacebuilding committee meetings due to poor street lighting and lack of public transport.")}
-                  >
-                    Safe Access
-                  </button>
-                  <button 
-                    className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition"
-                    onClick={() => setSandboxText("Youth attendance at the conflict mediation training was high, but their active verbal engagement in the plenary sessions remained very low.")}
-                  >
-                    Youth Engagement
-                  </button>
-                  <button 
-                    className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition"
-                    onClick={() => setSandboxText("Local partner staff spend more than 40% of their working hours compiling donor compliance reports, leaving little time for direct field engagement.")}
-                  >
-                    Reporting Burden
-                  </button>
+                  {demoCase.id === "school-nutrition" ? (
+                    <>
+                      <button 
+                        className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition font-semibold"
+                        onClick={() => setSandboxText("Children are skipping the dry meal snack because there is no clean drinking water available during lunch, and some report stomach aches from unpackaged cheese stored in open bins.")}
+                      >
+                        Water & Spoilage
+                      </button>
+                      <button 
+                        className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition font-semibold"
+                        onClick={() => setSandboxText("Social workers report that fathers do not attend any school nutrition PTA sessions, claiming cooking is a female duty, but they control the household food budget.")}
+                      >
+                        Caregiver Roles
+                      </button>
+                      <button 
+                        className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition font-semibold"
+                        onClick={() => setSandboxText("Teachers state they are expected to deliver weekly health and nutrition lessons but have never received training materials or guidelines.")}
+                      >
+                        Teacher Capacity
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button 
+                        className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition font-semibold"
+                        onClick={() => setSandboxText("Women report feeling unsafe at evening peacebuilding committee meetings due to poor street lighting and lack of public transport.")}
+                      >
+                        Safe Access
+                      </button>
+                      <button 
+                        className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition font-semibold"
+                        onClick={() => setSandboxText("Youth committee attendance declines because meetings are unpredictable and do not link to practical local action budgets.")}
+                      >
+                        Youth Engagement
+                      </button>
+                      <button 
+                        className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition font-semibold"
+                        onClick={() => setSandboxText("Local partner staff spend more than 40% of their working hours compiling donor compliance reports, leaving little time for direct field engagement.")}
+                      >
+                        Reporting Burden
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 <button
@@ -1234,7 +1376,7 @@ function EvidenceMatrix({
                     />
                     {isSandbox && (
                       <span className="text-[9px] font-bold uppercase text-amber-700 bg-amber-50 border border-amber-200/50 rounded px-1.5 py-0.5 animate-pulse">
-                        Local Sandbox Note
+                        Sandbox evidence item — local demo only, not validated.
                       </span>
                     )}
                   </div>

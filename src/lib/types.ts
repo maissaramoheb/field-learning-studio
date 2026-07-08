@@ -98,9 +98,17 @@ export interface LearningBriefSection {
 }
 
 export interface DemoCase {
+  id: string;
   project: string;
   subtitle: string;
+  status: string;
+  safetyNote?: string;
+  phaseStatus?: string;
+  futurePhase?: string;
   context: string;
+  purposeAndScope?: string;
+  keyThemes?: string[];
+  safeguardingNotes?: string;
   evidenceBase: {
     sourceRecords: number;
     evidenceEntries: number;

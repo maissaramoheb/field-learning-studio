@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.3 - School Nutrition Case and Case Switcher Integration
+
+- **Multi-Case Switcher:** Designed a professional card-based `CaseSelector` component above the workspace tabs, allowing users to switch cases dynamically.
+- **Sanitized Real field Case:** Integrated the real-world-inspired **School Nutrition & Child Wellbeing Field Learning Case** based on a field mission tracker.
+- **Strict Data Safety:** Generalised school names, anonymised stakeholder/team names, paraphrased quotes, and abstract protection categories.
+- **Case-Specific Workspace Rules:** Added custom warning disclaimers, custom sandbox templates, case-aware keyword parsing, and dynamic QA checklists (such as protection safety checks).
+- **ESLint & Build Optimization:** Refactored state arrays into side-effect-free computed states to eliminate cascading renders and ESLint warnings.
+
 ## v0.2.2 - v0.2 Product-Level UI/UX Redesign Sprint
 
 - **Overview Page Redesign:** Structured the landing page to feature a prominent hero section with a clear headline ("Turn field notes into traceable programme learning.") and a professional Suggested Walkthrough path checklist progress bar.

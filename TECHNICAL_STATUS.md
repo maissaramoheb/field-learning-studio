@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.2-demo interactive workbench is live. Phase 2 planning has started on `feature/phase-2-real-case-demo` to prepare a sanitized real-world-inspired nutrition and child wellbeing demo case without importing raw data.
+v0.2.3 is live. Structurally refactored the app to support a multi-case architecture. Integrated the sanitized, real-world-inspired **School Nutrition & Child Wellbeing Field Learning Case** and a professional case selector above the workspace tabs. All validation steps passed.
 
 ## Completed Items
 
@@ -29,7 +29,13 @@ v0.2-demo interactive workbench is live. Phase 2 planning has started on `featur
   - Designed simulated QA Audit scanner animation on QA Review tab.
   - Structured final Learning Brief preview as a premium white sheet document with collapsible raw Markdown textarea.
   - Rendered a visual clickable pipeline flowchart on the Overview landing page.
-- Created `docs/phase_2_real_case_demo_plan.md` with anonymization rules, data mapping, proposed sanitized case structure, findings, lessons, good practices, recommendations, QA/safeguarding logic, and an approval checkpoint before any Phase 2 app coding.
+- Created `docs/phase_2_real_case_demo_plan.md` with anonymization rules, data mapping, proposed sanitized case structure, findings, lessons, good practices, recommendations, QA/safeguarding logic, and an approval checkpoint.
+- Implemented Phase 2 Real-Case Demo:
+  - Created a dynamic multi-case architecture with a clean case selector switcher component placed above workspace tabs.
+  - Integrated the sanitized, real-world-inspired **School Nutrition & Child Wellbeing Field Learning Case** based on a real field mission tracker.
+  - Handled strict safety rules (generalizing schools to School A/B/C/D, removing team names, paraphrasing direct quotes).
+  - Added custom case-specific warning disclaimers ("Sanitized real-world-inspired demo. No identifiable field data is displayed.") and case-aware keyword parsing rules for Sandbox notes.
+  - Adapted the dynamic QA review checklist and learning brief templates for case-specific safety policies.
 
 ## Pending Items
 
@@ -37,20 +43,17 @@ v0.2-demo interactive workbench is live. Phase 2 planning has started on `featur
 - Review the Antigravity P0 UX changes with target users.
 - Add editable evidence forms only if still needed after demo review.
 - Consider localStorage persistence only after user validation.
-- Review and approve Phase 2 anonymization, safeguarding, and data mapping plan before implementing any second demo case.
 
 ## Known Risks
 
 - Scope creep before user validation.
 - Overbuilding into SaaS features too early.
 - Accidental handling of sensitive field evidence.
-- Accidental exposure of child-sensitive or school-identifiable field information during Phase 2 case preparation.
-- Weak export quality if traceability is not clear.
 - `npm audit --omit=dev` reports two moderate findings for PostCSS inside the Next.js dependency tree. npm suggests `npm audit fix --force`, but that would downgrade Next.js to an old breaking version, so it was not applied.
 
 ## Next Recommended Step
 
-Review `docs/phase_2_real_case_demo_plan.md` before coding any second demo case or touching the real field mission tracker.
+Initiate early pilot outreach using the new interactive case selector and School Nutrition real-world demo case.
 
 ## Validation Commands
 
@@ -61,12 +64,12 @@ npm run build
 
 ## Validation Results
 
-- `npm run lint`: passed for current docs-only Phase 2 planning branch.
-- `npm run build`: passed for current docs-only Phase 2 planning branch.
+- `npm run lint`: passed (0 errors, 0 warnings).
+- `npm run build`: passed (Next.js production static bundle generated).
 - Local preview HTTP check: passed with `200 OK`.
 - Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (Smoke tested: passed with `200 OK`).
 - Tests: not configured.
 
 ## Last Update
 
-2026-07-08: Completed the v0.2 product UI/UX redesign sprint, upgrading the demonstrator to a premium, guided workspace workbench with an interpretation-first evidence card layout, visual Traceability Chains, subtle Suggested Walkthrough path progress, and simple QA audit summary indicators.
+2026-07-08: Structurally refactored the app to support a multi-case architecture, added a case selector switcher above the tabs, and integrated the sanitized real-world-inspired School Nutrition field case.

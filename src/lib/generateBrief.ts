@@ -40,6 +40,22 @@ export function generateLearningBriefMarkdown(demoCase: DemoCase): string {
     )
     .join("\n");
 
+  const purposeAndScopeSection = demoCase.purposeAndScope
+    ? `\n\n## Purpose and Scope\n\n${demoCase.purposeAndScope}`
+    : "";
+
+  const keyThemesSection = demoCase.keyThemes
+    ? `\n\n## Key Themes\n\n${bulletList(demoCase.keyThemes)}`
+    : "";
+
+  const safeguardingSection = demoCase.safeguardingNotes
+    ? `\n\n## Safeguarding and Sensitivity Notes\n\n${demoCase.safeguardingNotes}`
+    : "";
+
+  const safetyNote = demoCase.id === "school-nutrition"
+    ? "This case is a sanitized demo derived from prior fieldwork. No raw identifiable field data is included."
+    : "This demo brief uses fictional data only. Do not use v0.1 with real sensitive field evidence.";
+
   return `# ${demoCase.project}: Learning Brief
 
 ## Subtitle
@@ -52,7 +68,7 @@ ${demoCase.executiveSummary}
 
 ## Key Messages
 
-${bulletList(demoCase.keyMessages)}
+${bulletList(demoCase.keyMessages)}${purposeAndScopeSection}${keyThemesSection}
 
 ## Main Findings
 
@@ -68,7 +84,7 @@ ${goodPractices}
 
 ## Recommendations
 
-${recommendations}
+${recommendations}${safeguardingSection}
 
 ## Limitations
 
@@ -80,5 +96,5 @@ ${traceability}
 
 ## Safety Note
 
-This demo brief uses fictional data only. Do not use v0.1 with real sensitive field evidence.`;
+${safetyNote}`;
 }
