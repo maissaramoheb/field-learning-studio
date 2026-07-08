@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.1.1 safe demo MVP includes Impeccable design context initialized and passes lint/build.
+v0.1.3 safe demo MVP includes Impeccable P1 interactive traceability fixes and active tab updates, passing lint/build.
 
 ## Completed Items
 
@@ -19,6 +19,7 @@ v0.1.1 safe demo MVP includes Impeccable design context initialized and passes l
 - Made evidence, finding, lesson, good practice, and recommendation IDs interactive with tab switching, scroll, and temporary highlight behavior.
 - Replaced raw-only brief display with a styled donor-ready learning brief preview while preserving Markdown copy/export.
 - Impeccable design context installed and initialized with PRODUCT.md, DESIGN.md, and live configuration sidecars.
+- Implemented Impeccable P1 design fixes: converted all source and QA ID pills into clickable, accessible TraceButton anchors with tab switching, scrolling, and active highlight, and refined active navigation tab visual feedback.
 
 ## Pending Items
 
@@ -55,4 +56,4 @@ npm run build
 
 ## Last Update
 
-2026-07-08: Impeccable design context installed and initialized with clean lint/build validation.
+2026-07-08: Impeccable P1 interactive traceability fixes and active tab updates implemented with clean lint/build validation.

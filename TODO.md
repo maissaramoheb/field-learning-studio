@@ -10,10 +10,11 @@
 - [x] Build learning brief preview.
 - [x] Build Markdown export.
 - [x] Run lint/build.
-- [x] Convert long page to tabbed workspace layout.
-- [x] Make traceability IDs interactive with scroll/highlight behavior.
-- [x] Replace raw-only Markdown preview with styled donor-ready brief preview while preserving Markdown copy.
-- [x] Install and initialize Impeccable design context (PRODUCT.md, DESIGN.md, and live configuration).
+- [x] Converted long page to tabbed workspace layout.
+- [x] Made traceability IDs interactive with scroll/highlight behavior.
+- [x] Replaced raw-only Markdown preview with styled donor-ready brief preview while preserving Markdown copy.
+- [x] Installed and initialized Impeccable design context (PRODUCT.md, DESIGN.md, and live configuration).
+- [x] Implemented Impeccable P1 interactive traceability (SRC- and QA- ID pills as button controls, tab mappings, dynamic highlight) and restyled navigation tabs.
 
 ## P1
 

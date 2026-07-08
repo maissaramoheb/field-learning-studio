@@ -206,7 +206,7 @@ export function FieldLearningStudioApp({
             />
           ) : null}
           {activeTab === "qa" ? (
-            <QAReviewSection qaItems={qaItems} />
+            <QAReviewSection qaItems={qaItems} traceHandlers={traceHandlers} />
           ) : null}
           {activeTab === "brief" ? (
             <LearningBriefSection
@@ -277,19 +277,19 @@ function WorkspaceTabs({
   return (
     <nav
       aria-label="Field Learning Studio workspace"
-      className="sticky top-0 z-20 rounded-lg border border-[var(--border)] bg-white/95 p-2 shadow-sm backdrop-blur"
+      className="sticky top-0 z-20 border-b border-[var(--border)] bg-white/95 px-4 shadow-sm backdrop-blur"
     >
-      <div className="flex gap-2 overflow-x-auto" role="tablist">
+      <div className="flex gap-6 overflow-x-auto" role="tablist">
         {workspaceTabs.map((tab) => {
           const isActive = activeTab === tab.id;
 
           return (
             <button
               aria-selected={isActive}
-              className={`min-h-10 min-w-fit rounded-lg px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 ${
+              className={`min-h-12 min-w-fit px-1 py-3 text-sm font-semibold transition focus:outline-none focus:text-[var(--accent)] border-b-2 cursor-pointer ${
                 isActive
-                  ? "bg-[var(--accent)] text-white shadow-sm"
-                  : "text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+                  ? "border-[var(--accent)] text-[var(--accent)]"
+                  : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--border)]"
               }`}
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
@@ -409,12 +409,18 @@ function EvidenceTab({
         themes={themes}
         traceHandlers={traceHandlers}
       />
-      <SourceInventory sources={sources} />
+      <SourceInventory sources={sources} traceHandlers={traceHandlers} />
     </div>
   );
 }
 
-function SourceInventory({ sources }: { sources: SourceRecord[] }) {
+function SourceInventory({
+  sources,
+  traceHandlers,
+}: {
+  sources: SourceRecord[];
+  traceHandlers: TraceHandlers;
+}) {
   return (
     <Section
       description="A compact inventory of the fictional source records behind the evidence matrix."
@@ -424,11 +430,19 @@ function SourceInventory({ sources }: { sources: SourceRecord[] }) {
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {sources.map((source) => (
           <article
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
+            className={traceCardClass(
+              source.id,
+              traceHandlers.highlightedId,
+              "p-4",
+            )}
+            id={traceDomId(source.id)}
             key={source.id}
           >
             <div className="flex flex-wrap items-start justify-between gap-2">
-              <Pill>{source.id}</Pill>
+              <TraceButton
+                id={source.id}
+                onSelect={traceHandlers.onTraceSelect}
+              />
               <StatusBadge label={source.sensitivityFlag} tone="sensitivity" />
             </div>
             <h3 className="mt-3 text-base font-semibold">{source.title}</h3>
@@ -549,7 +563,10 @@ function EvidenceMatrix({
                       />
                     </TableCell>
                     <TableCell>
-                      <Pill>{entry.sourceId}</Pill>
+                      <TraceButton
+                        id={entry.sourceId}
+                        onSelect={traceHandlers.onTraceSelect}
+                      />
                     </TableCell>
                     <TableCell>{entry.stakeholderType}</TableCell>
                     <TableCell className="max-w-[300px] leading-6">
@@ -835,7 +852,13 @@ function RecommendationsSection({
   );
 }
 
-function QAReviewSection({ qaItems }: { qaItems: QAReviewItem[] }) {
+function QAReviewSection({
+  qaItems,
+  traceHandlers,
+}: {
+  qaItems: QAReviewItem[];
+  traceHandlers: TraceHandlers;
+}) {
   return (
     <Section
       description="The checklist flags traceability, sensitivity, overclaiming, and donor-readiness risks."
@@ -845,11 +868,19 @@ function QAReviewSection({ qaItems }: { qaItems: QAReviewItem[] }) {
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {qaItems.map((item) => (
           <article
-            className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
+            className={traceCardClass(
+              item.id,
+              traceHandlers.highlightedId,
+              "p-4",
+            )}
+            id={traceDomId(item.id)}
             key={item.id}
           >
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <Pill>{item.id}</Pill>
+              <TraceButton
+                id={item.id}
+                onSelect={traceHandlers.onTraceSelect}
+              />
               <QAStatusBadge value={item.status} />
             </div>
             <h3 className="mt-3 text-base font-semibold">{item.title}</h3>
@@ -1260,8 +1291,10 @@ function TraceButton({
 }) {
   return (
     <button
-      className="inline-flex min-h-7 items-center rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1 font-mono text-xs font-semibold text-[var(--accent-strong)] transition hover:border-[var(--accent)] hover:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
+      className="inline-flex min-h-7 items-center rounded-lg border border-teal-200 bg-teal-50 px-2.5 py-1 font-mono text-xs font-semibold text-[var(--accent-strong)] cursor-pointer transition hover:border-[var(--accent)] hover:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
       onClick={() => onSelect(id)}
+      title={`Trace and view details for ${id}`}
+      aria-label={`Trace and view details for ${id}`}
       type="button"
     >
       {id}
@@ -1269,13 +1302,6 @@ function TraceButton({
   );
 }
 
-function Pill({ children }: { children: React.ReactNode }) {
-  return (
-    <span className="inline-flex min-h-7 items-center rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-2.5 py-1 font-mono text-xs font-semibold text-[var(--accent-strong)]">
-      {children}
-    </span>
-  );
-}
 
 function StrengthBadge({ value }: { value: EvidenceStrength }) {
   const className =
@@ -1426,7 +1452,7 @@ function traceDomId(id: string) {
 }
 
 function tabForTraceId(id: string): WorkspaceTabId {
-  if (id.startsWith("EV-")) {
+  if (id.startsWith("EV-") || id.startsWith("SRC-")) {
     return "evidence";
   }
 

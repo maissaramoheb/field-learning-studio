@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.3 - Impeccable P1 Interactive Traceability Fixes
+
+- Converted all source (`SRC-`) and QA checklist (`QA-`) ID pills into clickable, accessible `TraceButton` controls.
+- Linked source IDs in the Evidence Matrix table to highlight and scroll to source records cards.
+- Restyled the sticky tab navigation bar to display as a professional bottom-border institutional tab header.
+- Added comprehensive `title` and `aria-label` accessibility descriptors to all trace buttons.
+- Removed unused legacy components (`Pill`) to maintain clean linter compliance.
+- Verified linting and static compilation build passes.
+
 ## v0.1.2 - Impeccable Design Context Integration
 
 - Installed and configured Impeccable CLI design harness plugin.

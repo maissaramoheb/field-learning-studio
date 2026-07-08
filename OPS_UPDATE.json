@@ -1,10 +1,10 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "impeccable_context_initialized",
+  "status": "impeccable_p1_fixes_complete",
   "priority": "high",
-  "current_phase": "v0.1.1 safe demo MVP",
-  "next_action": "Begin fine-tuning visual design components and layout structure using Impeccable commands",
+  "current_phase": "v0.1.3 safe demo MVP",
+  "next_action": "Demo P1 interactive traceability fixes and active tab updates, then review P2 visual styling enhancements",
   "blocker": null,
   "decision_needed": null,
   "repo_url": null,
@@ -22,6 +22,6 @@
     "Weak export quality",
     "npm audit reports two moderate PostCSS findings inside the Next.js dependency tree; npm's forced fix would downgrade Next.js and was not applied"
   ],
-  "recommended_next_step": "Run structured design critiques or layout refinements using Impeccable to align the UI with institutional report visual guidelines",
-  "notion_page_update": "Field Learning Studio v0.1.1 has initialized the Impeccable design context, creating PRODUCT.md and DESIGN.md specifications to safeguard institutional, calm, and traceably-sound design guidelines during subsequent frontend iterations."
+  "recommended_next_step": "Obtain user feedback on interactive ID pills and active tabs before addressing P2 density and progressive disclosure items",
+  "notion_page_update": "Field Learning Studio v0.1.3 now implements Impeccable P1 critique findings. Converted all source and QA ID pills into clickable TraceButton elements with tab navigation, scroll, and highlight behavior, and refined workspace tab highlights."
 }
