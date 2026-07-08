@@ -6,6 +6,7 @@
 - Improved recommendation cards density: laid out the 8 metadata fields into a structured 2-column key-value grid using a new CompactField helper component.
 - Refined global typography: updated the CSS body font family in `globals.css` to prefer a clean, system-safe Inter-style sans-serif stack.
 - Deployed the demonstrator live to Vercel (https://field-learning-studio.vercel.app/) and performed a live browser smoke test.
+- Created the Field Learning Studio Demo & Validation Pack v0.1 (docs/demo_validation_pack_v01.md) to support founder pitches, user demo sessions, qualitative feedback checklists, and early paid pilot offers.
 - Verified linting and static compilation build compatibility.
 
 ## v0.1.3 - Impeccable P1 Interactive Traceability Fixes

@@ -14,6 +14,10 @@ v0.1.4-demo MVP. This is a product demonstrator and validation tool, not a produ
 - **Deployment Platform:** Vercel
 - **Current Version:** v0.1.4-demo (Live Demo MVP)
 
+## Documentation
+
+- [Demo & Validation Pack v0.1](file:///Users/maissaraselim/Library/CloudStorage/OneDrive-Personal/Consultancy/Apps/Field%20Learning%20Studio/docs/demo_validation_pack_v01.md)
+
 ## Setup
 
 ```bash

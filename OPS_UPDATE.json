@@ -4,7 +4,7 @@
   "status": "deployed_live_demo",
   "priority": "high",
   "current_phase": "v0.1.4-demo MVP",
-  "next_action": "Conduct live user review feedback sessions using the Vercel URL",
+  "next_action": "Use the live demo and demo validation pack for 5–7 target user conversations",
   "blocker": null,
   "decision_needed": null,
   "repo_url": null,
