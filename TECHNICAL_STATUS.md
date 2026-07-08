@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.3 product polish is implemented on branch `ui/impeccable-v0.3-product-polish`. The app now presents as a more professional evidence-to-learning workbench with stronger first-screen positioning, a richer case selector, clearer workflow map, improved traceability drawer, refined evidence cards, safeguard-oriented QA review, and a more structured donor-ready brief preview. All validation steps passed locally.
+v0.4.0 Visual System Redesign is implemented on branch `ui/v0.4-visual-system-redesign`. The visual layout has been overhaulled to support an "institutional premium evidence-to-learning workbench" by restricting page containers to `max-w-6xl`, calming down teal overuse via slate trace buttons, styling A4 briefs with white sheets, and laying out recommendations in priority sections with clean 2-column grids. All validation steps passed locally.
 
 ## Completed Items
 
@@ -82,4 +82,4 @@ npm run build
 
 ## Last Update
 
-2026-07-08: Implemented the v0.3 Impeccable product polish branch and validated with lint/build.
+2026-07-08: Implemented the v0.4.0 Visual System Redesign sprint, overhauling page shell container widths, trace pills visual weights, recommendations layout, and brief doc preview, and verified clean lint/build status.

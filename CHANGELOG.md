@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.4.0 - Visual System Redesign Sprint
+
+- **Container Width Discipline:** Changed max-width constraints on the page shell, app header, and tab panels to `max-w-6xl` to optimize reading scale on larger screens.
+- **Calmer Badges and ID Pills:** Updated clickable trace anchors to render as clean, neutral grey monospaced tags that only color in teal on hover. Polished status badges to use tracked uppercase text in rounded pills.
+- **Grouped Priority Recommendations:** Overhauled the rigid 3-column layout on the Recommendations tab into a single unified layout grouped vertically by priority sections, with recommendations in each priority group rendered in a clean, responsive 2-column grid.
+- **Interpretation-First Evidence Cards:** Removed quotation marks from paraphrased observation summaries and redesigned the card content structure. Used clean grey left-border columns for raw evidence and green left-border blocks for interpreted meaning.
+- **Clean Deliverable Canvas:** Styled the final Brief Preview to look like a premium document sheet using white backgrounds, slate card borders, and professional cap margins.
+- **Workflow Overview Alignment:** Constrained the Suggested Walkthrough Path cards and flowchart pipeline to align perfectly with the new visual layout.
+
 ## v0.3.0 - Impeccable Product Polish Sprint
 
 - **Pre-Implementation Review:** Added `docs/impeccable_v0.3_ui_review.md` documenting strengths, weaknesses, Impeccable critique findings, priorities, design direction, sprint scope, exclusions, and risks before coding.

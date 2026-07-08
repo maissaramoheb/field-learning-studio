@@ -44,6 +44,12 @@
   - [x] Strengthen first-screen product promise and value pillars
   - [x] Upgrade case selector into a professional demo pathway chooser
   - [x] Improve workflow map, guided demo path, traceability drawer, evidence cards, QA review, and brief preview
+- [x] Execute v0.4 Visual System Redesign:
+  - [x] Constrain container shell layout widths to max-w-6xl
+  - [x] Calm down ID pills to grey slate monospaced badges
+  - [x] Group recommendations in priority sections with 2-column card grids
+  - [x] Remove quotation marks from evidence matrix card layouts
+  - [x] Style brief document preview as white paper sheets
 - [ ] Review the Next.js/PostCSS audit finding and update safely when a compatible patched Next.js release is available.
 
 ## P2

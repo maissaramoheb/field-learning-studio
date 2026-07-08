@@ -641,7 +641,7 @@ export function FieldLearningStudioApp({
       <AppHeader demoCase={activeDemoCase} />
       <CaseSelector selectedId={selectedCaseId} onSelect={handleSelectCase} />
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
         <WorkspaceTabs
           activeTab={activeTab}
           onTabChange={handleTabChange}
@@ -752,22 +752,21 @@ function CaseSelector({
 }) {
   return (
     <div
-      className="border-b border-[var(--border)] bg-[var(--background)] px-4 py-5"
+      className="border-b border-slate-200 bg-slate-50/50 px-4 py-6"
       id="case-selector"
     >
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+      <div className="mx-auto max-w-6xl">
+        <div className="mb-4 flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase text-[var(--accent)]">
-              Choose a demo pathway
+            <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--accent)]">
+              Demo Pathway Chooser
             </p>
-            <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">
-              Select the evidence context you want to inspect
+            <h2 className="mt-1 text-lg font-bold text-slate-800">
+              Select Case Context
             </h2>
           </div>
-          <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Each case uses static demo data to show how field evidence becomes
-            findings, recommendations, QA checks, and a donor-ready brief.
+          <p className="max-w-xl text-xs leading-relaxed text-slate-500 font-medium">
+            Each case maps a specific project framework using sanitized or fictional field monitoring data to demonstrate traceability logic.
           </p>
         </div>
 
@@ -780,69 +779,63 @@ function CaseSelector({
                 key={c.id}
                 onClick={() => onSelect(c.id)}
                 type="button"
-                className={`text-left rounded-lg border p-5 transition cursor-pointer ${
+                className={`text-left rounded-lg border p-5 transition cursor-pointer shadow-2xs flex flex-col justify-between ${
                   isSelected
                     ? "border-[var(--accent)] bg-white ring-1 ring-[var(--accent)]"
-                    : "border-[var(--border)] bg-white hover:border-zinc-300 hover:bg-zinc-50"
+                    : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80"
                 }`}
               >
                 <div>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <span className="text-base font-semibold leading-6 text-[var(--foreground)]">
+                  <div className="flex items-center justify-between gap-3 flex-wrap">
+                    <span className="text-sm font-bold text-slate-800">
                       {c.project}
                     </span>
                     <span
-                      className={`inline-flex items-center rounded px-2 py-1 text-[10px] font-bold uppercase ${
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
                         c.id === "school-nutrition"
                           ? "border border-teal-200 bg-teal-50 text-teal-800"
-                          : "border border-zinc-200 bg-zinc-100 text-zinc-800"
+                          : "border border-slate-200 bg-slate-50 text-slate-700"
                       }`}
                     >
                       {c.status}
                     </span>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                  <p className="mt-1.5 text-xs text-slate-500 font-medium leading-relaxed">
                     {c.subtitle}
                   </p>
                 </div>
 
-                <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+                <div className="mt-4 pt-3 border-t border-slate-100 grid gap-x-4 gap-y-2 text-[11px] leading-relaxed sm:grid-cols-2">
                   <div>
-                    <dt className="font-semibold uppercase text-[var(--muted)]">
+                    <span className="font-semibold text-slate-400 block uppercase tracking-wider text-[8px]">
                       Use case
-                    </dt>
-                    <dd className="mt-1 leading-5 text-[var(--foreground)]">
-                      {profile.useCase}
-                    </dd>
+                    </span>
+                    <span className="text-slate-700 font-medium">{profile.useCase}</span>
                   </div>
                   <div>
-                    <dt className="font-semibold uppercase text-[var(--muted)]">
-                      Evidence base
-                    </dt>
-                    <dd className="mt-1 font-mono leading-5 text-[var(--foreground)]">
-                      {c.evidenceBase.sourceRecords} sources / {c.evidenceBase.evidenceEntries} evidence entries
-                    </dd>
+                    <span className="font-semibold text-slate-400 block uppercase tracking-wider text-[8px]">
+                      Evidence registry
+                    </span>
+                    <span className="text-slate-700 font-mono font-medium">
+                      {c.evidenceBase.sourceRecords} sources / {c.evidenceBase.evidenceEntries} evidence items
+                    </span>
                   </div>
                   <div>
-                    <dt className="font-semibold uppercase text-[var(--muted)]">
-                      Sensitivity level
-                    </dt>
-                    <dd className="mt-1 leading-5 text-[var(--foreground)]">
-                      {profile.sensitivity}
-                    </dd>
+                    <span className="font-semibold text-slate-400 block uppercase tracking-wider text-[8px]">
+                      Sensitivity status
+                    </span>
+                    <span className="text-slate-700 font-medium">{profile.sensitivity}</span>
                   </div>
                   <div>
-                    <dt className="font-semibold uppercase text-[var(--muted)]">
+                    <span className="font-semibold text-slate-400 block uppercase tracking-wider text-[8px]">
                       Demonstrates
-                    </dt>
-                    <dd className="mt-1 leading-5 text-[var(--foreground)]">
-                      {profile.demonstrates}
-                    </dd>
+                    </span>
+                    <span className="text-slate-700 font-medium">{profile.demonstrates}</span>
                   </div>
-                </dl>
+                </div>
 
-                <div className="mt-4 border-t border-[var(--border)] pt-3">
-                  <p className="text-xs font-medium leading-5 text-[var(--muted)]">
+                <div className="mt-4 border-t border-slate-100 pt-3">
+                  <p className="text-[10px] font-semibold leading-relaxed text-[var(--accent)]">
                     {profile.note}
                   </p>
                 </div>
@@ -857,45 +850,49 @@ function CaseSelector({
 
 function AppHeader({ demoCase }: { demoCase: DemoCase }) {
   return (
-    <header className="border-b border-[var(--border)] bg-[var(--surface)]">
-      <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.25fr_0.75fr] lg:px-8">
+    <header className="border-b border-slate-200 bg-white shadow-2xs">
+      <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.3fr_0.7fr] lg:px-8">
         <div>
           <div className="flex flex-wrap gap-2">
-            <span className="inline-flex w-fit rounded border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]">
-              v0.3 demo workbench
+            <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-600">
+              v0.4 Workbench Redesign
             </span>
-            <span className="inline-flex w-fit rounded border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
+            <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-bold uppercase tracking-wider ${
+              demoCase.id === "school-nutrition"
+                ? "border-teal-200 bg-teal-50 text-teal-800"
+                : "border-amber-200 bg-amber-50 text-amber-900"
+            }`}>
               {demoCase.id === "school-nutrition"
-                ? "Sanitized demo - no identifiable field data"
-                : "Fictional demo - local-only sandbox"}
+                ? "Sanitized real-world-inspired demo"
+                : "Fictional Sandbox Demo Case"}
             </span>
           </div>
-          <p className="mt-6 text-sm font-semibold uppercase text-[var(--accent)]">
-            Evidence-to-learning workspace
+          <p className="mt-6 text-[10px] font-bold uppercase tracking-wider text-[var(--accent)]">
+            Evidence-to-learning synthesis engine
           </p>
-          <h1 className="mt-2 max-w-4xl text-4xl font-semibold tracking-normal text-[var(--foreground)] sm:text-5xl">
+          <h1 className="mt-2 text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900">
             Turn field evidence into traceable programme learning.
           </h1>
-          <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--muted)]">
-            Field Learning Studio helps MEL, evaluation, and programme teams
-            transform raw monitoring notes into findings, lessons,
-            recommendations, QA checks, and a structured learning brief.
+          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-500">
+            Field Learning Studio helps MEL, evaluation, and donor-reporting teams
+            transform raw field notes and source registries into evidence-backed findings,
+            reusable lessons, structured recommendations, QA reviews, and a clean learning brief.
           </p>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <div className="mt-8 grid gap-4 sm:grid-cols-3">
             {[
-              ["Structure messy evidence", "Turn notes and source records into a coded evidence matrix."],
-              ["Trace every claim", "Follow IDs from source to evidence, finding, recommendation, QA, and brief."],
-              ["Produce donor-ready learning", "Preview a measured brief while preserving Markdown export."],
+              ["Structure evidence", "Map qualitative notes and raw source records into a clean, themed evidence matrix."],
+              ["Trace every outcome", "Follow auditable ID pathways between sources, findings, recommendations, and briefs."],
+              ["Deliver donor briefs", "Review compliance checkpoints and preview print-ready documents with trace annexes."],
             ].map(([title, body]) => (
               <div
-                className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
+                className="rounded-lg border border-slate-100 bg-slate-50/50 p-4 shadow-2xs"
                 key={title}
               >
-                <h2 className="text-sm font-semibold text-[var(--foreground)]">
+                <h3 className="text-xs font-bold uppercase tracking-wide text-slate-800">
                   {title}
-                </h2>
-                <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                </h3>
+                <p className="mt-2 text-[11px] leading-relaxed text-slate-500">
                   {body}
                 </p>
               </div>
@@ -903,26 +900,28 @@ function AppHeader({ demoCase }: { demoCase: DemoCase }) {
           </div>
         </div>
 
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-5">
-          <p className="text-xs font-semibold uppercase text-[var(--accent)]">
-            Active demo case
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold">{demoCase.project}</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            {demoCase.subtitle}
-          </p>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <Metric label="Sources" value={demoCase.evidenceBase.sourceRecords} />
-            <Metric label="Evidence" value={demoCase.evidenceBase.evidenceEntries} />
-            <Metric label="Findings" value={demoCase.evidenceBase.findings} />
-            <Metric
-              label="Recommendations"
-              value={demoCase.evidenceBase.recommendations}
-            />
+        <div className="rounded-lg border border-slate-200 bg-slate-50/50 p-6 flex flex-col justify-between shadow-2xs">
+          <div>
+            <p className="text-[9px] font-bold uppercase tracking-wider text-[var(--accent)]">
+              Active demo context
+            </p>
+            <h2 className="mt-1.5 text-xl font-bold text-slate-800">{demoCase.project}</h2>
+            <p className="mt-1 text-xs leading-relaxed text-slate-500 font-medium">
+              {demoCase.subtitle}
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <Metric label="Sources" value={demoCase.evidenceBase.sourceRecords} />
+              <Metric label="Evidence" value={demoCase.evidenceBase.evidenceEntries} />
+              <Metric label="Findings" value={demoCase.evidenceBase.findings} />
+              <Metric
+                label="Recommendations"
+                value={demoCase.evidenceBase.recommendations}
+              />
+            </div>
           </div>
-          <p className="mt-5 rounded-lg border border-[var(--border)] bg-white px-4 py-3 text-xs leading-5 text-[var(--muted)]">
+          <div className="mt-6 rounded-md border border-amber-200 bg-amber-50/50 px-4 py-3 text-[11px] leading-relaxed text-amber-900 font-medium shadow-2xs">
             {demoCase.safetyNote}
-          </p>
+          </div>
         </div>
       </div>
     </header>
@@ -939,19 +938,19 @@ function WorkspaceTabs({
   return (
     <nav
       aria-label="Field Learning Studio workspace"
-      className="sticky top-0 z-20 border-b border-[var(--border)] bg-white/95 px-4 shadow-sm backdrop-blur"
+      className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/95 py-2.5 px-3 shadow-xs backdrop-blur rounded-lg mb-6"
     >
-      <div className="flex gap-6 overflow-x-auto" role="tablist">
+      <div className="flex gap-1.5 overflow-x-auto" role="tablist">
         {workspaceTabs.map((tab) => {
           const isActive = activeTab === tab.id;
 
           return (
             <button
               aria-selected={isActive}
-              className={`min-h-12 min-w-fit px-1 py-3 text-sm font-semibold transition focus:outline-none focus:text-[var(--accent)] border-b-2 cursor-pointer ${
+              className={`min-h-9 min-w-fit px-4 py-2 text-[10px] font-bold uppercase tracking-wider rounded-md transition duration-150 cursor-pointer focus:outline-none ${
                 isActive
-                  ? "border-[var(--accent)] text-[var(--accent)]"
-                  : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--border)]"
+                  ? "bg-white text-[var(--accent)] border border-slate-200 shadow-xs"
+                  : "text-slate-500 hover:text-slate-900 hover:bg-slate-100/80"
               }`}
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
@@ -1041,18 +1040,18 @@ function OverviewTab({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-lg border border-[var(--border)] bg-white p-6 sm:p-8">
-        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+      <section className="rounded-xl border border-slate-200 bg-slate-50/30 p-6 sm:p-8 shadow-xs">
+        <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
           <div>
-            <div className="mb-4 inline-flex items-center gap-1.5 rounded border border-amber-200/60 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 select-none">
+            <div className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-3 py-0.5 text-[10px] font-bold uppercase tracking-wider text-teal-800 select-none shadow-3xs">
             {demoCase.id === "school-nutrition"
-              ? "Sanitized Real-World-Inspired Demo Case"
-              : "Fictional Sandbox Demo Mode — Safe Workspace"}
+              ? "Sanitized Real-World-Inspired Case Context"
+              : "Fictional Sandbox Demo Case Context"}
             </div>
-            <h2 className="max-w-3xl text-2xl font-semibold tracking-normal text-[var(--foreground)] sm:text-3xl">
+            <h2 className="max-w-3xl text-2xl font-bold tracking-tight text-slate-800 sm:text-3xl">
               From field note to defensible learning output.
             </h2>
-            <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--muted)]">
+            <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-500 font-medium">
               This workspace makes the analytical chain visible: what was
               observed, how it was interpreted, which claim it supports, what
               recommendation follows, and what QA safeguard should be checked.
@@ -1062,9 +1061,9 @@ function OverviewTab({
                 onClick={() => {
                   document.getElementById("guided-demo-path")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="min-h-10 rounded-lg bg-[var(--accent)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--accent-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
+                className="min-h-9 rounded bg-[var(--accent)] px-4 text-xs font-bold uppercase tracking-wider text-white transition hover:bg-[var(--accent-strong)] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--accent)] shadow-2xs"
               >
-                Start guided demo
+                Start guided walkthrough
               </button>
               <button
                 onClick={() => {
@@ -1075,26 +1074,26 @@ function OverviewTab({
                   document.getElementById("sandbox-note-textarea")?.focus();
                   document.getElementById("sandbox-note-section")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="min-h-10 rounded-lg border border-[var(--border)] bg-white px-5 text-sm font-semibold text-[var(--foreground)] transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
+                className="min-h-9 rounded border border-slate-200 bg-white px-4 text-xs font-bold uppercase tracking-wider text-slate-700 transition hover:bg-slate-50 hover:text-slate-800 cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 shadow-2xs"
               >
                 Try sample field note
               </button>
             </div>
           </div>
 
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-5">
-            <h3 className="text-sm font-semibold text-[var(--foreground)]">
-              What a senior reviewer should see
+          <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-2xs">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 border-b border-slate-100 pb-2">
+              Reviewer Checklist
             </h3>
-            <ul className="mt-4 space-y-3 text-sm leading-6 text-[var(--muted)]">
+            <ul className="mt-3.5 space-y-3 text-xs leading-relaxed text-slate-500 font-medium">
               {[
                 "The case is safe to demo and clearly labelled.",
                 "Every finding can be inspected back to evidence IDs.",
                 "Recommendations show the finding and evidence base behind them.",
                 "QA checks flag overclaiming, sensitivity, and donor-readiness before export.",
               ].map((item) => (
-                <li className="flex gap-3" key={item}>
-                  <span className="mt-2 h-2 w-2 flex-none rounded-full bg-[var(--accent)]" />
+                <li className="flex gap-2.5 items-start" key={item}>
+                  <span className="mt-1 h-1.5 w-1.5 flex-none rounded-full bg-[var(--accent)]" />
                   <span>{item}</span>
                 </li>
               ))}
@@ -1104,26 +1103,26 @@ function OverviewTab({
       </section>
 
       {/* Main split grid */}
-      <div className="grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
-        <div className="flex flex-col gap-5">
+      <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
+        <div className="flex flex-col gap-6">
           {/* 2. Suggested Walkthrough Path Card */}
-          <section id="guided-demo-path" className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xs scroll-mt-20">
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--foreground)]">
-                Suggested demo path
+          <section id="guided-demo-path" className="rounded-lg border border-slate-200 bg-white p-6 shadow-2xs scroll-mt-20">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                Suggested Walkthrough Path
               </h3>
-              <span className="text-[10px] text-[var(--muted)] font-mono">
-                {Object.values(demoProgress).filter(Boolean).length} / 5 tasks completed
+              <span className="text-[10px] text-slate-400 font-mono font-bold uppercase">
+                {Object.values(demoProgress).filter(Boolean).length} / 5 completed
               </span>
             </div>
             
-            <div className="space-y-3.5">
+            <div className="space-y-4">
               {/* Step 1 */}
-              <div className="flex items-start gap-3 text-xs leading-5">
+              <div className="flex items-start gap-3.5 text-xs leading-5">
                 <span className={`h-5 w-5 rounded-full flex items-center justify-center font-bold flex-none text-[10px] ${
                   demoProgress.step1 
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300" 
-                    : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                    : "bg-slate-50 text-slate-500 border border-slate-200"
                 }`}>
                   {demoProgress.step1 ? "✓" : "1"}
                 </span>
@@ -1149,16 +1148,16 @@ function OverviewTab({
               <div className="flex items-start gap-3 text-xs leading-5">
                 <span className={`h-5 w-5 rounded-full flex items-center justify-center font-bold flex-none text-[10px] ${
                   demoProgress.step2 
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300" 
-                    : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                    : "bg-slate-50 text-slate-500 border border-slate-200"
                 }`}>
                   {demoProgress.step2 ? "✓" : "2"}
                 </span>
                 <div className="flex-1">
-                  <p className="font-semibold text-[var(--foreground)]">
+                  <p className="font-semibold text-slate-800">
                     Try a sample field note
                   </p>
-                  <p className="text-[var(--muted)]">
+                  <p className="text-slate-500">
                     Use a template note to see local deterministic parsing into evidence.
                   </p>
                   <button 
@@ -1174,19 +1173,19 @@ function OverviewTab({
               </div>
 
               {/* Step 3 */}
-              <div className="flex items-start gap-3 text-xs leading-5">
+              <div className="flex items-start gap-3.5 text-xs leading-5">
                 <span className={`h-5 w-5 rounded-full flex items-center justify-center font-bold flex-none text-[10px] ${
                   demoProgress.step3 
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300" 
-                    : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                    : "bg-slate-50 text-slate-500 border border-slate-200"
                 }`}>
                   {demoProgress.step3 ? "✓" : "3"}
                 </span>
                 <div className="flex-1">
-                  <p className="font-semibold text-[var(--foreground)]">
+                  <p className="font-semibold text-slate-800">
                     Inspect the evidence chain
                   </p>
-                  <p className="text-[var(--muted)]">
+                  <p className="text-slate-500">
                     Click any ID pill to open its lineage in the traceability drawer.
                   </p>
                   <button 
@@ -1199,19 +1198,19 @@ function OverviewTab({
               </div>
 
               {/* Step 4 */}
-              <div className="flex items-start gap-3 text-xs leading-5">
+              <div className="flex items-start gap-3.5 text-xs leading-5">
                 <span className={`h-5 w-5 rounded-full flex items-center justify-center font-bold flex-none text-[10px] ${
                   demoProgress.step4 
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300" 
-                    : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                    : "bg-slate-50 text-slate-500 border border-slate-200"
                 }`}>
                   {demoProgress.step4 ? "✓" : "4"}
                 </span>
                 <div className="flex-1">
-                  <p className="font-semibold text-[var(--foreground)]">
+                  <p className="font-semibold text-slate-800">
                     Run QA review
                   </p>
-                  <p className="text-[var(--muted)]">
+                  <p className="text-slate-500">
                     Check overclaiming, sensitivity, traceability, and donor-readiness safeguards.
                   </p>
                   <button 
@@ -1224,19 +1223,19 @@ function OverviewTab({
               </div>
 
               {/* Step 5 */}
-              <div className="flex items-start gap-3 text-xs leading-5">
+              <div className="flex items-start gap-3.5 text-xs leading-5">
                 <span className={`h-5 w-5 rounded-full flex items-center justify-center font-bold flex-none text-[10px] ${
                   demoProgress.step5 
-                    ? "bg-emerald-100 text-emerald-800 border border-emerald-300" 
-                    : "bg-zinc-100 text-zinc-600 border border-zinc-200"
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200" 
+                    : "bg-slate-50 text-slate-500 border border-slate-200"
                 }`}>
                   {demoProgress.step5 ? "✓" : "5"}
                 </span>
                 <div className="flex-1">
-                  <p className="font-semibold text-[var(--foreground)]">
+                  <p className="font-semibold text-slate-800">
                     Review the learning brief
                   </p>
-                  <p className="text-[var(--muted)]">
+                  <p className="text-slate-500">
                     Inspect the document preview, then copy the Markdown export if needed.
                   </p>
                   <button 
@@ -1487,9 +1486,9 @@ function SourceInventory({
 }) {
   return (
     <Section
-      description="A compact inventory of the fictional source records behind the evidence matrix."
+      description="A registry of monitor logs, interviews, and observations supporting the evidence matrix."
       eyebrow="Source inventory"
-      title="Fictional source records"
+      title="Traceable source records"
     >
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {sources.map((source) => (
@@ -1549,11 +1548,11 @@ function EvidenceMatrix({
 }) {
   return (
     <Section
-      description="Evidence IDs are clickable traceability anchors. Demo data remains static and safe for product validation."
+      description="An evidence registry compiling observation logs and parsed themes with trace references."
       eyebrow="Evidence matrix"
       title="Theme-coded evidence"
     >
-      <div className="text-xs font-semibold text-amber-700 bg-amber-50/60 border border-amber-200/50 rounded-lg px-3 py-1.5 w-fit">
+      <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 bg-slate-100 border border-slate-200 rounded px-2.5 py-0.5 w-fit shadow-3xs">
         Static demo data
       </div>
 
@@ -1636,27 +1635,27 @@ function EvidenceMatrix({
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
-                    <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider block mb-1">
+                  <div className="border-l-2 border-slate-200 pl-3.5">
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
                       Observation summary
                     </span>
-                    <blockquote className="text-sm font-medium leading-6 text-[var(--foreground)]">
-                      &ldquo;{entry.rawEvidence}&rdquo;
-                    </blockquote>
+                    <p className="text-sm font-medium leading-relaxed text-slate-700">
+                      {entry.rawEvidence}
+                    </p>
                   </div>
 
-                  <div className="rounded-lg border border-teal-200 bg-teal-50/40 p-3 text-xs leading-relaxed">
-                    <span className="font-bold text-[var(--foreground)] uppercase tracking-wider text-[9px] block mb-1">
+                  <div className="border-l-2 border-teal-600 bg-teal-50/30 p-3 rounded-r-md">
+                    <span className="text-[9px] font-bold text-teal-800 uppercase tracking-wider block mb-1">
                       Interpreted meaning
                     </span>
-                    <p className="text-[var(--foreground)] font-medium">
+                    <p className="text-xs font-semibold leading-relaxed text-teal-900">
                       {entry.potentialFinding}
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-5 border-t border-zinc-100 pt-4 flex flex-wrap items-center gap-1.5">
+              <div className="mt-5 border-t border-slate-100 pt-4 flex flex-wrap items-center gap-1.5">
                 <span className="text-[10px] font-semibold bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded border border-zinc-200/40">
                   {entry.secondaryTheme}
                 </span>
@@ -1665,7 +1664,7 @@ function EvidenceMatrix({
                 
                 <button
                   onClick={() => traceHandlers.onTraceSelect(entry.id)}
-                  className="ml-auto min-h-8 rounded border border-teal-200 bg-white px-3 text-xs font-semibold text-[var(--accent)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] cursor-pointer flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  className="ml-auto min-h-8 rounded border border-teal-200 bg-white px-3 text-xs font-semibold text-[var(--accent)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] cursor-pointer flex items-center gap-1 focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
                 >
                   Inspect Chain &rarr;
                 </button>
@@ -1770,7 +1769,7 @@ function LessonsAndPractices({
       eyebrow="Lessons and good practices"
       title="Reusable learning"
     >
-      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid gap-6 lg:grid-cols-2 items-start w-full">
         <div className="flex flex-col gap-4">
           <h3 className="text-lg font-semibold">Lessons Learned</h3>
           {lessons.map((lesson) => (
@@ -1859,93 +1858,104 @@ function RecommendationsSection({
 }) {
   return (
     <Section
-      description="Recommendations are grouped by priority and linked to findings and evidence."
+      description="Recommendations are linked to findings and evidence to ensure every action is justified by field observations."
       eyebrow="Recommendations"
-      title="No recommendation without a finding"
+      title="Evidence-backed recommendations"
     >
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="space-y-10">
         {priorityOrder.map((priority) => {
           const items = recommendations.filter(
             (recommendation) => recommendation.priority === priority,
           );
+          if (items.length === 0) return null;
 
           return (
-            <div className="flex flex-col gap-4" key={priority}>
-              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
-                <h3 className="text-base font-semibold">{priority} Priority</h3>
+            <div key={priority} className="space-y-4">
+              <div className="flex items-center gap-3 border-b border-slate-200 pb-2.5">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-slate-800">
+                  {priority} Priority Action Steps
+                </h3>
+                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600 border border-slate-200">
+                  {items.length} recommendations
+                </span>
               </div>
-              {items.map((recommendation) => (
-                <article
-                  className={traceCardClass(
-                    recommendation.id,
-                    traceHandlers.highlightedId,
-                    "p-5",
-                  )}
-                  id={traceDomId(recommendation.id)}
-                  key={recommendation.id}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
-                    <TraceButton
-                      id={recommendation.id}
-                      onSelect={traceHandlers.onTraceSelect}
-                    />
-                    <PriorityBadge value={recommendation.priority} />
-                  </div>
-                  <h4 className="mt-3 text-base font-semibold leading-6 text-[var(--foreground)]">
-                    {recommendation.recommendation}
-                  </h4>
-                  <div className="mt-4 border-t border-[var(--border)] pt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 text-xs">
-                    <div className="col-span-2">
-                      <LinkedTraceField
-                        className=""
-                        id={recommendation.linkedFindingId}
-                        label="Linked finding"
-                        onTraceSelect={traceHandlers.onTraceSelect}
-                      />
+              
+              <div className="grid gap-6 md:grid-cols-2 items-start">
+                {items.map((recommendation) => (
+                  <article
+                    className={traceCardClass(
+                      recommendation.id,
+                      traceHandlers.highlightedId,
+                      "p-5 shadow-2xs flex flex-col justify-between h-full",
+                    )}
+                    id={traceDomId(recommendation.id)}
+                    key={recommendation.id}
+                  >
+                    <div>
+                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                        <TraceButton
+                          id={recommendation.id}
+                          onSelect={traceHandlers.onTraceSelect}
+                        />
+                        <PriorityBadge value={recommendation.priority} />
+                      </div>
+                      <h4 className="mt-3 text-sm font-bold leading-6 text-slate-800">
+                        {recommendation.recommendation}
+                      </h4>
+                      <div className="mt-4 border-t border-slate-100 pt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 text-[11px] leading-relaxed">
+                        <div className="col-span-2">
+                          <LinkedTraceField
+                            className=""
+                            id={recommendation.linkedFindingId}
+                            label="Linked finding"
+                            onTraceSelect={traceHandlers.onTraceSelect}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <TraceIdList
+                            className=""
+                            ids={recommendation.evidenceBase}
+                            label="Evidence base"
+                            onTraceSelect={traceHandlers.onTraceSelect}
+                          />
+                        </div>
+                        <CompactField
+                          label="Responsible actor"
+                          value={recommendation.responsibleActor}
+                        />
+                        <CompactField
+                          label="Timeframe"
+                          value={recommendation.timeframe}
+                        />
+                        <CompactField
+                          label="Feasibility"
+                          value={recommendation.feasibility}
+                        />
+                        <CompactField
+                          label="Risk / sensitivity"
+                          value={recommendation.riskSensitivity}
+                        />
+                        <CompactField
+                          label="Expected benefit"
+                          value={recommendation.expectedBenefit}
+                          fullWidth
+                        />
+                        <CompactField
+                          label="Success indicator"
+                          value={recommendation.successIndicator}
+                          fullWidth
+                        />
+                      </div>
                     </div>
-                    <div className="col-span-2">
-                      <TraceIdList
-                        className=""
-                        ids={recommendation.evidenceBase}
-                        label="Evidence base"
-                        onTraceSelect={traceHandlers.onTraceSelect}
-                      />
+                    <div className="mt-5 pt-4 border-t border-slate-100">
+                      <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 block mb-2">
+                        Visual Traceability Chain
+                      </span>
+                      <TraceChain id={recommendation.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
                     </div>
-                    <CompactField
-                      label="Responsible actor"
-                      value={recommendation.responsibleActor}
-                    />
-                    <CompactField
-                      label="Timeframe"
-                      value={recommendation.timeframe}
-                    />
-                    <CompactField
-                      label="Feasibility"
-                      value={recommendation.feasibility}
-                    />
-                    <CompactField
-                      label="Risk / sensitivity"
-                      value={recommendation.riskSensitivity}
-                    />
-                    <CompactField
-                      label="Expected benefit"
-                      value={recommendation.expectedBenefit}
-                      fullWidth
-                    />
-                    <CompactField
-                      label="Success indicator"
-                      value={recommendation.successIndicator}
-                      fullWidth
-                    />
-                  </div>
-                  <div className="mt-5 pt-4 border-t border-zinc-100">
-                    <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--muted)] block mb-1">
-                      Visual Traceability Chain
-                    </span>
-                    <TraceChain id={recommendation.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
-                  </div>
-                </article>
-              ))}
+                  </article>
+                ))}
+              </div>
             </div>
           );
         })}
@@ -2247,16 +2257,16 @@ function StyledBriefPreview({
   traceHandlers: TraceHandlers;
 }) {
   return (
-    <div className="bg-zinc-100/60 p-4 sm:p-8 rounded-lg border border-[var(--border)] mt-5">
-      <article className="mx-auto max-w-[820px] bg-white border border-[var(--border)] rounded-md overflow-hidden p-8 sm:p-12">
-        <header className="border-b border-[var(--border)] pb-6 mb-8">
-          <span className="text-[10px] font-bold uppercase text-[var(--accent)] tracking-widest block mb-2">
-            Official Programme Learning Brief
+    <div className="bg-slate-50 p-4 sm:p-8 rounded-xl border border-slate-200/80 mt-6 shadow-2xs">
+      <article className="mx-auto max-w-3xl bg-white border border-slate-200 rounded-lg shadow-sm p-6 sm:p-12">
+        <header className="border-b border-slate-100 pb-6 mb-8">
+          <span className="text-[9px] font-bold uppercase text-[var(--accent)] tracking-widest block mb-2">
+            Institutional Programme Learning Brief
           </span>
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--foreground)]">
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
             {demoCase.project}
           </h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)] font-medium">
+          <p className="mt-2 text-xs leading-relaxed text-slate-500 font-semibold">
             {demoCase.subtitle}
           </p>
 
@@ -2559,11 +2569,11 @@ function BriefSection({
 
 function Metric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
-      <dt className="text-xs font-medium uppercase text-[var(--muted)]">
+    <div className="rounded-md border border-slate-200 bg-white p-3 shadow-2xs">
+      <dt className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
         {label}
       </dt>
-      <dd className="mt-1 text-2xl font-semibold text-[var(--foreground)]">
+      <dd className="mt-1 text-xl font-bold text-slate-800 leading-none">
         {value}
       </dd>
     </div>
@@ -2572,11 +2582,11 @@ function Metric({ label, value }: { label: string; value: number }) {
 
 function BriefMetric({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-lg border border-[var(--border)] bg-white px-3 py-2">
-      <dt className="text-xs font-semibold uppercase text-[var(--muted)]">
+    <div className="rounded-md border border-slate-200 bg-white px-3 py-2 shadow-2xs">
+      <dt className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
         {label}
       </dt>
-      <dd className="mt-1 text-lg font-semibold text-[var(--foreground)]">
+      <dd className="mt-1 text-base font-bold text-slate-800 leading-none">
         {value}
       </dd>
     </div>
@@ -2624,7 +2634,7 @@ function TraceButton({
 }) {
   return (
     <button
-      className="inline-flex min-h-7 items-center rounded border border-teal-200 bg-teal-50 px-2.5 py-1 font-mono text-xs font-semibold text-[var(--accent-strong)] cursor-pointer transition hover:border-[var(--accent)] hover:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
+      className="inline-flex min-h-6 items-center rounded border border-slate-200 bg-slate-100/60 px-2 py-0.5 font-mono text-[10px] font-bold text-slate-700 cursor-pointer transition hover:border-[var(--accent)] hover:bg-teal-50 hover:text-[var(--accent-strong)] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
       onClick={() => onSelect(id)}
       title={`Trace and view details for ${id}`}
       aria-label={`Trace and view details for ${id}`}
@@ -2642,11 +2652,11 @@ function StrengthBadge({ value }: { value: EvidenceStrength }) {
       ? "border-emerald-200 bg-emerald-50 text-emerald-800"
       : value === "Medium"
         ? "border-amber-200 bg-amber-50 text-amber-800"
-        : "border-zinc-200 bg-zinc-50 text-zinc-700";
+        : "border-slate-200 bg-slate-50 text-slate-700";
 
   return (
     <span
-      className={`inline-flex min-h-7 items-center rounded-lg border px-2.5 py-1 text-xs font-semibold ${className}`}
+      className={`inline-flex min-h-5 items-center rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${className}`}
     >
       {value}
     </span>
@@ -2659,13 +2669,13 @@ function PriorityBadge({ value }: { value: RecommendationPriority }) {
       ? "border-red-200 bg-red-50 text-red-800"
       : value === "Medium"
         ? "border-amber-200 bg-amber-50 text-amber-800"
-        : "border-zinc-200 bg-zinc-50 text-zinc-700";
+        : "border-slate-200 bg-slate-50 text-slate-700";
 
   return (
     <span
-      className={`inline-flex min-h-7 items-center rounded-lg border px-2.5 py-1 text-xs font-semibold ${className}`}
+      className={`inline-flex min-h-5 items-center rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${className}`}
     >
-      {value}
+      {value} Priority
     </span>
   );
 }
@@ -2680,7 +2690,7 @@ function QAStatusBadge({ value }: { value: QAReviewStatus }) {
 
   return (
     <span
-      className={`inline-flex min-h-7 items-center rounded-lg border px-2.5 py-1 text-xs font-semibold ${className}`}
+      className={`inline-flex min-h-5 items-center rounded-full border px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${className}`}
     >
       {value}
     </span>
@@ -2811,74 +2821,74 @@ function TraceChain({
   const qaId = "QA-001";
 
   return (
-    <div className="flex flex-wrap items-center gap-1 font-mono text-[10px] text-zinc-400">
+    <div className="flex flex-wrap items-center gap-1 font-mono text-[10px] text-slate-400">
       {sourceId && (
         <button
           onClick={() => onSelect(sourceId)}
           className={`px-1.5 py-0.5 rounded border hover:bg-teal-50 cursor-pointer transition ${
             id === sourceId
-              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold"
-              : "border-zinc-200 bg-zinc-50 text-zinc-600"
+              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold shadow-3xs"
+              : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
           }`}
         >
           {sourceId}
         </button>
       )}
-      {sourceId && evidenceId && <span>&rarr;</span>}
+      {sourceId && evidenceId && <span className="text-slate-300 font-bold px-0.5">&rarr;</span>}
       {evidenceId && (
         <button
           onClick={() => onSelect(evidenceId)}
           className={`px-1.5 py-0.5 rounded border hover:bg-teal-50 cursor-pointer transition ${
             id === evidenceId
-              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold"
-              : "border-zinc-200 bg-zinc-50 text-zinc-600"
+              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold shadow-3xs"
+              : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
           }`}
         >
           {evidenceId}
         </button>
       )}
-      {evidenceId && findingId && <span>&rarr;</span>}
+      {evidenceId && findingId && <span className="text-slate-300 font-bold px-0.5">&rarr;</span>}
       {findingId && (
         <button
           onClick={() => onSelect(findingId)}
           className={`px-1.5 py-0.5 rounded border hover:bg-teal-50 cursor-pointer transition ${
             id === findingId
-              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold"
-              : "border-zinc-200 bg-zinc-50 text-zinc-600"
+              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold shadow-3xs"
+              : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
           }`}
         >
           {findingId}
         </button>
       )}
-      {findingId && recId && <span>&rarr;</span>}
+      {findingId && recId && <span className="text-slate-300 font-bold px-0.5">&rarr;</span>}
       {recId && (
         <button
           onClick={() => onSelect(recId)}
           className={`px-1.5 py-0.5 rounded border hover:bg-teal-50 cursor-pointer transition ${
             id === recId
-              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold"
-              : "border-zinc-200 bg-zinc-50 text-zinc-600"
+              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold shadow-3xs"
+              : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
           }`}
         >
           {recId}
         </button>
       )}
-      {showQaAndBrief && <span>&rarr;</span>}
+      {showQaAndBrief && <span className="text-slate-300 font-bold px-0.5">&rarr;</span>}
       {showQaAndBrief && (
         <button
           onClick={() => onSelect(qaId)}
           className={`px-1.5 py-0.5 rounded border hover:bg-teal-50 cursor-pointer transition ${
             id === qaId
-              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold"
-              : "border-zinc-200 bg-zinc-50 text-zinc-600"
+              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold shadow-3xs"
+              : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
           }`}
         >
-          QA
+          QA Review
         </button>
       )}
-      {showQaAndBrief && <span>&rarr;</span>}
+      {showQaAndBrief && <span className="text-slate-300 font-bold px-0.5">&rarr;</span>}
       {showQaAndBrief && (
-        <span className="px-1.5 py-0.5 rounded border border-zinc-200 bg-white text-zinc-600">
+        <span className="px-1.5 py-0.5 rounded border border-slate-200 bg-white text-slate-500 font-medium">
           Brief
         </span>
       )}
