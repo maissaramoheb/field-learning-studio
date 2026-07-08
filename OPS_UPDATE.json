@@ -1,17 +1,17 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "phase_2_planning",
+  "status": "v0.2_ui_ux_redesign_completed",
   "priority": "high",
-  "current_phase": "Phase 2 sanitized real-case demo planning",
-  "next_action": "Review and approve the Phase 2 real-case demo plan before any app implementation or raw data handling.",
+  "current_phase": "v0.2-demo UI/UX Redesign Sprint",
+  "next_action": "Review redesigned v0.2-demo preview and decide whether it is ready for external validation.",
   "blocker": null,
   "decision_needed": null,
   "repo_url": null,
   "preview_url": "http://localhost:3000",
   "production_url": "https://field-learning-studio.vercel.app/",
   "validation_results": {
-    "primary": "docs_only_plan_created",
+    "primary": "passed",
     "lint": "passed",
     "build": "passed",
     "tests": "not_configured"
@@ -24,6 +24,6 @@
     "Weak export quality",
     "npm audit reports two moderate PostCSS findings inside the Next.js dependency tree; npm's forced fix would downgrade Next.js and was not applied"
   ],
-  "recommended_next_step": "Review docs/phase_2_real_case_demo_plan.md and approve anonymization, mapping, safeguarding, and case selector approach before coding.",
-  "notion_page_update": "Field Learning Studio Phase 2 planning started on branch feature/phase-2-real-case-demo. A safe real-world-inspired demo plan was created for a School Nutrition & Child Wellbeing Field Learning Case, including anonymization rules, data mapping, proposed themes, findings, lessons, good practices, recommendations, QA/safeguarding logic, public/private data boundaries, and an approval checkpoint before implementation. No raw data was imported."
+  "recommended_next_step": "Perform manual walkthrough smoke tests on the redesigned workspace tabs, TraceChain widgets, and interpretation cards.",
+  "notion_page_update": "Completed the product-level UI/UX redesign sprint for Field Learning Studio v0.2-demo. Upgraded the Overview landing page with a hero promise and professional Suggested Walkthrough path checklist. Embedded visual TraceChain breadcrumbs in the context-preserving drawer and findings/recommendations cards. Refactored evidence cards to highlight interpretation summaries, added severity QA metrics, and polished the printable deliverable brief sheet."
 }

@@ -24,6 +24,14 @@
 - [ ] Create a sanitized non-identifying working copy of the real field mission tracker outside the public app repository.
 - [ ] Select 8-10 source records and 12-16 representative evidence entries only after sanitization review.
 - [ ] Implement static second demo case only after approval.
+- [/] Execute v0.2 UI/UX product-level redesign:
+  - [/] Redesign Overview landing tab with strong Hero statement, clean layout, and CTAs
+  - [/] Create a subtle, professional Suggested Walkthrough checklist side panel
+  - [/] Create reusable visual Traceability Chain components inside drawer and card profiles
+  - [/] Refactor Evidence Cards to prioritize interpretation-first summaries
+  - [/] Restructure QA Review tab with audit counts and severity-sorted checklist cards
+  - [/] Style A4 deliverable Brief preview with professional action header bar
+  - [/] Polish Workspace Tabs navigation to look like an institutional document ledger
 - [x] Upgrade to v0.2-demo interactive workbench:
   - [x] Create TraceabilityDrawer overlay for context-preserving ID inspections
   - [x] Convert Evidence Matrix table into responsive card layout grids

@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.2.2 - v0.2 Product-Level UI/UX Redesign Sprint
+
+- **Overview Page Redesign:** Structured the landing page to feature a prominent hero section with a clear headline ("Turn field notes into traceable programme learning.") and a professional Suggested Walkthrough path checklist progress bar.
+- **TraceChain Breadcrumbs Component:** Embedded a central visual traceback widget (`SRC → EV → FND → REC`) inside the drawer details, Overview page sandbox trace, and findings/recommendations card grids.
+- **Interpretation-First Evidence Cards:** Refined evidence grid layout to display structured observation summaries, coded themes/stakeholders, strength levels, sensitivity flags, and inline Inspect links, avoiding raw-only displays.
+- **Sorted QA Severity Checklist:** Restructured the QA Review page to show Passed/Needs Review/Warning statistics cards, sorting warnings to the top and adding a dynamic pill parser for checklist notes.
+- **Polished Brief Page:** Structured the brief draft preview with a clean metadata strip and action bar header, keeping raw Markdown source code in a details disclosure toggle.
+
 ## v0.2.1 - Phase 2 real-case demo planning
 
 - Created `docs/phase_2_real_case_demo_plan.md` for a sanitized real-world-inspired school nutrition and child wellbeing case.

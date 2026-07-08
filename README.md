@@ -8,11 +8,11 @@ Raw field evidence -> source inventory -> evidence matrix -> findings -> lessons
 
 ## Current Stage
 
-v0.2-demo interactive workbench. This is an interactive product demonstrator and validation tool, not a production SaaS.
+v0.2.2-demo (UI/UX Redesign). This is a premium interactive product demonstrator and validation tool, not a production SaaS.
 
 - **Live Production URL:** https://field-learning-studio.vercel.app/
 - **Deployment Platform:** Vercel
-- **Current Version:** v0.2-demo (Interactive Workbench)
+- **Current Version:** v0.2.2-demo (UI/UX Redesigned Workspace Workbench)
 
 ## Documentation
 

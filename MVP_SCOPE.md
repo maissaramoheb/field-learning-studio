@@ -23,6 +23,9 @@
 - **Local Sandbox Intake Simulation (P0):** Interactive text box on Overview tab allowing users to paste notes or use quick templates to see deterministic keyword-inferred parsing (local-only, no server/AI upload).
 - **QA Audit Scanner Simulator (P1):** Animated progress scanner that verifies evidence linkages and highlights warnings inline.
 - **A4 Brief Sheet Preview (P1):** Styled the final output tab like a premium physical report with details-hidden Markdown source code block.
+- **Product-Level UI/UX Redesign (P0):** Complete visual redesign to align with the creative north star "The Institutional Ledger", featuring structured boundaries, clean grid cards, visual active paths, and high-legibility sans-serif fonts.
+- **Suggested Walkthrough Path (P1):** A subtle, professional checklist guiding the user through 5 core workspace steps.
+- **Traceability Chains (P1):** Reusable inline breadcrumb chains mapping object linkages (`SRC → EV → FND → REC`) inside the drawer, findings/recommendations, and the landing page.
 
 ## v0.1 Does Not Include
 
