@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.2-demo interactive workbench. Built a fully interactive desktop-like workspace, replacing disruptive tab-yanking with a slide-over Traceability Drawer, converting the evidence matrix table into responsive grid cards, adding a sandbox note ingestion simulator with presets, integrating an animated QA audit scanner, and formatting a premium A4 Brief Preview.
+v0.2-demo interactive workbench is live. Phase 2 planning has started on `feature/phase-2-real-case-demo` to prepare a sanitized real-world-inspired nutrition and child wellbeing demo case without importing raw data.
 
 ## Completed Items
 
@@ -29,6 +29,7 @@ v0.2-demo interactive workbench. Built a fully interactive desktop-like workspac
   - Designed simulated QA Audit scanner animation on QA Review tab.
   - Structured final Learning Brief preview as a premium white sheet document with collapsible raw Markdown textarea.
   - Rendered a visual clickable pipeline flowchart on the Overview landing page.
+- Created `docs/phase_2_real_case_demo_plan.md` with anonymization rules, data mapping, proposed sanitized case structure, findings, lessons, good practices, recommendations, QA/safeguarding logic, and an approval checkpoint before any Phase 2 app coding.
 
 ## Pending Items
 
@@ -36,18 +37,20 @@ v0.2-demo interactive workbench. Built a fully interactive desktop-like workspac
 - Review the Antigravity P0 UX changes with target users.
 - Add editable evidence forms only if still needed after demo review.
 - Consider localStorage persistence only after user validation.
+- Review and approve Phase 2 anonymization, safeguarding, and data mapping plan before implementing any second demo case.
 
 ## Known Risks
 
 - Scope creep before user validation.
 - Overbuilding into SaaS features too early.
 - Accidental handling of sensitive field evidence.
+- Accidental exposure of child-sensitive or school-identifiable field information during Phase 2 case preparation.
 - Weak export quality if traceability is not clear.
 - `npm audit --omit=dev` reports two moderate findings for PostCSS inside the Next.js dependency tree. npm suggests `npm audit fix --force`, but that would downgrade Next.js to an old breaking version, so it was not applied.
 
 ## Next Recommended Step
 
-Run a guided demo focused on whether the tabbed workspace, traceability ID behavior, and styled brief preview make the evidence-to-learning workflow easier to understand.
+Review `docs/phase_2_real_case_demo_plan.md` before coding any second demo case or touching the real field mission tracker.
 
 ## Validation Commands
 
@@ -58,12 +61,12 @@ npm run build
 
 ## Validation Results
 
-- `npm run lint`: passed.
-- `npm run build`: passed.
+- `npm run lint`: passed for current docs-only Phase 2 planning branch.
+- `npm run build`: passed for current docs-only Phase 2 planning branch.
 - Local preview HTTP check: passed with `200 OK`.
 - Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (Smoke tested: passed with `200 OK`).
 - Tests: not configured.
 
 ## Last Update
 
-2026-07-08: Upgraded Field Learning Studio to v0.2-demo, introducing a fully interactive evidence workbench environment (TraceabilityDrawer, Sandbox note parser, QA Audit scan, A4 brief layout, and visual pipeline flowchart).
+2026-07-08: Created Phase 2 real-case demo planning document. No raw field data imported and no app code changed. Lint/build passed.

@@ -1,17 +1,17 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "deployed_live_demo",
+  "status": "phase_2_planning",
   "priority": "high",
-  "current_phase": "v0.2-demo interactive workbench",
-  "next_action": "Run live browser review of v0.2-demo and decide whether it is ready for 5–7 validation conversations.",
+  "current_phase": "Phase 2 sanitized real-case demo planning",
+  "next_action": "Review and approve the Phase 2 real-case demo plan before any app implementation or raw data handling.",
   "blocker": null,
   "decision_needed": null,
   "repo_url": null,
   "preview_url": "http://localhost:3000",
   "production_url": "https://field-learning-studio.vercel.app/",
   "validation_results": {
-    "primary": "passed",
+    "primary": "docs_only_plan_created",
     "lint": "passed",
     "build": "passed",
     "tests": "not_configured"
@@ -20,9 +20,10 @@
     "Scope creep",
     "Overbuilding before user validation",
     "Accidental sensitive data handling",
+    "Accidental exposure of child-sensitive or school-identifiable field information during Phase 2 case preparation",
     "Weak export quality",
     "npm audit reports two moderate PostCSS findings inside the Next.js dependency tree; npm's forced fix would downgrade Next.js and was not applied"
   ],
-  "recommended_next_step": "Test sandbox ingestion templates, verify Traceability Drawer overlay, and review A4 document sheet readability",
-  "notion_page_update": "Field Learning Studio v0.2-demo interactive workbench is ready for review on branch feature/v0.2-demo-workbench. It includes a contextual slide-over Traceability Drawer overlay to inspect linked items concisely without tab yanking, a card grid Evidence Matrix layout, a local Sandbox Note input with presets, an animated QA compliance scanner, a visual pipeline flowchart, and a styled document Brief Preview, passing validation checks."
+  "recommended_next_step": "Review docs/phase_2_real_case_demo_plan.md and approve anonymization, mapping, safeguarding, and case selector approach before coding.",
+  "notion_page_update": "Field Learning Studio Phase 2 planning started on branch feature/phase-2-real-case-demo. A safe real-world-inspired demo plan was created for a School Nutrition & Child Wellbeing Field Learning Case, including anonymization rules, data mapping, proposed themes, findings, lessons, good practices, recommendations, QA/safeguarding logic, public/private data boundaries, and an approval checkpoint before implementation. No raw data was imported."
 }

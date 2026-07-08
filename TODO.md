@@ -16,9 +16,14 @@
 - [x] Installed and initialized Impeccable design context (PRODUCT.md, DESIGN.md, and live configuration).
 - [x] Implemented Impeccable P1 interactive traceability (SRC- and QA- ID pills as button controls, tab mappings, dynamic highlight) and restyled navigation tabs.
 - [x] Implemented Impeccable P2/P3 UI polish (reduced warning banner redundancy, restructured recommendation metadata grid, and upgraded font stack to Inter-style).
+- [x] Create Phase 2 sanitized real-case demo plan for a school nutrition and child wellbeing field learning case.
 
 ## P1
 
+- [ ] Review and approve Phase 2 anonymization and safeguarding plan before coding.
+- [ ] Create a sanitized non-identifying working copy of the real field mission tracker outside the public app repository.
+- [ ] Select 8-10 source records and 12-16 representative evidence entries only after sanitization review.
+- [ ] Implement static second demo case only after approval.
 - [x] Upgrade to v0.2-demo interactive workbench:
   - [x] Create TraceabilityDrawer overlay for context-preserving ID inspections
   - [x] Convert Evidence Matrix table into responsive card layout grids

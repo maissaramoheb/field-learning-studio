@@ -1,5 +1,12 @@
 # Changelog
 
+## v0.2.1 - Phase 2 real-case demo planning
+
+- Created `docs/phase_2_real_case_demo_plan.md` for a sanitized real-world-inspired school nutrition and child wellbeing case.
+- Documented anonymization rules, data mapping, proposed themes, findings, lessons learned, good practices, recommendations, QA/safeguarding review logic, and public/private content boundaries.
+- Recommended an Overview-tab case selector as the safest Phase 2 presentation approach after approval.
+- Did not import raw spreadsheet data and did not change app code.
+
 ## v0.2.0 - v0.2-demo Interactive Workspace Workbench
 
 - **Interactive Traceability Drawer Overlay:** Developed a slide-over drawer display to view details for all workspace objects (sources, evidence, findings, lessons, good practices, recommendations, and QA items) in a contextual overlay, eliminating tab-yanking transitions.

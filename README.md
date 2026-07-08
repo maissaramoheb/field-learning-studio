@@ -17,6 +17,7 @@ v0.2-demo interactive workbench. This is an interactive product demonstrator and
 ## Documentation
 
 - [Demo & Validation Pack v0.1](file:///Users/maissaraselim/Library/CloudStorage/OneDrive-Personal/Consultancy/Apps/Field%20Learning%20Studio/docs/demo_validation_pack_v01.md)
+- [Phase 2 Real Case Demo Plan](docs/phase_2_real_case_demo_plan.md)
 
 ## Setup
 
