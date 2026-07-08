@@ -14,3 +14,4 @@
 - Keep learning brief generation as a pure local helper using static fictional demo data.
 - Set the Next.js Turbopack root explicitly because this workspace sits below another lockfile.
 - Accepted P0 UX improvements after Antigravity review: tabbed workspace, interactive traceability IDs, and styled brief preview.
+- **v0.2-demo Development Decision:** v0.2-demo upgrades Field Learning Studio from a static structured viewer into an interactive evidence workbench while preserving safe local-only demo constraints. Added Traceability Drawer, card grid layout, sandbox note ingestion with preset templates, QA scanner animation, and premium document brief sheet.

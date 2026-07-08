@@ -16,6 +16,14 @@
 - Accepted P0 UX improvement: visually interactive traceability IDs that scroll to or highlight the relevant card or section.
 - Accepted P0 UX improvement: styled donor-ready Learning Brief preview while preserving Markdown copy/export.
 
+## v0.2 Includes
+
+- **Interactive Traceability Drawer (P0):** Contextual slide-over drawer to inspect linked evidence, sources, and recommendations without yanking the user across workspace tabs.
+- **Evidence Card Grid Layout (P0):** Replaced wide horizontal table scroll with responsive cards optimized for qualitative analysis.
+- **Local Sandbox Intake Simulation (P0):** Interactive text box on Overview tab allowing users to paste notes or use quick templates to see deterministic keyword-inferred parsing (local-only, no server/AI upload).
+- **QA Audit Scanner Simulator (P1):** Animated progress scanner that verifies evidence linkages and highlights warnings inline.
+- **A4 Brief Sheet Preview (P1):** Styled the final output tab like a premium physical report with details-hidden Markdown source code block.
+
 ## v0.1 Does Not Include
 
 - Authentication.

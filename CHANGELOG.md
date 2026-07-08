@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.0 - v0.2-demo Interactive Workspace Workbench
+
+- **Interactive Traceability Drawer Overlay:** Developed a slide-over drawer display to view details for all workspace objects (sources, evidence, findings, lessons, good practices, recommendations, and QA items) in a contextual overlay, eliminating tab-yanking transitions.
+- **Card-Based Evidence Grid:** Converted the wide horizontal-scroll Evidence table into responsive cards optimized for qualitative field notes analysis.
+- **Local Sandbox Ingestion Simulator:** Added a sandbox card on the Overview page for pasting custom field notes with a strict privacy disclaimer. Includes 3 quick-insert template buttons (Women's Safe Access, Youth Engagement, Partner Reporting Burden) and keyword-coding logic to set themes and sensitivity thresholds.
+- **QA Audit Progress Simulator:** Integrated an interactive "Run QA Audit" command triggering a 1.8s scanning timer animation before displaying status checklist cards. Added a deterministic check indicator.
+- **A4 Brief Sheet Layout:** Structured the Brief Preview to look like a premium physical report with white margin canvas borders and details-hidden Markdown source block.
+- **Visual Clickable Pipeline Flowchart:** Rendered an interactive progress chart on the Overview landing page to navigate between workspace tabs.
+
 ## v0.1.4 - Impeccable P2/P3 UI Polish and Typography Refinements
 
 - Consolidated duplicate warning disclaimer banners: removed large amber banners from Evidence Matrix and Learning Brief tabs, replacing them with minimal inline "Fictional demo data" indicators while keeping the top header warning banner prominent.
