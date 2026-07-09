@@ -49,6 +49,19 @@ export interface ExportTraceItem {
   recommendationIds: string[];
 }
 
+export interface ExportSandboxEvidence {
+  id: string;
+  sourceId: string;
+  stakeholderType: string;
+  rawEvidence: string;
+  primaryTheme: string;
+  sensitivityFlag: string;
+  draftFindingId?: string;
+  draftFindingStatement?: string;
+  draftRecommendationId?: string;
+  draftRecommendationStatement?: string;
+}
+
 export interface BriefExportModel {
   caseId: string;
   title: string;
@@ -68,9 +81,11 @@ export interface BriefExportModel {
   demoNote: string;
   reviewNote: string;
   generatedDate: string;
+  includeSandbox?: boolean;
+  sandboxEvidence?: ExportSandboxEvidence[];
 }
 
-export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
+export function buildBriefExportModel(demoCase: DemoCase, includeSandbox: boolean = false): BriefExportModel {
   const safetyNote = demoCase.id === "school-nutrition"
     ? "This case is a sanitized demo derived from prior fieldwork. No raw identifiable field data is included."
     : "This case uses fictional demo data for product validation.";
@@ -87,6 +102,36 @@ export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
     day: "numeric",
   });
 
+  const filteredFindings = includeSandbox
+    ? demoCase.findings
+    : demoCase.findings.filter((f) => !f.id.includes("SBX") && !f.id.includes("TEMP"));
+
+  const filteredRecs = includeSandbox
+    ? demoCase.recommendations
+    : demoCase.recommendations.filter((r) => !r.id.includes("SBX") && !r.id.includes("TEMP"));
+
+  const sandboxEvidence: ExportSandboxEvidence[] = [];
+  if (includeSandbox) {
+    demoCase.evidence
+      .filter((e) => e.id.includes("SBX") || e.id.includes("TEMP"))
+      .forEach((e) => {
+        const fnd = demoCase.findings.find((f) => f.supportingEvidenceIds.includes(e.id));
+        const rec = fnd ? demoCase.recommendations.find((r) => r.linkedFindingId === fnd.id) : null;
+        sandboxEvidence.push({
+          id: e.id,
+          sourceId: e.sourceId,
+          stakeholderType: e.stakeholderType,
+          rawEvidence: e.rawEvidence,
+          primaryTheme: e.primaryTheme,
+          sensitivityFlag: e.sensitivityFlag,
+          draftFindingId: fnd?.id,
+          draftFindingStatement: fnd?.statement,
+          draftRecommendationId: rec?.id,
+          draftRecommendationStatement: rec?.recommendation,
+        });
+      });
+  }
+
   return {
     caseId: demoCase.id,
     title: `${demoCase.project}: Learning Brief`,
@@ -95,14 +140,14 @@ export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
     keyMessages: demoCase.keyMessages,
     purposeAndScope: demoCase.purposeAndScope,
     keyThemes: demoCase.keyThemes,
-    findings: demoCase.findings.map(f => ({
+    findings: filteredFindings.map((f) => ({
       id: f.id,
       statement: f.statement,
       explanation: f.explanation,
       evidenceBase: f.supportingEvidenceIds,
       programmeImplication: f.programmeImplication,
     })),
-    lessons: demoCase.lessons.map(l => ({
+    lessons: demoCase.lessons.map((l) => ({
       id: l.id,
       statement: l.statement,
       whatWorkedOrDidNotWork: l.whatWorkedOrDidNotWork,
@@ -111,7 +156,7 @@ export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
       evidenceBase: l.evidenceBase,
       transferability: l.transferability,
     })),
-    goodPractices: demoCase.goodPractices.map(g => ({
+    goodPractices: demoCase.goodPractices.map((g) => ({
       id: g.id,
       title: g.title,
       description: g.description,
@@ -121,7 +166,7 @@ export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
       risksLimits: g.risksLimits,
       recommendedUse: g.recommendedUse,
     })),
-    recommendations: demoCase.recommendations.map(r => ({
+    recommendations: filteredRecs.map((r) => ({
       id: r.id,
       recommendation: r.recommendation,
       linkedFindingId: r.linkedFindingId,
@@ -136,7 +181,7 @@ export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
     })),
     safeguardingNotes: demoCase.safeguardingNotes,
     limitations: demoCase.limitations,
-    traceability: demoCase.findings.map(f => ({
+    traceability: filteredFindings.map((f) => ({
       findingId: f.id,
       evidenceIds: f.supportingEvidenceIds,
       recommendationIds: f.linkedRecommendationIds,
@@ -145,5 +190,7 @@ export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
     demoNote,
     reviewNote,
     generatedDate: currentDate,
+    includeSandbox,
+    sandboxEvidence: sandboxEvidence.length > 0 ? sandboxEvidence : undefined,
   };
 }

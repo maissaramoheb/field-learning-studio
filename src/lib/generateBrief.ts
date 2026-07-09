@@ -4,8 +4,15 @@ function bulletList(items: string[]): string {
   return items.map((item) => `- ${item}`).join("\n");
 }
 
-export function generateLearningBriefMarkdown(demoCase: DemoCase): string {
-  const findings = demoCase.findings
+export function generateLearningBriefMarkdown(demoCase: DemoCase, includeSandbox: boolean = false): string {
+  const findingsList = includeSandbox
+    ? demoCase.findings
+    : demoCase.findings.filter((f) => !f.id.includes("SBX"));
+  const recsList = includeSandbox
+    ? demoCase.recommendations
+    : demoCase.recommendations.filter((r) => !r.id.includes("SBX"));
+
+  const findings = findingsList
     .map(
       (finding) =>
         `### ${finding.id}: ${finding.statement}\n\n${finding.explanation}\n\nEvidence base: ${finding.supportingEvidenceIds.join(", ")}\n\nProgramme implication: ${finding.programmeImplication}`,
@@ -26,14 +33,14 @@ export function generateLearningBriefMarkdown(demoCase: DemoCase): string {
     )
     .join("\n\n");
 
-  const recommendations = demoCase.recommendations
+  const recommendations = recsList
     .map(
       (recommendation) =>
         `### ${recommendation.id}: ${recommendation.recommendation}\n\nLinked finding: ${recommendation.linkedFindingId}\n\nEvidence base: ${recommendation.evidenceBase.join(", ")}\n\nResponsible actor: ${recommendation.responsibleActor}\n\nPriority: ${recommendation.priority}\n\nTimeframe: ${recommendation.timeframe}\n\nFeasibility: ${recommendation.feasibility}\n\nRisk / sensitivity: ${recommendation.riskSensitivity}\n\nExpected benefit: ${recommendation.expectedBenefit}\n\nSuccess indicator: ${recommendation.successIndicator}`,
     )
     .join("\n\n");
 
-  const traceability = demoCase.findings
+  const traceability = findingsList
     .map(
       (finding) =>
         `- ${finding.id}: evidence ${finding.supportingEvidenceIds.join(", ")} -> recommendations ${finding.linkedRecommendationIds.join(", ")}`,
@@ -55,6 +62,25 @@ export function generateLearningBriefMarkdown(demoCase: DemoCase): string {
   const safetyNote = demoCase.id === "school-nutrition"
     ? "This case is a sanitized demo derived from prior fieldwork. No raw identifiable field data is included.\n\nGenerated from Field Learning Studio demo. Review required before external use."
     : "This case uses fictional demo data for product validation.\n\nGenerated from Field Learning Studio demo. Review required before external use.";
+
+  let sandboxSection = "";
+  const sandboxEv = demoCase.evidence.filter((e) => e.id.includes("SBX"));
+  if (includeSandbox && sandboxEv.length > 0) {
+    const sandboxItemsStr = sandboxEv.map((e) => {
+      const fnd = demoCase.findings.find((f) => f.supportingEvidenceIds.includes(e.id));
+      const rec = fnd ? demoCase.recommendations.find((r) => r.linkedFindingId === fnd.id) : null;
+      return `### ${e.id}
+- **Source:** ${e.sourceId}
+- **Stakeholder:** ${e.stakeholderType}
+- **Observation Summary:** ${e.rawEvidence}
+- **Theme:** ${e.primaryTheme}
+- **Sensitivity:** ${e.sensitivityFlag}
+${fnd ? `- **Draft Finding:** ${fnd.id} - ${fnd.statement}` : ""}
+${rec ? `- **Draft Recommendation:** ${rec.id} - ${rec.recommendation}` : ""}`;
+    }).join("\n\n");
+
+    sandboxSection = `\n\n## Sandbox Draft Evidence — Requires Review\n\n**Sandbox Warning: Sandbox draft content is user-provided, local-only, and not validated.**\n\n${sandboxItemsStr}`;
+  }
 
   return `# ${demoCase.project}: Learning Brief
 
@@ -84,7 +110,7 @@ ${goodPractices}
 
 ## Recommendations
 
-${recommendations}${safeguardingSection}
+${recommendations}${safeguardingSection}${sandboxSection}
 
 ## Limitations
 

@@ -50,6 +50,22 @@ export function generateMarkdownFromModel(model: BriefExportModel): string {
     ? `\n\n## Safeguarding and Sensitivity Notes\n\n${model.safeguardingNotes}`
     : "";
 
+  let sandboxSection = "";
+  if (model.includeSandbox && model.sandboxEvidence && model.sandboxEvidence.length > 0) {
+    const sandboxItemsStr = model.sandboxEvidence.map((e) => {
+      return `### ${e.id}
+- **Source:** ${e.sourceId}
+- **Stakeholder:** ${e.stakeholderType}
+- **Observation Summary:** ${e.rawEvidence}
+- **Theme:** ${e.primaryTheme}
+- **Sensitivity:** ${e.sensitivityFlag}
+${e.draftFindingId ? `- **Draft Finding:** ${e.draftFindingId} - ${e.draftFindingStatement}` : ""}
+${e.draftRecommendationId ? `- **Draft Recommendation:** ${e.draftRecommendationId} - ${e.draftRecommendationStatement}` : ""}`;
+    }).join("\n\n");
+
+    sandboxSection = `\n\n## Sandbox Draft Evidence — Requires Review\n\n**Sandbox Warning: Sandbox draft content is user-provided, local-only, and not validated.**\n\n${sandboxItemsStr}`;
+  }
+
   return `# ${model.title}
 
 ## Subtitle
@@ -83,7 +99,7 @@ ${practicesText}
 
 ## Recommendations
 
-${recommendationsText}${safeguardingSection}
+${recommendationsText}${safeguardingSection}${sandboxSection}
 
 ## Limitations
 

@@ -29,6 +29,7 @@
 - [x] Rework TraceChain into labeled source-to-brief lineage nodes.
 - [x] Preserve static demo data, local-only sandbox behavior, and Markdown export in v0.6.
 - [x] v0.7 Export Pack: client-side Word (.docx), PDF (.pdf), and improved Markdown (.md) brief downloads in a shared export model.
+- [x] v0.8 Local Note Intake: local sandbox note paste, regex safety checks, confirmation bypass gate, mock parser, separate drafts in findings/recommendations, QA flags, and conditional exports.
 
 ## P1
 

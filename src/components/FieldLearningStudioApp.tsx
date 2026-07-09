@@ -28,6 +28,7 @@ import { buildBriefExportModel } from "@/lib/buildBriefExportModel";
 import { downloadBriefDocx } from "@/lib/exportDocx";
 import { downloadBriefPdf } from "@/lib/exportPdf";
 import { downloadBriefMarkdown } from "@/lib/exportMarkdown";
+import { runSandboxSafetyCheck, parseSandboxInput } from "@/lib/sandboxParser";
 
 interface FieldLearningStudioAppProps {
   demoCase: DemoCase;
@@ -89,9 +90,20 @@ export function FieldLearningStudioApp({
     return demoCases.find((c) => c.id === selectedCaseId) || demoCases[0];
   }, [selectedCaseId]);
 
-  // v0.2 local session sandbox additions
+  // v0.2/v0.8 local session sandbox additions
   const [sandboxEvidence, setSandboxEvidence] = useState<EvidenceEntry[]>([]);
   const [sandboxSources, setSandboxSources] = useState<SourceRecord[]>([]);
+  const [sandboxFindings, setSandboxFindings] = useState<Finding[]>([]);
+  const [sandboxRecommendations, setSandboxRecommendations] = useState<Recommendation[]>([]);
+
+  const [sandboxStakeholder, setSandboxStakeholder] = useState("Children / youth");
+  const [sandboxDataType, setSandboxDataType] = useState("Interview");
+  const [sandboxTheme, setSandboxTheme] = useState("Access");
+  const [sandboxSensitivity, setSandboxSensitivity] = useState<"Low" | "Medium" | "High">("Low");
+  const [sandboxSiteLabel, setSandboxSiteLabel] = useState("");
+
+  const [anonymizationConfirmed, setAnonymizationConfirmed] = useState(false);
+  const [includeSandboxInBrief, setIncludeSandboxInBrief] = useState(false);
 
   const [drawerItemId, setDrawerItemId] = useState<string | null>(null);
   const [sandboxText, setSandboxText] = useState("");
@@ -99,6 +111,15 @@ export function FieldLearningStudioApp({
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditRun, setAuditRun] = useState(false);
   const [auditMessage, setAuditMessage] = useState("");
+
+  const scannerTriggered = useMemo(() => {
+    return runSandboxSafetyCheck(sandboxText);
+  }, [sandboxText]);
+
+  const updateSandboxText = (text: string) => {
+    setSandboxText(text);
+    setAnonymizationConfirmed(false);
+  };
 
   // v0.2 walkthrough path progress (subtle & professional Suggested Walkthrough)
   const [demoProgress, setDemoProgress] = useState({
@@ -111,11 +132,24 @@ export function FieldLearningStudioApp({
 
   // Clear session sandbox and progress on case change
   function handleSelectCase(caseId: string) {
+    if (sandboxEvidence.length > 0) {
+      const proceed = window.confirm("Changing cases will clear all your local sandbox drafts. Do you want to proceed?");
+      if (!proceed) return;
+    }
     setSelectedCaseId(caseId);
     setSandboxEvidence([]);
     setSandboxSources([]);
+    setSandboxFindings([]);
+    setSandboxRecommendations([]);
     setSandboxText("");
     setSandboxCount(1);
+    setSandboxStakeholder("Children / youth");
+    setSandboxDataType("Interview");
+    setSandboxTheme("Access");
+    setSandboxSensitivity("Low");
+    setSandboxSiteLabel("");
+    setAnonymizationConfirmed(false);
+    setIncludeSandboxInBrief(false);
     setAuditRun(false);
     setDrawerItemId(null);
     setDemoProgress({
@@ -133,8 +167,10 @@ export function FieldLearningStudioApp({
       ...currentBaseCase,
       evidence: [...sandboxEvidence, ...currentBaseCase.evidence],
       sources: [...sandboxSources, ...currentBaseCase.sources],
+      findings: [...sandboxFindings, ...currentBaseCase.findings],
+      recommendations: [...sandboxRecommendations, ...currentBaseCase.recommendations],
     };
-  }, [sandboxEvidence, sandboxSources, currentBaseCase]);
+  }, [sandboxEvidence, sandboxSources, sandboxFindings, sandboxRecommendations, currentBaseCase]);
 
   const themes = useMemo(
     () => uniqueValues(activeDemoCase.evidence.map((entry) => entry.primaryTheme)),
@@ -174,8 +210,8 @@ export function FieldLearningStudioApp({
   }, [activeDemoCase]);
 
   const currentBriefMarkdown = useMemo(() => {
-    return generateLearningBriefMarkdown(activeDemoCase);
-  }, [activeDemoCase]);
+    return generateLearningBriefMarkdown(activeDemoCase, includeSandboxInBrief);
+  }, [activeDemoCase, includeSandboxInBrief]);
 
   useEffect(() => {
     if (!pendingTraceId) {
@@ -248,95 +284,52 @@ export function FieldLearningStudioApp({
 
   function handleParseSandbox() {
     if (!sandboxText.trim()) return;
+    if (scannerTriggered && !anonymizationConfirmed) return;
 
-    const text = sandboxText.trim().toLowerCase();
-    let inferredTheme = "General programme learning";
-    let sensitivity: SensitivityFlag = "Low";
+    const { source, evidence, finding, recommendation } = parseSandboxInput({
+      text: sandboxText.trim(),
+      stakeholderGroup: sandboxStakeholder,
+      dataType: sandboxDataType,
+      theme: sandboxTheme,
+      sensitivity: sandboxSensitivity,
+      siteLabel: sandboxSiteLabel.trim() || undefined,
+      counter: sandboxCount,
+    });
 
-    if (selectedCaseId === "school-nutrition") {
-      if (text.includes("water") || text.includes("spoilage") || text.includes("cheese") || text.includes("dairy")) {
-        inferredTheme = "Food acceptability and water safety";
-        sensitivity = "High";
-      } else if (text.includes("father") || text.includes("mother") || text.includes("caregiver") || text.includes("gender")) {
-        inferredTheme = "Gendered household caregiver roles";
-        sensitivity = "Low";
-      } else if (text.includes("teacher") || text.includes("training") || text.includes("volunteer")) {
-        inferredTheme = "Volunteer capacity and training";
-        sensitivity = "Low";
-      } else if (text.includes("child") || text.includes("children") || text.includes("peer") || text.includes("committee")) {
-        inferredTheme = "Child participation mechanisms";
-        sensitivity = "Medium";
-      } else if (text.includes("clinic") || text.includes("screening") || text.includes("health") || text.includes("malnutrition")) {
-        inferredTheme = "Targeting and vulnerability assessment";
-        sensitivity = "Medium";
-      } else if (text.includes("storage") || text.includes("electricity") || text.includes("ventilation") || text.includes("canteen")) {
-        inferredTheme = "School infrastructure and storage constraints";
-        sensitivity = "Medium";
-      }
-    } else {
-      if (text.includes("women") || text.includes("girls") || text.includes("safety") || text.includes("evening") || text.includes("transport") || text.includes("lighting")) {
-        inferredTheme = "Women's safe participation";
-        sensitivity = "Medium";
-      } else if (text.includes("youth") || text.includes("young people") || text.includes("attendance") || text.includes("engagement")) {
-        inferredTheme = "Youth participation";
-        sensitivity = "Low";
-      } else if (text.includes("training") || text.includes("materials") || text.includes("language") || text.includes("translation")) {
-        inferredTheme = "Training accessibility";
-        sensitivity = "Low";
-      } else if (text.includes("reporting") || text.includes("partner") || text.includes("ngo") || text.includes("burden")) {
-        inferredTheme = "Partner coordination";
-        sensitivity = "Low";
-      } else if (text.includes("procurement") || text.includes("budget") || text.includes("delay") || text.includes("supplies")) {
-        inferredTheme = "Operational constraints";
-        sensitivity = "Low";
-      }
-    }
+    setSandboxSources((prev) => [source, ...prev]);
+    setSandboxEvidence((prev) => [evidence, ...prev]);
+    setSandboxFindings((prev) => [finding, ...prev]);
+    setSandboxRecommendations((prev) => [recommendation, ...prev]);
 
-    const tempId = `EV-TEMP-0${sandboxCount}` as `EV-${string}`;
-    const tempSourceId = `SRC-TEMP-0${sandboxCount}` as `SRC-${string}`;
-
-    const newEvidenceEntry: EvidenceEntry = {
-      id: tempId,
-      sourceId: tempSourceId,
-      stakeholderType: "Community member",
-      rawEvidence: sandboxText.trim(),
-      primaryTheme: inferredTheme,
-      secondaryTheme: "General learning",
-      evidenceStrength: "Low",
-      sensitivityFlag: sensitivity,
-      potentialFinding: `Initial evidence suggests critical factors regarding ${inferredTheme.toLowerCase()}.`,
-      qaStatus: "Needs Review",
-    };
-
-    setSandboxEvidence((prev) => [newEvidenceEntry, ...prev]);
     setSandboxCount((prev) => prev + 1);
-    setSandboxText("");
 
-    const newSourceEntry: SourceRecord = {
-      id: tempSourceId,
-      title: `Sandbox Field Note Log - ${tempId}`,
-      sourceType: "Field Note",
-      stakeholderType: "Community member",
-      location: "Fictional Sandbox Environment",
-      date: new Date().toLocaleDateString(),
-      sensitivityFlag: sensitivity,
-      summary: `User sandbox input: "${sandboxText.trim()}"`,
-    };
-    setSandboxSources((prev) => [newSourceEntry, ...prev]);
+    // Clear input text, but keep metadata selects for convenience
+    setSandboxText("");
+    setAnonymizationConfirmed(false);
 
     // Walkthrough step mapping
     setDemoProgress((prev) => ({ ...prev, step1: true, step2: true }));
 
     setActiveTab("evidence");
-    setHighlightedId(tempId);
-    setPendingTraceId(tempId);
+    setHighlightedId(evidence.id);
+    setPendingTraceId(evidence.id);
   }
 
   function handleResetSandbox() {
     setSandboxEvidence([]);
     setSandboxSources([]);
+    setSandboxFindings([]);
+    setSandboxRecommendations([]);
     setSandboxCount(1);
     setSandboxText("");
+    setSandboxStakeholder("Children / youth");
+    setSandboxDataType("Interview");
+    setSandboxTheme("Access");
+    setSandboxSensitivity("Low");
+    setSandboxSiteLabel("");
+    setAnonymizationConfirmed(false);
+    setIncludeSandboxInBrief(false);
+
     setHighlightedId(null);
     setPendingTraceId(null);
     setDrawerItemId(null);
@@ -670,7 +663,20 @@ export function FieldLearningStudioApp({
               demoCase={activeDemoCase} 
               onTabChange={handleTabChange}
               sandboxText={sandboxText}
-              setSandboxText={setSandboxText}
+              setSandboxText={updateSandboxText}
+              sandboxStakeholder={sandboxStakeholder}
+              setSandboxStakeholder={setSandboxStakeholder}
+              sandboxDataType={sandboxDataType}
+              setSandboxDataType={setSandboxDataType}
+              sandboxTheme={sandboxTheme}
+              setSandboxTheme={setSandboxTheme}
+              sandboxSensitivity={sandboxSensitivity}
+              setSandboxSensitivity={setSandboxSensitivity}
+              sandboxSiteLabel={sandboxSiteLabel}
+              setSandboxSiteLabel={setSandboxSiteLabel}
+              scannerTriggered={scannerTriggered}
+              anonymizationConfirmed={anonymizationConfirmed}
+              setAnonymizationConfirmed={setAnonymizationConfirmed}
               onParse={handleParseSandbox}
               onReset={handleResetSandbox}
               hasSandboxItems={sandboxEvidence.length > 0}
@@ -694,7 +700,7 @@ export function FieldLearningStudioApp({
           ) : null}
           {activeTab === "findings" ? (
             <FindingsSection
-              findings={currentBaseCase.findings}
+              findings={activeDemoCase.findings}
               traceHandlers={traceHandlers}
               demoCase={activeDemoCase}
             />
@@ -708,7 +714,7 @@ export function FieldLearningStudioApp({
           ) : null}
           {activeTab === "recommendations" ? (
             <RecommendationsSection
-              recommendations={currentBaseCase.recommendations}
+              recommendations={activeDemoCase.recommendations}
               traceHandlers={traceHandlers}
               demoCase={activeDemoCase}
             />
@@ -730,6 +736,9 @@ export function FieldLearningStudioApp({
               markdown={currentBriefMarkdown}
               onCopy={copyLearningBrief}
               traceHandlers={traceHandlers}
+              includeSandboxInBrief={includeSandboxInBrief}
+              setIncludeSandboxInBrief={setIncludeSandboxInBrief}
+              hasSandboxItems={sandboxEvidence.length > 0}
             />
           ) : null}
         </div>
@@ -869,6 +878,9 @@ function CaseSelector({
             );
           })}
         </div>
+        <p className="mt-3 text-[11px] font-medium text-amber-500/80">
+          Note: switching demo cases clears any temporary local sandbox drafts.
+        </p>
       </div>
     </div>
   );
@@ -1016,6 +1028,19 @@ function OverviewTab({
   onTabChange,
   sandboxText,
   setSandboxText,
+  sandboxStakeholder,
+  setSandboxStakeholder,
+  sandboxDataType,
+  setSandboxDataType,
+  sandboxTheme,
+  setSandboxTheme,
+  sandboxSensitivity,
+  setSandboxSensitivity,
+  sandboxSiteLabel,
+  setSandboxSiteLabel,
+  scannerTriggered,
+  anonymizationConfirmed,
+  setAnonymizationConfirmed,
   onParse,
   onReset,
   hasSandboxItems,
@@ -1026,6 +1051,19 @@ function OverviewTab({
   onTabChange: (tabId: WorkspaceTabId) => void;
   sandboxText: string;
   setSandboxText: (text: string) => void;
+  sandboxStakeholder: string;
+  setSandboxStakeholder: (val: string) => void;
+  sandboxDataType: string;
+  setSandboxDataType: (val: string) => void;
+  sandboxTheme: string;
+  setSandboxTheme: (val: string) => void;
+  sandboxSensitivity: "Low" | "Medium" | "High";
+  setSandboxSensitivity: (val: "Low" | "Medium" | "High") => void;
+  sandboxSiteLabel: string;
+  setSandboxSiteLabel: (val: string) => void;
+  scannerTriggered: boolean;
+  anonymizationConfirmed: boolean;
+  setAnonymizationConfirmed: (val: boolean) => void;
   onParse: () => void;
   onReset: () => void;
   hasSandboxItems: boolean;
@@ -1329,55 +1367,202 @@ function OverviewTab({
           </section>
 
           {/* 4. Sandbox Intake Section */}
-          <section id="sandbox-note-section" className="rounded-lg border border-amber-300 bg-amber-50/20 p-5 scroll-mt-20">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <section id="sandbox-note-section" className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 scroll-mt-20">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4 mb-4">
               <div>
-                <h3 className="text-base font-semibold text-amber-900">
-                  Try a local sandbox field note
+                <h3 className="text-base font-semibold text-[var(--foreground)]">
+                  Try your own field note
                 </h3>
-                <p className="mt-1 text-xs text-amber-800/80 leading-5">
-                  Deterministic demo parsing only: no AI call, no upload, no storage. Do not enter real sensitive field evidence.
+                <p className="mt-1 text-xs text-[var(--muted)] leading-5">
+                  Paste a short anonymized note to see how Field Learning Studio structures evidence locally.
                 </p>
               </div>
               {hasSandboxItems && (
                 <button
-                  className="px-3 py-1 bg-[var(--surface)] border border-amber-300 text-amber-900 rounded-md text-xs font-semibold hover:bg-[var(--surface-elevated)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="px-3 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] rounded-md text-xs font-semibold hover:bg-[var(--surface-elevated)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--trace)]"
                   onClick={onReset}
                 >
-                  Reset Sandbox
+                  Clear sandbox
                 </button>
               )}
             </div>
 
-            <div className="mt-4 flex flex-col gap-3">
-              <textarea
-                id="sandbox-note-textarea"
-                className="w-full min-h-[100px] p-3 border border-amber-300/60 bg-[var(--surface)] rounded-lg text-sm text-[var(--foreground)] outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 placeholder-[var(--muted-soft)] font-sans"
-                placeholder="Type or paste 2-3 sentences of monitoring notes here..."
-                value={sandboxText}
-                onChange={(e) => setSandboxText(e.target.value)}
-              />
-              
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Safety Warning Copy (Always Visible) */}
+            <div className="mb-4 rounded border border-amber-900/30 bg-amber-500/5 p-3 text-[11px] leading-5 text-amber-600/90">
+              <span className="font-bold">Local sandbox only:</span> This text is not uploaded, saved, or analyzed by an external AI service. Do not enter real names, exact locations, child-identifying details, or sensitive case information.
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {/* Field Note Textarea */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]" htmlFor="sandbox-note-textarea">
+                  Field Note text
+                </label>
+                <textarea
+                  id="sandbox-note-textarea"
+                  className="w-full min-h-[100px] p-3 border border-[var(--border)] bg-[var(--surface-muted)] rounded-lg text-sm text-[var(--foreground)] outline-none focus:border-[var(--trace)] focus:ring-1 focus:ring-[var(--trace)] placeholder-[var(--muted-soft)] font-sans"
+                  placeholder="Example: During a school visit, staff described low attendance during meal distribution because children preferred packaged food and clean water was not always available."
+                  value={sandboxText}
+                  onChange={(e) => setSandboxText(e.target.value)}
+                />
+              </div>
+
+              {/* Dynamic Sensitive Warning Check Panel */}
+              {scannerTriggered && (
+                <div className="rounded border border-amber-600/50 bg-amber-500/10 p-3.5 flex flex-col gap-2.5">
+                  <p className="text-xs text-amber-600 font-semibold leading-5">
+                    This note may contain sensitive or identifying details. Please anonymize before continuing, or confirm it is safe for demo processing.
+                  </p>
+                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-amber-700 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="rounded border-[var(--border)] text-[var(--trace)] focus:ring-[var(--trace)] bg-[var(--surface)]"
+                      checked={anonymizationConfirmed}
+                      onChange={(e) => setAnonymizationConfirmed(e.target.checked)}
+                    />
+                    I confirm this note is anonymized and safe for demo processing.
+                  </label>
+                </div>
+              )}
+
+              {/* Metadata Inputs Grid */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Stakeholder Group Select */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                    Stakeholder group
+                  </label>
+                  <select
+                    className="p-2 border border-[var(--border)] bg-[var(--surface-muted)] rounded text-xs text-[var(--foreground)] outline-none focus:border-[var(--trace)] focus:ring-1 focus:ring-[var(--trace)] cursor-pointer"
+                    value={sandboxStakeholder}
+                    onChange={(e) => setSandboxStakeholder(e.target.value)}
+                  >
+                    <option value="Children / youth">Children / youth</option>
+                    <option value="Women / caregivers">Women / caregivers</option>
+                    <option value="School staff">School staff</option>
+                    <option value="Community leaders">Community leaders</option>
+                    <option value="Partner staff">Partner staff</option>
+                    <option value="Programme team">Programme team</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {/* Data Type Select */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                    Data type
+                  </label>
+                  <select
+                    className="p-2 border border-[var(--border)] bg-[var(--surface-muted)] rounded text-xs text-[var(--foreground)] outline-none focus:border-[var(--trace)] focus:ring-1 focus:ring-[var(--trace)] cursor-pointer"
+                    value={sandboxDataType}
+                    onChange={(e) => setSandboxDataType(e.target.value)}
+                  >
+                    <option value="Interview">Interview</option>
+                    <option value="Focus group">Focus group</option>
+                    <option value="Observation">Observation</option>
+                    <option value="Monitoring note">Monitoring note</option>
+                    <option value="Meeting note">Meeting note</option>
+                    <option value="Feedback channel">Feedback channel</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {/* Theme Select */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                    Theme
+                  </label>
+                  <select
+                    className="p-2 border border-[var(--border)] bg-[var(--surface-muted)] rounded text-xs text-[var(--foreground)] outline-none focus:border-[var(--trace)] focus:ring-1 focus:ring-[var(--trace)] cursor-pointer"
+                    value={sandboxTheme}
+                    onChange={(e) => setSandboxTheme(e.target.value)}
+                  >
+                    <option value="Access">Access</option>
+                    <option value="Safety">Safety</option>
+                    <option value="Participation">Participation</option>
+                    <option value="Nutrition">Nutrition</option>
+                    <option value="Coordination">Coordination</option>
+                    <option value="Training">Training</option>
+                    <option value="Inclusion">Inclusion</option>
+                    <option value="Accountability">Accountability</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {/* Sensitivity Select */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                    Sensitivity
+                  </label>
+                  <select
+                    className="p-2 border border-[var(--border)] bg-[var(--surface-muted)] rounded text-xs text-[var(--foreground)] outline-none focus:border-[var(--trace)] focus:ring-1 focus:ring-[var(--trace)] cursor-pointer"
+                    value={sandboxSensitivity}
+                    onChange={(e) => setSandboxSensitivity(e.target.value as "Low" | "Medium" | "High")}
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+
+                {/* Optional Site Label */}
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                    Optional anonymized site label
+                  </label>
+                  <input
+                    type="text"
+                    className="p-2 border border-[var(--border)] bg-[var(--surface-muted)] rounded text-xs text-[var(--foreground)] outline-none focus:border-[var(--trace)] focus:ring-1 focus:ring-[var(--trace)]"
+                    placeholder="Example: School A, Community Site 2, Partner Workshop"
+                    value={sandboxSiteLabel}
+                    onChange={(e) => setSandboxSiteLabel(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Action Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[var(--border)]">
+                {/* Sample note templates */}
                 <div className="flex flex-wrap gap-1.5 items-center">
-                  <span className="text-[11px] font-semibold text-amber-800">Templates:</span>
+                  <span className="text-[11px] font-bold text-[var(--muted)]">Sample Notes:</span>
                   {demoCase.id === "school-nutrition" ? (
                     <>
                       <button 
-                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
-                        onClick={() => setSandboxText("Children are skipping the dry meal snack because there is no clean drinking water available during lunch, and some report stomach aches from unpackaged cheese stored in open bins.")}
+                        className="px-2.5 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
+                        onClick={() => {
+                          setSandboxText("Children are skipping the dry meal snack because there is no clean drinking water available during lunch, and some report stomach aches from unpackaged cheese stored in open bins.");
+                          setSandboxStakeholder("Children / youth");
+                          setSandboxDataType("Observation");
+                          setSandboxTheme("Nutrition");
+                          setSandboxSensitivity("High");
+                          setSandboxSiteLabel("School A Canteen");
+                        }}
                       >
                         Water & Spoilage
                       </button>
                       <button 
-                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
-                        onClick={() => setSandboxText("Social workers report that fathers do not attend any school nutrition PTA sessions, claiming cooking is a female duty, but they control the household food budget.")}
+                        className="px-2.5 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
+                        onClick={() => {
+                          setSandboxText("Social workers report that fathers do not attend any school nutrition PTA sessions, claiming cooking is a female duty, but they control the household food budget.");
+                          setSandboxStakeholder("Women / caregivers");
+                          setSandboxDataType("Interview");
+                          setSandboxTheme("Inclusion");
+                          setSandboxSensitivity("Low");
+                          setSandboxSiteLabel("PTA Meeting");
+                        }}
                       >
                         Caregiver Roles
                       </button>
                       <button 
-                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
-                        onClick={() => setSandboxText("Teachers state they are expected to deliver weekly health and nutrition lessons but have never received training materials or guidelines.")}
+                        className="px-2.5 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
+                        onClick={() => {
+                          setSandboxText("Teachers state they are expected to deliver weekly health and nutrition lessons but have never received training materials or guidelines.");
+                          setSandboxStakeholder("School staff");
+                          setSandboxDataType("Interview");
+                          setSandboxTheme("Training");
+                          setSandboxSensitivity("Medium");
+                          setSandboxSiteLabel("Staff Room");
+                        }}
                       >
                         Teacher Capacity
                       </button>
@@ -1385,20 +1570,41 @@ function OverviewTab({
                   ) : (
                     <>
                       <button 
-                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
-                        onClick={() => setSandboxText("Women report feeling unsafe at evening peacebuilding committee meetings due to poor street lighting and lack of public transport.")}
+                        className="px-2.5 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
+                        onClick={() => {
+                          setSandboxText("Women report feeling unsafe at evening peacebuilding committee meetings due to poor street lighting and lack of public transport.");
+                          setSandboxStakeholder("Women / caregivers");
+                          setSandboxDataType("Focus group");
+                          setSandboxTheme("Safety");
+                          setSandboxSensitivity("Medium");
+                          setSandboxSiteLabel("Community Hall");
+                        }}
                       >
                         Safe Access
                       </button>
                       <button 
-                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
-                        onClick={() => setSandboxText("Youth committee attendance declines because meetings are unpredictable and do not link to practical local action budgets.")}
+                        className="px-2.5 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
+                        onClick={() => {
+                          setSandboxText("Youth committee attendance declines because meetings are unpredictable and do not link to practical local action budgets.");
+                          setSandboxStakeholder("Children / youth");
+                          setSandboxDataType("Monitoring note");
+                          setSandboxTheme("Participation");
+                          setSandboxSensitivity("Low");
+                          setSandboxSiteLabel("Youth Center");
+                        }}
                       >
                         Youth Engagement
                       </button>
                       <button 
-                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
-                        onClick={() => setSandboxText("Local partner staff spend more than 40% of their working hours compiling donor compliance reports, leaving little time for direct field engagement.")}
+                        className="px-2.5 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
+                        onClick={() => {
+                          setSandboxText("Local partner staff spend more than 40% of their working hours compiling donor compliance reports, leaving little time for direct field engagement.");
+                          setSandboxStakeholder("Partner staff");
+                          setSandboxDataType("Meeting note");
+                          setSandboxTheme("Coordination");
+                          setSandboxSensitivity("Low");
+                          setSandboxSiteLabel("Partner Office");
+                        }}
                       >
                         Reporting Burden
                       </button>
@@ -1406,16 +1612,17 @@ function OverviewTab({
                   )}
                 </div>
 
+                {/* Submit button */}
                 <button
-                  className={`min-h-10 px-4 rounded-lg text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
-                    sandboxText.trim() 
-                      ? "bg-[var(--warning)] hover:bg-[#d88a06] text-[#03121a] cursor-pointer"
-                      : "bg-[var(--surface-muted)] text-[var(--muted-soft)] cursor-not-allowed"
+                  className={`min-h-9 px-4 rounded text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] ${
+                    sandboxText.trim() && (!scannerTriggered || anonymizationConfirmed)
+                      ? "bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white cursor-pointer"
+                      : "bg-[var(--surface-muted)] text-[var(--muted-soft)] cursor-not-allowed border border-[var(--border)]"
                   }`}
-                  disabled={!sandboxText.trim()}
+                  disabled={!sandboxText.trim() || (scannerTriggered && !anonymizationConfirmed)}
                   onClick={onParse}
                 >
-                  Parse into evidence
+                  Generate draft evidence
                 </button>
               </div>
             </div>
@@ -1641,7 +1848,7 @@ function EvidenceMatrix({
       <div className="grid gap-4 md:grid-cols-2">
         {evidence.map((entry) => {
           const isHighlighted = traceHandlers.highlightedId === entry.id;
-          const isSandbox = entry.id.startsWith("EV-TEMP-");
+          const isSandbox = entry.id.includes("SBX") || entry.id.startsWith("EV-TEMP-");
           const source = sources.find((item) => item.id === entry.sourceId);
           const linkedFinding = findings.find((finding) =>
             finding.supportingEvidenceIds.includes(entry.id),
@@ -1652,6 +1859,8 @@ function EvidenceMatrix({
               className={`scroll-mt-32 rounded-lg border transition p-6 flex flex-col justify-between ${
                 isHighlighted
                   ? "border-[var(--trace)] bg-[var(--trace-wash)]"
+                  : isSandbox
+                  ? "border-[var(--border)] bg-[rgba(11,22,37,0.4)] hover:border-[var(--border-strong)]"
                   : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]"
               }`}
               id={traceDomId(entry.id)}
@@ -1672,9 +1881,17 @@ function EvidenceMatrix({
                       {source ? ` from ${source.sourceType}` : ""}
                     </p>
                     {isSandbox && (
-                      <span className="mt-2 inline-flex text-[9px] font-bold uppercase text-amber-700 bg-amber-50 border border-amber-200/50 rounded px-1.5 py-0.5">
-                        Sandbox evidence item — local demo only, not validated.
-                      </span>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        <span className="inline-flex items-center rounded border border-cyan-800/30 bg-cyan-950/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--trace)]">
+                          Sandbox draft
+                        </span>
+                        <span className="inline-flex items-center rounded border border-slate-700 bg-slate-800/50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--muted)]">
+                          Local only
+                        </span>
+                        <span className="inline-flex items-center rounded border border-amber-900/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-500">
+                          Not validated
+                        </span>
+                      </div>
                     )}
                   </div>
                   <div className="flex flex-wrap items-center justify-end gap-2">
@@ -1764,14 +1981,95 @@ function FindingsSection({
   traceHandlers: TraceHandlers;
   demoCase: DemoCase;
 }) {
+  const normalFindings = findings.filter((f) => !f.id.includes("SBX"));
+  const sandboxFindings = findings.filter((f) => f.id.includes("SBX"));
+
   return (
     <Section
       description="Each finding shows supporting evidence, contradictions, implications, and linked recommendations."
       eyebrow="Findings"
       title="No finding without evidence"
     >
+      {/* Sandbox Drafts Section */}
+      {sandboxFindings.length > 0 && (
+        <div className="mb-6 rounded-lg border border-cyan-800 bg-cyan-950/10 p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-cyan-800/40 pb-3">
+            <div>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-[var(--trace)]">
+                Sandbox Draft Findings (Local only)
+              </h4>
+              <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                Temporary drafts generated during this session.
+              </p>
+            </div>
+            <div className="flex gap-1.5">
+              <span className="inline-flex items-center rounded border border-cyan-800/30 bg-cyan-950/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--trace)]">
+                Sandbox draft
+              </span>
+              <span className="inline-flex items-center rounded border border-amber-900/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-500">
+                Not validated
+              </span>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {sandboxFindings.map((finding) => (
+              <article
+                className={`scroll-mt-32 rounded-lg border p-5 flex flex-col justify-between border-cyan-800/40 bg-[rgba(11,22,37,0.6)] ${
+                  traceHandlers.highlightedId === finding.id ? "ring-2 ring-[var(--trace)]" : ""
+                }`}
+                id={traceDomId(finding.id)}
+                key={finding.id}
+              >
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <TraceButton
+                      id={finding.id}
+                      onSelect={traceHandlers.onTraceSelect}
+                    />
+                    <StrengthBadge value={finding.evidenceStrength} />
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold leading-7 text-[var(--foreground)]">
+                    {finding.statement}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                    {finding.explanation}
+                  </p>
+                  <TraceIdList
+                    ids={finding.supportingEvidenceIds}
+                    label="Supporting evidence"
+                    onTraceSelect={traceHandlers.onTraceSelect}
+                  />
+                  <div className="mt-4 rounded-lg border border-amber-950/30 bg-amber-950/10 p-3 text-sm leading-6 text-amber-400">
+                    <span className="font-semibold">Contradictory evidence: </span>
+                    {finding.contradictoryEvidence}
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+                    <span className="font-semibold text-[var(--foreground)]">
+                      Programme implication:
+                    </span>{" "}
+                    {finding.programmeImplication}
+                  </p>
+                  <TraceIdList
+                    ids={finding.linkedRecommendationIds}
+                    label="Linked recommendations"
+                    onTraceSelect={traceHandlers.onTraceSelect}
+                  />
+                </div>
+                <div className="mt-5 pt-4 border-t border-[var(--border)]">
+                  <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
+                    Claim lineage
+                  </span>
+                  <TraceChain id={finding.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Normal Findings Section */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {findings.map((finding) => (
+        {normalFindings.map((finding) => (
           <article
             className={traceCardClass(
               finding.id,
@@ -1933,6 +2231,9 @@ function RecommendationsSection({
   traceHandlers: TraceHandlers;
   demoCase: DemoCase;
 }) {
+  const normalRecommendations = recommendations.filter((r) => !r.id.includes("SBX"));
+  const sandboxRecommendations = recommendations.filter((r) => r.id.includes("SBX"));
+
   return (
     <Section
       description="Recommendations are grouped by priority and linked to findings and evidence."
@@ -1940,10 +2241,108 @@ function RecommendationsSection({
       title="No recommendation without a finding"
     >
       <div className="space-y-5">
+        {/* Sandbox Draft Recommendations Block */}
+        {sandboxRecommendations.length > 0 && (
+          <section className="rounded-lg border border-cyan-800 bg-cyan-950/10 p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-cyan-800/40 pb-3">
+              <div>
+                <h3 className="text-base font-semibold text-[var(--trace)]">
+                  Sandbox Draft Recommendations (Local only)
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                  Temporary actions inferred from sandbox themes.
+                </p>
+              </div>
+              <div className="flex gap-1.5">
+                <span className="inline-flex items-center rounded border border-cyan-800/30 bg-cyan-950/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--trace)]">
+                  Sandbox draft
+                </span>
+                <span className="inline-flex items-center rounded border border-amber-900/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-500">
+                  Not validated
+                </span>
+              </div>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-2">
+              {sandboxRecommendations.map((recommendation) => (
+                <article
+                  className={`scroll-mt-32 rounded-lg border p-5 flex flex-col justify-between border-cyan-800/40 bg-[rgba(11,22,37,0.6)] ${
+                    traceHandlers.highlightedId === recommendation.id ? "ring-2 ring-[var(--trace)]" : ""
+                  }`}
+                  id={traceDomId(recommendation.id)}
+                  key={recommendation.id}
+                >
+                  <div>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <TraceButton
+                        id={recommendation.id}
+                        onSelect={traceHandlers.onTraceSelect}
+                      />
+                      <LinkedTraceField
+                        className=""
+                        id={recommendation.linkedFindingId}
+                        label="Finding"
+                        onTraceSelect={traceHandlers.onTraceSelect}
+                      />
+                    </div>
+                    <h4 className="mt-4 text-base font-semibold leading-6 text-[var(--foreground)]">
+                      {recommendation.recommendation}
+                    </h4>
+                    <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                      <span className="font-semibold text-[var(--foreground)]">Expected benefit: </span>
+                      {recommendation.expectedBenefit}
+                    </p>
+                    <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 border-t border-[var(--border)] pt-3 text-xs sm:grid-cols-2">
+                      <CompactField
+                        label="Owner"
+                        value={recommendation.responsibleActor}
+                      />
+                      <CompactField
+                        label="Timeframe"
+                        value={recommendation.timeframe}
+                      />
+                      <CompactField
+                        label="Feasibility"
+                        value={recommendation.feasibility}
+                      />
+                      <CompactField
+                        label="Risk / sensitivity"
+                        value={recommendation.riskSensitivity}
+                      />
+                      <CompactField
+                        label="Success indicator"
+                        value={recommendation.successIndicator}
+                        fullWidth
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4 border-t border-[var(--border)] pt-3">
+                    <TraceIdList
+                      className=""
+                      ids={recommendation.evidenceBase}
+                      label="Evidence base"
+                      onTraceSelect={traceHandlers.onTraceSelect}
+                    />
+                  </div>
+                  <div className="mt-4 border-t border-[var(--border)] pt-4">
+                    <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
+                      Claim lineage
+                    </span>
+                    <TraceChain id={recommendation.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Normal recommendations grouped by priority */}
         {priorityOrder.map((priority) => {
-          const items = recommendations.filter(
+          const items = normalRecommendations.filter(
             (recommendation) => recommendation.priority === priority,
           );
+
+          if (items.length === 0) return null;
 
           return (
             <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4" key={priority}>
@@ -2037,9 +2436,9 @@ function RecommendationsSection({
 
 function renderTextWithPills(text: string, onSelect: (id: string) => void) {
   if (!text) return "";
-  const parts = text.split(/(\b(?:SRC|EV|FND|LES|GP|REC|QA)-\d+\b|\bEV-TEMP-\d+\b|\bSRC-TEMP-\d+\b)/g);
+  const parts = text.split(/(\b(?:SRC|EV|FND|LES|GP|REC|QA)-(?:\d+|SBX-\d+|TEMP-\d+)\b)/g);
   return parts.map((part, index) => {
-    if (/^(?:SRC|EV|FND|LES|GP|REC|QA)-\d+$/.test(part) || /^(?:EV|SRC)-TEMP-\d+$/.test(part)) {
+    if (/^(?:SRC|EV|FND|LES|GP|REC|QA)-(?:\d+|SBX-\d+|TEMP-\d+)$/.test(part)) {
       return (
         <button
           key={index}
@@ -2259,19 +2658,25 @@ function LearningBriefSection({
   copyStatus,
   onCopy,
   traceHandlers,
+  includeSandboxInBrief,
+  setIncludeSandboxInBrief,
+  hasSandboxItems,
 }: {
   demoCase: DemoCase;
   markdown: string;
   copyStatus: "idle" | "copied" | "error";
   onCopy: () => void;
   traceHandlers: TraceHandlers;
+  includeSandboxInBrief: boolean;
+  setIncludeSandboxInBrief: (val: boolean) => void;
+  hasSandboxItems: boolean;
 }) {
   const [exportStatus, setExportStatus] = React.useState<"idle" | "docx-loading" | "pdf-loading" | "md-loading" | "error">("idle");
 
   const handleDownloadDocx = async () => {
     try {
       setExportStatus("docx-loading");
-      const model = buildBriefExportModel(demoCase);
+      const model = buildBriefExportModel(demoCase, includeSandboxInBrief);
       downloadBriefDocx(model);
       setExportStatus("idle");
     } catch (err) {
@@ -2283,7 +2688,7 @@ function LearningBriefSection({
   const handleDownloadPdf = async () => {
     try {
       setExportStatus("pdf-loading");
-      const model = buildBriefExportModel(demoCase);
+      const model = buildBriefExportModel(demoCase, includeSandboxInBrief);
       await downloadBriefPdf(model);
       setExportStatus("idle");
     } catch (err) {
@@ -2295,7 +2700,7 @@ function LearningBriefSection({
   const handleDownloadMarkdown = async () => {
     try {
       setExportStatus("md-loading");
-      const model = buildBriefExportModel(demoCase);
+      const model = buildBriefExportModel(demoCase, includeSandboxInBrief);
       downloadBriefMarkdown(model);
       setExportStatus("idle");
     } catch (err) {
@@ -2339,7 +2744,26 @@ function LearningBriefSection({
               )}
             </div>
           </div>
-
+          {/* Toggle sandbox inclusion */}
+          {hasSandboxItems && (
+            <div className="rounded border border-amber-900/30 bg-amber-500/5 p-4 flex flex-col gap-2">
+              <label className="inline-flex items-center gap-3 text-xs font-semibold text-amber-700 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="rounded border-[var(--border)] text-[var(--trace)] focus:ring-[var(--trace)] bg-[var(--surface)]"
+                  checked={includeSandboxInBrief}
+                  onChange={(e) => setIncludeSandboxInBrief(e.target.checked)}
+                />
+                Include sandbox draft evidence in brief export
+              </label>
+              <p className="text-[11px] text-amber-600/90 leading-relaxed pl-6">
+                {includeSandboxInBrief
+                  ? "Warning: Sandbox content will be included in Word, PDF, and Markdown exports as unvalidated draft evidence."
+                  : "Sandbox drafts are currently excluded from exports. Check this box to append them as draft evidence."
+                }
+              </p>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-3">
             <button
               className="min-h-10 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white px-5 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer disabled:opacity-50"
@@ -2381,6 +2805,7 @@ function LearningBriefSection({
         <StyledBriefPreview
           demoCase={demoCase}
           traceHandlers={traceHandlers}
+          includeSandbox={includeSandboxInBrief}
         />
 
         <details className="mt-2 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]">
@@ -2401,9 +2826,11 @@ function LearningBriefSection({
 function StyledBriefPreview({
   demoCase,
   traceHandlers,
+  includeSandbox,
 }: {
   demoCase: DemoCase;
   traceHandlers: TraceHandlers;
+  includeSandbox: boolean;
 }) {
   return (
     <div className="bg-[rgba(148,163,184,0.08)] p-4 sm:p-8 rounded-lg border border-[var(--border)] mt-5">
@@ -2624,6 +3051,44 @@ function StyledBriefPreview({
             <p>{demoCase.safeguardingNotes || demoCase.safetyNote}</p>
           </BriefSection>
         ) : null}
+
+        {includeSandbox && (
+          <BriefSection title="Sandbox Draft Evidence — Requires Review">
+            <div className="rounded border border-amber-900/30 bg-amber-500/5 p-4 mb-4 text-xs text-amber-600/90 leading-5">
+              <span className="font-bold">Sandbox Warning:</span> Sandbox draft content is user-provided, local-only, and not validated.
+            </div>
+            <div className="space-y-4">
+              {demoCase.evidence.filter((e) => e.id.includes("SBX")).map((e) => {
+                const fnd = demoCase.findings.find((f) => f.supportingEvidenceIds.includes(e.id));
+                const rec = fnd ? demoCase.recommendations.find((r) => r.linkedFindingId === fnd.id) : null;
+                return (
+                  <div key={e.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4 flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <TraceButton id={e.id} onSelect={traceHandlers.onTraceSelect} />
+                      <span className="text-[10px] font-bold text-[var(--muted)]">Source: {e.sourceId}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wider block mb-1">Observation Summary</span>
+                      <p className="text-sm text-[var(--foreground)]">{e.rawEvidence}</p>
+                    </div>
+                    {fnd && (
+                      <div>
+                        <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wider block mb-1">Draft Finding ({fnd.id})</span>
+                        <p className="text-xs text-[var(--foreground)] font-medium">{fnd.statement}</p>
+                      </div>
+                    )}
+                    {rec && (
+                      <div>
+                        <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wider block mb-1">Draft Recommendation ({rec.id})</span>
+                        <p className="text-xs text-[var(--foreground)] font-medium">{rec.recommendation}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </BriefSection>
+        )}
 
         <BriefSection title="Limitations">
           <ul className="space-y-2">

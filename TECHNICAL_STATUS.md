@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.7 export pack is implemented on branch `feature/v0.7-export-pack`. The app adds professional local browser download options for Word (.docx), PDF (.pdf), and improved Markdown (.md) to the learning brief workbench. A shared export model helper ensures content parity, and the exports are presented inside a clean "Export Brief Deliverable" action area. All static demo data, local sandbox behavior, data models, and strict no-auth/no-db/no-upload/no-backend/no-external-AI constraints are preserved.
+v0.8 local note intake is implemented on branch `feature/v0.8-local-note-intake`. The app adds a controlled local browser sandbox note pasting and safety warning bypass check area, a mock theme-coded parser, separate tab layout blocks for sandbox-generated findings and recommendations, QA warnings checklist flags, and toggle-conditional downloads for Word (.docx), PDF (.pdf), and Markdown (.md). All local-only state constraints are preserved.
 
 ## Completed Items
 
@@ -65,6 +65,13 @@ v0.7 export pack is implemented on branch `feature/v0.7-export-pack`. The app ad
   - Improved Markdown (.md) brief generation and Blob downloads.
   - Redesigned the Action Bar into a cohesive "Export Brief Deliverable" panel with custom status/error labels.
   - Aligned all dynamic safety notes and review notices across exports.
+- Implemented v0.8 local note intake:
+  - Created safety check scanner inside `src/lib/sandboxParser.ts` scanning for child names, emails, phone numbers, exact dates, and high-sensitivity words.
+  - Added warning indicators and bypass confirmation checkbox to sandbox form.
+  - Wrote mock parser returning structured draft data maps.
+  - Displayed sandbox evidence, findings, and recommendations in separate distinct blocks styled with custom badges.
+  - Embedded dynamic sandbox reviews into the QA audit generator.
+  - Integrated export toggles conditionally compiling sandbox drafts to Word, PDF, and Markdown.
 
 ## Pending Items
 

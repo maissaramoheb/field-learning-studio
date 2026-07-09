@@ -1,4 +1,4 @@
-import type { DemoCase, QAReviewItem, QAReviewStatus } from "@/lib/types";
+import type { DemoCase, QAReviewItem, QAReviewStatus, QAReviewItemId } from "@/lib/types";
 
 function statusFromCheck(check: boolean): QAReviewStatus {
   return check ? "Pass" : "Warning";
@@ -28,7 +28,7 @@ export function generateQAReview(demoCase: DemoCase): QAReviewItem[] {
       entry.sensitivityFlag === "Medium" || entry.sensitivityFlag === "High",
   );
 
-  return [
+  const qaItems: QAReviewItem[] = [
     {
       id: "QA-001",
       title: "Evidence Traceability",
@@ -165,4 +165,30 @@ export function generateQAReview(demoCase: DemoCase): QAReviewItem[] {
         "Each recommendation is linked to a finding and includes an expected benefit.",
     },
   ];
+
+  const hasSandbox = demoCase.evidence.some((e) => e.id.includes("SBX"));
+  if (hasSandbox) {
+    qaItems.push({
+      id: "QA-SBX-001" as QAReviewItemId,
+      title: "Sandbox Human Validation",
+      reviewQuestion: "Has sandbox-generated draft evidence been manually validated by program staff?",
+      status: "Needs Review",
+      notes: "Sandbox-generated evidence requires human validation before donor-facing use.",
+    });
+
+    const hasHighSensitivitySandbox = demoCase.evidence.some(
+      (e) => e.id.includes("SBX") && e.sensitivityFlag === "High"
+    );
+    if (hasHighSensitivitySandbox) {
+      qaItems.push({
+        id: "QA-SBX-002" as QAReviewItemId,
+        title: "High-Sensitivity Sandbox Review",
+        reviewQuestion: "Does the high-sensitivity sandbox note contain any identifying details?",
+        status: "Warning",
+        notes: "High-sensitivity sandbox note should not be exported without anonymization and review.",
+      });
+    }
+  }
+
+  return qaItems;
 }
