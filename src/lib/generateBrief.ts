@@ -5,12 +5,10 @@ function bulletList(items: string[]): string {
 }
 
 export function generateLearningBriefMarkdown(demoCase: DemoCase, includeSandbox: boolean = false): string {
-  const findingsList = includeSandbox
-    ? demoCase.findings
-    : demoCase.findings.filter((f) => !f.id.includes("SBX"));
-  const recsList = includeSandbox
-    ? demoCase.recommendations
-    : demoCase.recommendations.filter((r) => !r.id.includes("SBX"));
+  const findingsList = demoCase.findings.filter((f) => !f.id.includes("SBX") && !f.id.includes("TEMP"));
+  const lessonsList = demoCase.lessons.filter((l) => !l.id.includes("SBX") && !l.id.includes("TEMP"));
+  const goodPracticesList = demoCase.goodPractices.filter((g) => !g.id.includes("SBX") && !g.id.includes("TEMP"));
+  const recsList = demoCase.recommendations.filter((r) => !r.id.includes("SBX") && !r.id.includes("TEMP"));
 
   const findings = findingsList
     .map(
@@ -19,14 +17,14 @@ export function generateLearningBriefMarkdown(demoCase: DemoCase, includeSandbox
     )
     .join("\n\n");
 
-  const lessons = demoCase.lessons
+  const lessons = lessonsList
     .map(
       (lesson) =>
         `### ${lesson.id}: ${lesson.statement}\n\nWhat worked / did not work: ${lesson.whatWorkedOrDidNotWork}\n\nWhy it happened: ${lesson.whyItHappened}\n\nConditions required: ${lesson.conditionsRequired}\n\nEvidence base: ${lesson.evidenceBase.join(", ")}\n\nTransferability: ${lesson.transferability}`,
     )
     .join("\n\n");
 
-  const goodPractices = demoCase.goodPractices
+  const goodPractices = goodPracticesList
     .map(
       (practice) =>
         `### ${practice.id}: ${practice.title}\n\n${practice.description}\n\nWhy it worked: ${practice.whyItWorked}\n\nEvidence base: ${practice.evidenceBase.join(", ")}\n\nConditions for replication: ${practice.conditionsForReplication}\n\nRisks / limits: ${practice.risksLimits}\n\nRecommended use: ${practice.recommendedUse}`,
@@ -70,7 +68,8 @@ export function generateLearningBriefMarkdown(demoCase: DemoCase, includeSandbox
       const fnd = demoCase.findings.find((f) => f.supportingEvidenceIds.includes(e.id));
       const rec = fnd ? demoCase.recommendations.find((r) => r.linkedFindingId === fnd.id) : null;
       return `### ${e.id}
-- **Source:** ${e.sourceId}
+- **Evidence ID:** ${e.id}
+- **Source ID:** ${e.sourceId}
 - **Stakeholder:** ${e.stakeholderType}
 - **Observation Summary:** ${e.rawEvidence}
 - **Theme:** ${e.primaryTheme}

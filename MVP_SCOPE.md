@@ -59,6 +59,14 @@
 - **Shared Export Model (P0):** Implements a shared structured export data model to ensure content parity across all three export types.
 - **Visual Integration (P0):** Houses exports inside a clean "Export Brief Deliverable" action area styled as a premium command tool.
 
+## v0.8 Includes
+
+- **Local-Only Field Note Intake (P0):** Adds a paste-only sandbox workflow for short anonymized field notes using React component state only.
+- **Deterministic Safety Warning Checker (P0):** Flags possible sensitive or identifying details with a local warning gate before draft evidence generation.
+- **Sandbox Draft Evidence Boundary (P0):** Keeps sandbox evidence, findings, and recommendations visually separate from validated static demo content.
+- **Optional Sandbox Export Inclusion (P0):** Excludes sandbox drafts from Word, PDF, and Markdown exports by default; includes them only in a separate "Sandbox Draft Evidence — Requires Review" section when explicitly enabled.
+- **No Persistence / No Upload Boundary (P0):** Does not use file upload, database storage, localStorage, backend processing, external AI APIs, analytics, or saved project workspaces.
+
 ## v0.1 Does Not Include
 
 - Authentication.

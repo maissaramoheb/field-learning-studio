@@ -394,7 +394,8 @@ export function downloadBriefDocx(model: BriefExportModel): void {
           spaceAfter: 120,
         }),
       );
-      children.push(createParagraph(`Source: ${e.sourceId}`));
+      children.push(createParagraph(`Evidence ID: ${e.id}`));
+      children.push(createParagraph(`Source ID: ${e.sourceId}`));
       children.push(createParagraph(`Stakeholder: ${e.stakeholderType}`));
       children.push(createParagraph(`Observation Summary: ${e.rawEvidence}`));
       children.push(createParagraph(`Theme: ${e.primaryTheme}`));

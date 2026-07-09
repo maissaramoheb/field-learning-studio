@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.8.0 - Local-Only Field Note Intake Sandbox
+
+- Added v0.8 local-only field note intake workflow with sandbox draft evidence and optional export inclusion.
+- Added deterministic local safety warning checks for possible identifying or sensitive details before draft generation.
+- Displayed sandbox evidence, findings, and recommendations in separate local-only draft sections rather than mixing them with validated demo content.
+- Kept sandbox drafts excluded from Word, PDF, and Markdown exports by default; optional inclusion now uses a separate "Sandbox Draft Evidence — Requires Review" section.
+- Preserved no-backend, no-upload, no-database, no-localStorage, and no-external-AI constraints.
+
 ## v0.7.0 - Word, PDF, and Markdown Brief Export Pack
 
 - Added v0.7 export pack with Word, PDF, and Markdown brief downloads.

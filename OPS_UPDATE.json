@@ -4,11 +4,11 @@
   "status": "v0.8_local_note_intake_implemented",
   "priority": "high",
   "current_phase": "v0.8 Local Note Intake",
-  "next_action": "Validate the local note intake sandbox flow, safety warning checker, and exports including sandbox drafts.",
+  "next_action": "Review v0.8 local note intake workflow and validate sandbox evidence, QA, and export behavior on the branch preview.",
   "blocker": null,
   "decision_needed": "Decide whether to merge the feature/v0.8-local-note-intake branch into main and deploy to production.",
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
-  "preview_url": "http://localhost:3000",
+  "preview_url": "https://field-learning-studio-pleg1fc7s-delta4ce20-5830s-projects.vercel.app",
   "production_url": "https://field-learning-studio.vercel.app/",
   "validation_results": {
     "primary": "passed",
@@ -23,7 +23,7 @@
     "PDF/Word client-side downloads rely on browser-level file generation APIs (Blob, URL.createObjectURL, and react-pdf iframe/blob streams). Browser-specific download policies may apply.",
     "Scope creep before target-user validation remains a risk.",
     "Overbuilding into SaaS features too early remains a risk.",
-    "Accidental sensitive data handling remains a risk; v0.7 did not change demo data or data intake boundaries.",
+    "Accidental sensitive data handling remains a risk; v0.8 local note intake uses warning checks but does not guarantee anonymization.",
     "Clipboard behavior may still vary by browser permission model; raw Markdown export remains visible in the secondary textarea."
   ],
   "recommended_next_step": "Test sandbox field note paste safety checker, confirm bypass warning, check generated findings/recommendations separation, and verify Word/PDF/Markdown exports with sandbox drafts included.",

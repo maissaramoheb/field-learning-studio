@@ -88,7 +88,7 @@ v0.8 local note intake is implemented on branch `feature/v0.8-local-note-intake`
 
 ## Next Recommended Step
 
-Review `ui/v0.6-blue-command-workbench` visually and decide whether it is strong enough to merge.
+Review the `feature/v0.8-local-note-intake` preview and validate sandbox intake, QA warnings, and optional Word/PDF/Markdown export inclusion before merge.
 
 ## Validation Commands
 
@@ -107,9 +107,9 @@ node /Users/maissaraselim/.agents/skills/impeccable/scripts/detect.mjs --json sr
 - `python3 -m json.tool OPS_UPDATE.json`: passed.
 - `git diff --check`: passed.
 - Local preview/browser smoke: Next.js dev server builds successfully, TypeScript types pass, Dynamic client-side lazy-import wraps react-pdf safely avoiding Next.js SSR hydration warnings.
-- Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch; pending merge of feature/v0.7-export-pack).
+- Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch; pending merge of feature/v0.8-local-note-intake).
 - Tests: not configured.
 
 ## Last Update
 
-2026-07-09: Implemented the v0.7 export pack branch (Word, PDF, Markdown brief downloads) and validated lint, build, JSON structure, and TS type check.
+2026-07-10: Implemented v0.8 local note intake on branch `feature/v0.8-local-note-intake`; branch requires preview validation before merge.

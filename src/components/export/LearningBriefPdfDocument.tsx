@@ -338,7 +338,8 @@ export function LearningBriefPdfDocument({ model }: { model: BriefExportModel })
             {model.sandboxEvidence.map((e) => (
               <View key={e.id} style={styles.sandboxItemBlock}>
                 <Text style={styles.subSectionHeading}>{e.id}</Text>
-                <Text style={styles.body}>Source: {e.sourceId}</Text>
+                <Text style={styles.body}>Evidence ID: {e.id}</Text>
+                <Text style={styles.body}>Source ID: {e.sourceId}</Text>
                 <Text style={styles.body}>Stakeholder: {e.stakeholderType}</Text>
                 <Text style={styles.body}>Observation Summary: {e.rawEvidence}</Text>
                 <Text style={styles.body}>Theme: {e.primaryTheme}</Text>

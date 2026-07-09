@@ -54,7 +54,8 @@ export function generateMarkdownFromModel(model: BriefExportModel): string {
   if (model.includeSandbox && model.sandboxEvidence && model.sandboxEvidence.length > 0) {
     const sandboxItemsStr = model.sandboxEvidence.map((e) => {
       return `### ${e.id}
-- **Source:** ${e.sourceId}
+- **Evidence ID:** ${e.id}
+- **Source ID:** ${e.sourceId}
 - **Stakeholder:** ${e.stakeholderType}
 - **Observation Summary:** ${e.rawEvidence}
 - **Theme:** ${e.primaryTheme}

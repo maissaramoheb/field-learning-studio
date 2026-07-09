@@ -67,6 +67,10 @@ const workspaceTabs: Array<{ id: WorkspaceTabId; label: string }> = [
 
 const priorityOrder: RecommendationPriority[] = ["High", "Medium", "Low"];
 
+function isSandboxRecordId(id: string): boolean {
+  return id.includes("SBX") || id.includes("TEMP");
+}
+
 export function FieldLearningStudioApp({
   demoCase,
 }: FieldLearningStudioAppProps) {
@@ -1076,6 +1080,10 @@ function OverviewTab({
   };
   traceHandlers: TraceHandlers;
 }) {
+  const latestSandboxEvidence = demoCase.evidence.find((entry) =>
+    isSandboxRecordId(entry.id),
+  );
+
   const pipelineSteps: Array<{
     id: WorkspaceTabId;
     label: string;
@@ -1616,7 +1624,7 @@ function OverviewTab({
                 <button
                   className={`min-h-9 px-4 rounded text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] ${
                     sandboxText.trim() && (!scannerTriggered || anonymizationConfirmed)
-                      ? "bg-[var(--primary)] hover:bg-[var(--primary-hover)] text-white cursor-pointer"
+                      ? "bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white cursor-pointer"
                       : "bg-[var(--surface-muted)] text-[var(--muted-soft)] cursor-not-allowed border border-[var(--border)]"
                   }`}
                   disabled={!sandboxText.trim() || (scannerTriggered && !anonymizationConfirmed)}
@@ -1629,7 +1637,7 @@ function OverviewTab({
           </section>
 
           {/* 5. Active Traceability Chain Section */}
-          {hasSandboxItems && (
+          {hasSandboxItems && latestSandboxEvidence && (
             <section className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace-wash)] p-5">
               <h3 className="text-base font-semibold text-[var(--foreground)]">
                 Latest sandbox trace
@@ -1638,7 +1646,7 @@ function OverviewTab({
                 Below is the visual linkage path inferred for your ingested sandbox note. Click any ID pill to inspect its parameters.
               </p>
               <div className="mt-4 bg-[var(--surface)] p-3 rounded-lg border border-[var(--trace-border)]">
-                <TraceChain id="EV-TEMP-01" demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
+                <TraceChain id={latestSandboxEvidence.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
               </div>
             </section>
           )}
@@ -2832,6 +2840,12 @@ function StyledBriefPreview({
   traceHandlers: TraceHandlers;
   includeSandbox: boolean;
 }) {
+  const mainFindings = demoCase.findings.filter((finding) => !isSandboxRecordId(finding.id));
+  const mainLessons = demoCase.lessons.filter((lesson) => !isSandboxRecordId(lesson.id));
+  const mainGoodPractices = demoCase.goodPractices.filter((practice) => !isSandboxRecordId(practice.id));
+  const mainRecommendations = demoCase.recommendations.filter((recommendation) => !isSandboxRecordId(recommendation.id));
+  const sandboxEvidence = demoCase.evidence.filter((evidence) => isSandboxRecordId(evidence.id));
+
   return (
     <div className="bg-[rgba(148,163,184,0.08)] p-4 sm:p-8 rounded-lg border border-[var(--border)] mt-5">
       <article className="brief-document mx-auto max-w-[820px] border border-[var(--document-border)] rounded-md overflow-hidden p-8 sm:p-12">
@@ -2937,7 +2951,7 @@ function StyledBriefPreview({
 
         <BriefSection title="Main Findings">
           <div className="space-y-4">
-            {demoCase.findings.map((finding) => (
+            {mainFindings.map((finding) => (
               <div
                 className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
                 key={finding.id}
@@ -2962,7 +2976,7 @@ function StyledBriefPreview({
 
         <BriefSection title="Lessons Learned">
           <div className="grid gap-3 md:grid-cols-2">
-            {demoCase.lessons.map((lesson) => (
+            {mainLessons.map((lesson) => (
               <div
                 className="rounded-lg border border-[var(--border)] p-4"
                 key={lesson.id}
@@ -2982,7 +2996,7 @@ function StyledBriefPreview({
 
         <BriefSection title="Good Practices">
           <div className="grid gap-3 md:grid-cols-2">
-            {demoCase.goodPractices.map((practice) => (
+            {mainGoodPractices.map((practice) => (
               <div
                 className="rounded-lg border border-[var(--border)] p-4"
                 key={practice.id}
@@ -3003,7 +3017,7 @@ function StyledBriefPreview({
         <BriefSection title="Recommendations">
           <div className="space-y-3">
             {priorityOrder.map((priority) => {
-              const recommendations = demoCase.recommendations.filter(
+              const recommendations = mainRecommendations.filter(
                 (recommendation) => recommendation.priority === priority,
               );
 
@@ -3052,20 +3066,21 @@ function StyledBriefPreview({
           </BriefSection>
         ) : null}
 
-        {includeSandbox && (
+        {includeSandbox && sandboxEvidence.length > 0 && (
           <BriefSection title="Sandbox Draft Evidence — Requires Review">
             <div className="rounded border border-amber-900/30 bg-amber-500/5 p-4 mb-4 text-xs text-amber-600/90 leading-5">
               <span className="font-bold">Sandbox Warning:</span> Sandbox draft content is user-provided, local-only, and not validated.
             </div>
             <div className="space-y-4">
-              {demoCase.evidence.filter((e) => e.id.includes("SBX")).map((e) => {
+              {sandboxEvidence.map((e) => {
                 const fnd = demoCase.findings.find((f) => f.supportingEvidenceIds.includes(e.id));
                 const rec = fnd ? demoCase.recommendations.find((r) => r.linkedFindingId === fnd.id) : null;
                 return (
                   <div key={e.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4 flex flex-col gap-3">
                     <div className="flex items-center gap-2">
                       <TraceButton id={e.id} onSelect={traceHandlers.onTraceSelect} />
-                      <span className="text-[10px] font-bold text-[var(--muted)]">Source: {e.sourceId}</span>
+                      <span className="text-[10px] font-bold text-[var(--muted)]">Evidence ID: {e.id}</span>
+                      <span className="text-[10px] font-bold text-[var(--muted)]">Source ID: {e.sourceId}</span>
                     </div>
                     <div>
                       <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wider block mb-1">Observation Summary</span>
@@ -3103,7 +3118,7 @@ function StyledBriefPreview({
 
         <BriefSection title="Annex: Traceability Summary">
           <div className="space-y-3">
-            {demoCase.findings.map((finding) => (
+            {mainFindings.map((finding) => (
               <div
                 className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
                 key={finding.id}

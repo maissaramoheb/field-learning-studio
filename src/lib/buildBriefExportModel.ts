@@ -102,13 +102,10 @@ export function buildBriefExportModel(demoCase: DemoCase, includeSandbox: boolea
     day: "numeric",
   });
 
-  const filteredFindings = includeSandbox
-    ? demoCase.findings
-    : demoCase.findings.filter((f) => !f.id.includes("SBX") && !f.id.includes("TEMP"));
-
-  const filteredRecs = includeSandbox
-    ? demoCase.recommendations
-    : demoCase.recommendations.filter((r) => !r.id.includes("SBX") && !r.id.includes("TEMP"));
+  const filteredFindings = demoCase.findings.filter((f) => !f.id.includes("SBX") && !f.id.includes("TEMP"));
+  const filteredLessons = demoCase.lessons.filter((l) => !l.id.includes("SBX") && !l.id.includes("TEMP"));
+  const filteredGoodPractices = demoCase.goodPractices.filter((g) => !g.id.includes("SBX") && !g.id.includes("TEMP"));
+  const filteredRecs = demoCase.recommendations.filter((r) => !r.id.includes("SBX") && !r.id.includes("TEMP"));
 
   const sandboxEvidence: ExportSandboxEvidence[] = [];
   if (includeSandbox) {
@@ -147,7 +144,7 @@ export function buildBriefExportModel(demoCase: DemoCase, includeSandbox: boolea
       evidenceBase: f.supportingEvidenceIds,
       programmeImplication: f.programmeImplication,
     })),
-    lessons: demoCase.lessons.map((l) => ({
+    lessons: filteredLessons.map((l) => ({
       id: l.id,
       statement: l.statement,
       whatWorkedOrDidNotWork: l.whatWorkedOrDidNotWork,
@@ -156,7 +153,7 @@ export function buildBriefExportModel(demoCase: DemoCase, includeSandbox: boolea
       evidenceBase: l.evidenceBase,
       transferability: l.transferability,
     })),
-    goodPractices: demoCase.goodPractices.map((g) => ({
+    goodPractices: filteredGoodPractices.map((g) => ({
       id: g.id,
       title: g.title,
       description: g.description,
