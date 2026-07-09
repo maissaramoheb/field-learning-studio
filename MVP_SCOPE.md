@@ -36,6 +36,15 @@
 - **Traceability Drawer Polish (P0):** Added clearer record summaries, safeguard notes, "why this matters" context, and expanded trace chains that reach QA and Brief.
 - **Evidence/QA/Brief Hierarchy Polish (P1):** Refined evidence cards, QA review grouping, and the brief preview document canvas while preserving static demo data and Markdown export.
 
+## v0.5 Includes
+
+- **Dark Impeccable Workbench Redesign (P0):** Reworked the app into a premium dark evidence command room while preserving the existing static demo data, data models, local-only sandbox, and Markdown export.
+- **Shape-First UX Direction (P0):** Created `docs/v0.5_dark_workbench_shape.md` before coding to document product mode, users, usage context, atmosphere, promise, metaphor, anti-references, and design priorities.
+- **Traceability Signature Polish (P0):** Strengthened ID pills, claim lineage drawer, source-to-brief trace chains, and related-tab navigation without adding routes, backend, or persistence.
+- **Evidence Card Safety Polish (P0):** Removed quote-like styling around sanitized observations and reframed evidence cards as observation -> interpretation -> linked finding.
+- **Layout Hardening (P0):** Replaced the awkward recommendations three-column layout with stacked priority sections, stabilized Lessons/Good Practices, and tightened tablet/laptop overflow behavior.
+- **Brief Preview Upgrade (P0):** Preserved raw Markdown copy/export while presenting the brief as a premium document sheet inside the dark workbench.
+
 ## v0.1 Does Not Include
 
 - Authentication.

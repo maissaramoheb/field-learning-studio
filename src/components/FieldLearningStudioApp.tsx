@@ -222,12 +222,23 @@ export function FieldLearningStudioApp({
 
   async function copyLearningBrief() {
     try {
-      await navigator.clipboard.writeText(currentBriefMarkdown);
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(currentBriefMarkdown);
+      } else {
+        fallbackCopyText(currentBriefMarkdown);
+      }
       setCopyStatus("copied");
       setDemoProgress((prev) => ({ ...prev, step5: true }));
       window.setTimeout(() => setCopyStatus("idle"), 2200);
     } catch {
-      setCopyStatus("error");
+      try {
+        fallbackCopyText(currentBriefMarkdown);
+        setCopyStatus("copied");
+        setDemoProgress((prev) => ({ ...prev, step5: true }));
+        window.setTimeout(() => setCopyStatus("idle"), 2200);
+      } catch {
+        setCopyStatus("error");
+      }
     }
   }
 
@@ -338,11 +349,11 @@ export function FieldLearningStudioApp({
   function handleRunQaAudit() {
     setIsAuditing(true);
     setAuditRun(false);
-    setAuditMessage("Initiating compliance audit...");
+    setAuditMessage("Opening review gate...");
 
     setTimeout(() => setAuditMessage("Checking evidence-finding linkages..."), 450);
-    setTimeout(() => setAuditMessage("Analyzing overclaiming indicators & sensitivity flags..."), 900);
-    setTimeout(() => setAuditMessage("Finalizing QA check summary..."), 1350);
+    setTimeout(() => setAuditMessage("Checking overclaiming and sensitivity flags..."), 900);
+    setTimeout(() => setAuditMessage("Preparing reviewer checklist..."), 1350);
     setTimeout(() => {
       setIsAuditing(false);
       setAuditRun(true);
@@ -493,7 +504,7 @@ export function FieldLearningStudioApp({
 
     if (!itemType) {
       return (
-        <div className="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] border-l border-[var(--border)] p-6 flex flex-col justify-between">
+        <div className="fixed inset-y-0 right-0 z-50 w-full max-w-xl bg-[var(--surface)] border-l border-[var(--border-strong)] p-6 flex flex-col justify-between">
           <div>
             <div className="flex justify-between items-center pb-3 border-b border-[var(--border)]">
               <h3 className="font-semibold text-lg">Not Found</h3>
@@ -513,22 +524,25 @@ export function FieldLearningStudioApp({
         aria-label={`${itemType} Details`}
       >
         <div 
-          className="fixed inset-0 bg-zinc-900/40 backdrop-blur-xs transition-opacity" 
+          className="fixed inset-0 bg-black/62 transition-opacity"
           onClick={() => setDrawerItemId(null)}
         />
 
-        <div className="relative w-full max-w-md bg-white shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex flex-col p-6 overflow-y-auto border-l border-[var(--border)] transition-transform duration-300">
+        <div className="relative w-full max-w-xl bg-[var(--surface)] flex flex-col p-6 overflow-y-auto border-l border-[var(--border-strong)] transition-transform duration-300">
           <div className="flex justify-between items-start pb-4 border-b border-[var(--border)]">
             <div>
-              <span className="font-mono text-[10px] uppercase font-semibold text-[var(--accent)] tracking-wider block">
-                {itemType}
+              <span className="text-xs font-semibold text-[var(--trace)] block">
+                Claim lineage
               </span>
               <h3 className="font-mono text-base font-bold text-[var(--foreground)] mt-1">
                 {id}
               </h3>
+              <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                {itemType}
+              </p>
             </div>
             <button 
-              className="text-2xl font-bold cursor-pointer text-[var(--muted)] hover:text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--accent)] rounded p-1"
+              className="text-2xl font-bold cursor-pointer text-[var(--muted)] hover:text-[var(--foreground)] outline-none focus:ring-2 focus:ring-[var(--trace)] rounded p-1"
               onClick={() => setDrawerItemId(null)}
               aria-label="Close drawer"
             >
@@ -543,7 +557,7 @@ export function FieldLearningStudioApp({
               </h4>
               {textContent && (
                 <div className="mt-3 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3">
-                  <p className="text-[10px] font-semibold uppercase text-[var(--muted)]">
+                  <p className="text-[11px] font-semibold text-[var(--muted)]">
                     Record summary
                   </p>
                   <p className="mt-1 text-sm leading-6 text-[var(--foreground)]">
@@ -553,23 +567,22 @@ export function FieldLearningStudioApp({
               )}
             </div>
 
-            {/* Reusable Visual Traceability Chain */}
-            <div className="border-t border-b border-zinc-150/60 py-3.5 my-1">
-              <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--muted)] block mb-1.5">
-                Visual Traceability Chain
+            <div className="rounded-lg border border-[rgba(56,214,199,0.24)] bg-[rgba(27,165,150,0.08)] p-4">
+              <span className="text-[11px] font-semibold text-[var(--trace)] block mb-2">
+                Source-to-brief path
               </span>
               <TraceChain id={id} demoCase={activeDemoCase} onSelect={setDrawerItemId} />
             </div>
 
             {metadata.length > 0 && (
               <div className="border-t border-[var(--border)] pt-4">
-                <h5 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--muted)] mb-3">
+                <h5 className="text-[11px] font-semibold text-[var(--muted)] mb-3">
                   Metadata Profile
                 </h5>
                 <dl className="grid grid-cols-1 gap-y-3 gap-x-4 sm:grid-cols-2 text-xs">
                   {metadata.map((meta) => (
                     <div key={meta.label} className="col-span-2 sm:col-span-1">
-                      <dt className="font-semibold text-[var(--muted)] uppercase tracking-wider text-[9px] block mb-0.5">
+                      <dt className="font-semibold text-[var(--muted)] text-[11px] block mb-0.5">
                         {meta.label}
                       </dt>
                       <dd className="text-[var(--foreground)] leading-5 block font-medium">
@@ -583,7 +596,7 @@ export function FieldLearningStudioApp({
 
             {whyThisMatters ? (
               <div className="border-t border-[var(--border)] pt-4">
-                <h5 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--muted)] mb-2">
+                <h5 className="text-[11px] font-semibold text-[var(--muted)] mb-2">
                   Why this matters
                 </h5>
                 <p className="text-sm leading-6 text-[var(--foreground)]">
@@ -600,7 +613,7 @@ export function FieldLearningStudioApp({
 
             {linkedIds.length > 0 && (
               <div className="border-t border-[var(--border)] pt-4">
-                <h5 className="text-[10px] uppercase tracking-wider font-semibold text-[var(--muted)] mb-2">
+                <h5 className="text-[11px] font-semibold text-[var(--muted)] mb-2">
                   {linkedLabel}
                 </h5>
                 <div className="flex flex-wrap gap-2">
@@ -614,13 +627,13 @@ export function FieldLearningStudioApp({
 
           <div className="border-t border-[var(--border)] pt-4 mt-6 flex justify-between gap-3">
             <button 
-              className="px-4 py-2 border border-[var(--border)] rounded-lg text-sm text-[var(--foreground)] hover:bg-[var(--surface-muted)] cursor-pointer font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              className="px-4 py-2 border border-[var(--border)] rounded-lg text-sm text-[var(--foreground)] hover:bg-[var(--surface-muted)] cursor-pointer font-semibold focus:outline-none focus:ring-2 focus:ring-[var(--trace)]"
               onClick={() => setDrawerItemId(null)}
             >
               Close
             </button>
             <button 
-              className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg text-sm font-semibold hover:bg-[var(--accent-strong)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              className="px-4 py-2 bg-[var(--accent)] text-white rounded-lg text-sm font-semibold hover:bg-[var(--accent-strong)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--trace)]"
               onClick={() => handleOpenRelatedTab(id)}
             >
               Open Related Tab
@@ -637,7 +650,7 @@ export function FieldLearningStudioApp({
   };
 
   return (
-    <main>
+    <main className="fls-dark-workbench min-h-screen text-[var(--foreground)]">
       <AppHeader demoCase={activeDemoCase} />
       <CaseSelector selectedId={selectedCaseId} onSelect={handleSelectCase} />
 
@@ -665,6 +678,7 @@ export function FieldLearningStudioApp({
               evidence={filteredEvidence}
               evidenceStrengths={evidenceStrengths}
               filters={filters}
+              findings={activeDemoCase.findings}
               onFiltersChange={setFilters}
               sensitivityFlags={sensitivityFlags}
               sources={activeDemoCase.sources}
@@ -752,14 +766,14 @@ function CaseSelector({
 }) {
   return (
     <div
-      className="border-b border-[var(--border)] bg-[var(--background)] px-4 py-5"
+      className="border-b border-[var(--border)] bg-[rgba(15,27,23,0.82)] px-4 py-5"
       id="case-selector"
     >
       <div className="mx-auto max-w-7xl">
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase text-[var(--accent)]">
-              Choose a demo pathway
+            <p className="text-xs font-semibold text-[var(--trace)]">
+              Demo pathway
             </p>
             <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">
               Select the evidence context you want to inspect
@@ -782,8 +796,8 @@ function CaseSelector({
                 type="button"
                 className={`text-left rounded-lg border p-5 transition cursor-pointer ${
                   isSelected
-                    ? "border-[var(--accent)] bg-white ring-1 ring-[var(--accent)]"
-                    : "border-[var(--border)] bg-white hover:border-zinc-300 hover:bg-zinc-50"
+                    ? "border-[var(--trace)] bg-[var(--surface-elevated)] ring-1 ring-[rgba(56,214,199,0.34)]"
+                    : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-elevated)]"
                 }`}
               >
                 <div>
@@ -794,8 +808,8 @@ function CaseSelector({
                     <span
                       className={`inline-flex items-center rounded px-2 py-1 text-[10px] font-bold uppercase ${
                         c.id === "school-nutrition"
-                          ? "border border-teal-200 bg-teal-50 text-teal-800"
-                          : "border border-zinc-200 bg-zinc-100 text-zinc-800"
+                          ? "border border-amber-300 bg-amber-50 text-amber-900"
+                          : "border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)]"
                       }`}
                     >
                       {c.status}
@@ -808,7 +822,7 @@ function CaseSelector({
 
                 <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
                   <div>
-                    <dt className="font-semibold uppercase text-[var(--muted)]">
+                    <dt className="font-semibold text-[var(--muted)]">
                       Use case
                     </dt>
                     <dd className="mt-1 leading-5 text-[var(--foreground)]">
@@ -816,7 +830,7 @@ function CaseSelector({
                     </dd>
                   </div>
                   <div>
-                    <dt className="font-semibold uppercase text-[var(--muted)]">
+                    <dt className="font-semibold text-[var(--muted)]">
                       Evidence base
                     </dt>
                     <dd className="mt-1 font-mono leading-5 text-[var(--foreground)]">
@@ -824,7 +838,7 @@ function CaseSelector({
                     </dd>
                   </div>
                   <div>
-                    <dt className="font-semibold uppercase text-[var(--muted)]">
+                    <dt className="font-semibold text-[var(--muted)]">
                       Sensitivity level
                     </dt>
                     <dd className="mt-1 leading-5 text-[var(--foreground)]">
@@ -832,7 +846,7 @@ function CaseSelector({
                     </dd>
                   </div>
                   <div>
-                    <dt className="font-semibold uppercase text-[var(--muted)]">
+                    <dt className="font-semibold text-[var(--muted)]">
                       Demonstrates
                     </dt>
                     <dd className="mt-1 leading-5 text-[var(--foreground)]">
@@ -857,12 +871,12 @@ function CaseSelector({
 
 function AppHeader({ demoCase }: { demoCase: DemoCase }) {
   return (
-    <header className="border-b border-[var(--border)] bg-[var(--surface)]">
-      <div className="mx-auto grid w-full max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[1.25fr_0.75fr] lg:px-8">
+    <header className="border-b border-[var(--border)] bg-[rgba(7,17,15,0.94)]">
+      <div className="mx-auto grid w-full max-w-7xl gap-7 px-4 py-10 sm:px-6 lg:grid-cols-[1.18fr_0.82fr] lg:px-8">
         <div>
           <div className="flex flex-wrap gap-2">
             <span className="inline-flex w-fit rounded border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]">
-              v0.3 demo workbench
+              v0.5 dark workbench
             </span>
             <span className="inline-flex w-fit rounded border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
               {demoCase.id === "school-nutrition"
@@ -870,26 +884,50 @@ function AppHeader({ demoCase }: { demoCase: DemoCase }) {
                 : "Fictional demo - local-only sandbox"}
             </span>
           </div>
-          <p className="mt-6 text-sm font-semibold uppercase text-[var(--accent)]">
-            Evidence-to-learning workspace
+          <p className="mt-6 text-sm font-semibold text-[var(--trace)]">
+            Premium evidence command room
           </p>
-          <h1 className="mt-2 max-w-4xl text-4xl font-semibold tracking-normal text-[var(--foreground)] sm:text-5xl">
-            Turn field evidence into traceable programme learning.
+          <h1 className="mt-2 max-w-4xl text-4xl font-semibold leading-tight tracking-normal text-[var(--foreground)] sm:text-5xl">
+            Field notes become defensible learning outputs.
           </h1>
           <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--muted)]">
-            Field Learning Studio helps MEL, evaluation, and programme teams
-            transform raw monitoring notes into findings, lessons,
-            recommendations, QA checks, and a structured learning brief.
+            Field Learning Studio gives MEL, evaluation, and programme teams a
+            controlled workspace for tracing evidence into findings,
+            recommendations, QA review, and a donor-ready learning brief.
           </p>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+          <div className="mt-7 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr_auto_1fr] sm:items-center">
+              {[
+                ["Field notes", "Source material"],
+                ["Evidence", "Coded observations"],
+                ["Brief", "Donor-ready output"],
+              ].map(([title, body], index) => (
+                <React.Fragment key={title}>
+                  <div>
+                    <h2 className="text-sm font-semibold text-[var(--foreground)]">
+                      {title}
+                    </h2>
+                    <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                      {body}
+                    </p>
+                  </div>
+                  {index < 2 ? (
+                    <span className="hidden text-[var(--trace)] sm:block">&rarr;</span>
+                  ) : null}
+                </React.Fragment>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
             {[
-              ["Structure messy evidence", "Turn notes and source records into a coded evidence matrix."],
-              ["Trace every claim", "Follow IDs from source to evidence, finding, recommendation, QA, and brief."],
-              ["Produce donor-ready learning", "Preview a measured brief while preserving Markdown export."],
+              ["Evidence hierarchy", "Observation, interpretation, finding, and recommendation stay visibly connected."],
+              ["Claim lineage", "Clickable IDs open the source-to-brief chain for reviewer inspection."],
+              ["Human review gate", "QA stays deterministic and transparent before donor-facing use."],
             ].map(([title, body]) => (
               <div
-                className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4"
                 key={title}
               >
                 <h2 className="text-sm font-semibold text-[var(--foreground)]">
@@ -903,8 +941,8 @@ function AppHeader({ demoCase }: { demoCase: DemoCase }) {
           </div>
         </div>
 
-        <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-5">
-          <p className="text-xs font-semibold uppercase text-[var(--accent)]">
+        <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-5">
+          <p className="text-xs font-semibold text-[var(--trace)]">
             Active demo case
           </p>
           <h2 className="mt-2 text-2xl font-semibold">{demoCase.project}</h2>
@@ -920,7 +958,7 @@ function AppHeader({ demoCase }: { demoCase: DemoCase }) {
               value={demoCase.evidenceBase.recommendations}
             />
           </div>
-          <p className="mt-5 rounded-lg border border-[var(--border)] bg-white px-4 py-3 text-xs leading-5 text-[var(--muted)]">
+          <p className="mt-5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
             {demoCase.safetyNote}
           </p>
         </div>
@@ -939,19 +977,19 @@ function WorkspaceTabs({
   return (
     <nav
       aria-label="Field Learning Studio workspace"
-      className="sticky top-0 z-20 border-b border-[var(--border)] bg-white/95 px-4 shadow-sm backdrop-blur"
+      className="sticky top-0 z-20 rounded-lg border border-[var(--border)] bg-[rgba(15,27,23,0.94)] px-3 backdrop-blur"
     >
-      <div className="flex gap-6 overflow-x-auto" role="tablist">
+      <div className="flex gap-1 overflow-x-auto py-2" role="tablist">
         {workspaceTabs.map((tab) => {
           const isActive = activeTab === tab.id;
 
           return (
             <button
               aria-selected={isActive}
-              className={`min-h-12 min-w-fit px-1 py-3 text-sm font-semibold transition focus:outline-none focus:text-[var(--accent)] border-b-2 cursor-pointer ${
+              className={`min-h-10 min-w-fit rounded px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer ${
                 isActive
-                  ? "border-[var(--accent)] text-[var(--accent)]"
-                  : "border-transparent text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--border)]"
+                  ? "bg-[var(--accent)] text-white"
+                  : "text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
               }`}
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
@@ -1041,7 +1079,7 @@ function OverviewTab({
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-lg border border-[var(--border)] bg-white p-6 sm:p-8">
+      <section className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] p-6 sm:p-8">
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
             <div className="mb-4 inline-flex items-center gap-1.5 rounded border border-amber-200/60 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-900 select-none">
@@ -1050,7 +1088,7 @@ function OverviewTab({
               : "Fictional Sandbox Demo Mode — Safe Workspace"}
             </div>
             <h2 className="max-w-3xl text-2xl font-semibold tracking-normal text-[var(--foreground)] sm:text-3xl">
-              From field note to defensible learning output.
+              Review the full claim chain before anything becomes a brief.
             </h2>
             <p className="mt-3 max-w-3xl text-base leading-7 text-[var(--muted)]">
               This workspace makes the analytical chain visible: what was
@@ -1062,7 +1100,7 @@ function OverviewTab({
                 onClick={() => {
                   document.getElementById("guided-demo-path")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="min-h-10 rounded-lg bg-[var(--accent)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--accent-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
+                className="min-h-10 rounded-lg bg-[var(--accent)] px-5 text-sm font-semibold text-white transition hover:bg-[var(--accent-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--trace)]"
               >
                 Start guided demo
               </button>
@@ -1075,16 +1113,16 @@ function OverviewTab({
                   document.getElementById("sandbox-note-textarea")?.focus();
                   document.getElementById("sandbox-note-section")?.scrollIntoView({ behavior: "smooth" });
                 }}
-                className="min-h-10 rounded-lg border border-[var(--border)] bg-white px-5 text-sm font-semibold text-[var(--foreground)] transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
+                className="min-h-10 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-5 text-sm font-semibold text-[var(--foreground)] transition hover:bg-[var(--surface-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--trace)]"
               >
                 Try sample field note
               </button>
             </div>
           </div>
 
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-5">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-5">
             <h3 className="text-sm font-semibold text-[var(--foreground)]">
-              What a senior reviewer should see
+              Senior reviewer view
             </h3>
             <ul className="mt-4 space-y-3 text-sm leading-6 text-[var(--muted)]">
               {[
@@ -1094,7 +1132,7 @@ function OverviewTab({
                 "QA checks flag overclaiming, sensitivity, and donor-readiness before export.",
               ].map((item) => (
                 <li className="flex gap-3" key={item}>
-                  <span className="mt-2 h-2 w-2 flex-none rounded-full bg-[var(--accent)]" />
+                  <span className="mt-2 h-2 w-2 flex-none rounded-full bg-[var(--trace)]" />
                   <span>{item}</span>
                 </li>
               ))}
@@ -1107,10 +1145,10 @@ function OverviewTab({
       <div className="grid gap-5 lg:grid-cols-[1.35fr_0.65fr]">
         <div className="flex flex-col gap-5">
           {/* 2. Suggested Walkthrough Path Card */}
-          <section id="guided-demo-path" className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xs scroll-mt-20">
-            <div className="flex items-center justify-between border-b border-zinc-100 pb-3 mb-4">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-[var(--foreground)]">
-                Suggested demo path
+          <section id="guided-demo-path" className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 scroll-mt-20">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3 mb-4">
+              <h3 className="text-base font-semibold text-[var(--foreground)]">
+                Review path
               </h3>
               <span className="text-[10px] text-[var(--muted)] font-mono">
                 {Object.values(demoProgress).filter(Boolean).length} / 5 tasks completed
@@ -1251,8 +1289,8 @@ function OverviewTab({
           </section>
 
           {/* 3. Synthesis Pipeline Flowchart */}
-          <section className="rounded-lg border border-[var(--border)] bg-white p-5">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--accent)]">
+          <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+            <h3 className="text-base font-semibold text-[var(--foreground)]">
               Evidence-to-learning workflow
             </h3>
             <p className="mt-1 text-xs text-[var(--muted)]">
@@ -1264,10 +1302,10 @@ function OverviewTab({
               {pipelineSteps.map((step, idx) => (
                 <React.Fragment key={`${step.label}-${idx}`}>
                   <button
-                    className="min-h-28 rounded-lg border border-[var(--border)] bg-[var(--background)] p-3 text-left transition hover:border-[var(--accent)] hover:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                    className="min-h-28 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-left transition hover:border-[var(--trace)] hover:bg-[var(--surface-elevated)] focus:outline-none focus:ring-2 focus:ring-[var(--trace)]"
                     onClick={() => onTabChange(step.id)}
                   >
-                    <span className="font-mono text-[10px] font-semibold text-[var(--accent)]">
+                    <span className="font-mono text-[10px] font-semibold text-[var(--trace)]">
                       {String(idx + 1).padStart(2, "0")}
                     </span>
                     <span className="mt-2 block text-sm font-semibold text-[var(--foreground)]">
@@ -1283,10 +1321,10 @@ function OverviewTab({
           </section>
 
           {/* 4. Sandbox Intake Section */}
-          <section id="sandbox-note-section" className="rounded-lg border border-amber-200 bg-amber-50/20 p-5 shadow-xs scroll-mt-20">
+          <section id="sandbox-note-section" className="rounded-lg border border-amber-300 bg-amber-50/20 p-5 scroll-mt-20">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h3 className="text-base font-bold text-amber-900">
+                <h3 className="text-base font-semibold text-amber-900">
                   Try a local sandbox field note
                 </h3>
                 <p className="mt-1 text-xs text-amber-800/80 leading-5">
@@ -1295,7 +1333,7 @@ function OverviewTab({
               </div>
               {hasSandboxItems && (
                 <button
-                  className="px-3 py-1 bg-white border border-amber-300 text-amber-900 rounded-md text-xs font-semibold hover:bg-amber-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="px-3 py-1 bg-[var(--surface)] border border-amber-300 text-amber-900 rounded-md text-xs font-semibold hover:bg-[var(--surface-elevated)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500"
                   onClick={onReset}
                 >
                   Reset Sandbox
@@ -1306,7 +1344,7 @@ function OverviewTab({
             <div className="mt-4 flex flex-col gap-3">
               <textarea
                 id="sandbox-note-textarea"
-                className="w-full min-h-[100px] p-3 border border-amber-300/60 bg-white rounded-lg text-sm text-zinc-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 placeholder-zinc-400 font-sans"
+                className="w-full min-h-[100px] p-3 border border-amber-300/60 bg-[var(--surface)] rounded-lg text-sm text-[var(--foreground)] outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 placeholder-[var(--muted-soft)] font-sans"
                 placeholder="Type or paste 2-3 sentences of monitoring notes here..."
                 value={sandboxText}
                 onChange={(e) => setSandboxText(e.target.value)}
@@ -1314,23 +1352,23 @@ function OverviewTab({
               
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap gap-1.5 items-center">
-                  <span className="text-[10px] font-bold uppercase text-amber-800 tracking-wider">Templates:</span>
+                  <span className="text-[11px] font-semibold text-amber-800">Templates:</span>
                   {demoCase.id === "school-nutrition" ? (
                     <>
                       <button 
-                        className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition font-semibold"
+                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
                         onClick={() => setSandboxText("Children are skipping the dry meal snack because there is no clean drinking water available during lunch, and some report stomach aches from unpackaged cheese stored in open bins.")}
                       >
                         Water & Spoilage
                       </button>
                       <button 
-                        className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition font-semibold"
+                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
                         onClick={() => setSandboxText("Social workers report that fathers do not attend any school nutrition PTA sessions, claiming cooking is a female duty, but they control the household food budget.")}
                       >
                         Caregiver Roles
                       </button>
                       <button 
-                        className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition font-semibold"
+                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
                         onClick={() => setSandboxText("Teachers state they are expected to deliver weekly health and nutrition lessons but have never received training materials or guidelines.")}
                       >
                         Teacher Capacity
@@ -1339,19 +1377,19 @@ function OverviewTab({
                   ) : (
                     <>
                       <button 
-                        className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition font-semibold"
+                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
                         onClick={() => setSandboxText("Women report feeling unsafe at evening peacebuilding committee meetings due to poor street lighting and lack of public transport.")}
                       >
                         Safe Access
                       </button>
                       <button 
-                        className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition font-semibold"
+                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
                         onClick={() => setSandboxText("Youth committee attendance declines because meetings are unpredictable and do not link to practical local action budgets.")}
                       >
                         Youth Engagement
                       </button>
                       <button 
-                        className="px-2.5 py-1 bg-white border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-amber-50/50 cursor-pointer transition font-semibold"
+                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
                         onClick={() => setSandboxText("Local partner staff spend more than 40% of their working hours compiling donor compliance reports, leaving little time for direct field engagement.")}
                       >
                         Reporting Burden
@@ -1363,8 +1401,8 @@ function OverviewTab({
                 <button
                   className={`min-h-10 px-4 rounded-lg text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
                     sandboxText.trim() 
-                      ? "bg-amber-600 hover:bg-amber-700 text-white cursor-pointer shadow-xs" 
-                      : "bg-zinc-200 text-zinc-400 cursor-not-allowed"
+                      ? "bg-[var(--warning)] hover:bg-[#bf8121] text-[#08130f] cursor-pointer"
+                      : "bg-[var(--surface-muted)] text-[var(--muted-soft)] cursor-not-allowed"
                   }`}
                   disabled={!sandboxText.trim()}
                   onClick={onParse}
@@ -1377,14 +1415,14 @@ function OverviewTab({
 
           {/* 5. Active Traceability Chain Section */}
           {hasSandboxItems && (
-            <section className="rounded-lg border border-teal-200 bg-teal-50/10 p-5 shadow-xs">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--accent-strong)]">
-                Latest Sandbox Evidence Trace
+            <section className="rounded-lg border border-[rgba(56,214,199,0.28)] bg-[rgba(27,165,150,0.08)] p-5">
+              <h3 className="text-base font-semibold text-[var(--foreground)]">
+                Latest sandbox trace
               </h3>
               <p className="mt-1 text-xs text-[var(--muted)]">
                 Below is the visual linkage path inferred for your ingested sandbox note. Click any ID pill to inspect its parameters.
               </p>
-              <div className="mt-4 bg-white p-3 rounded-lg border border-teal-200/50">
+              <div className="mt-4 bg-[var(--surface)] p-3 rounded-lg border border-[rgba(56,214,199,0.28)]">
                 <TraceChain id="EV-TEMP-01" demoCase={demoCase} onSelect={(id) => onTabChange(tabForTraceId(id))} />
               </div>
             </section>
@@ -1393,8 +1431,8 @@ function OverviewTab({
 
         {/* Sidebar right column */}
         <div className="flex flex-col gap-5">
-          <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 shadow-xs">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--foreground)]">
+          <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+            <h2 className="text-base font-semibold text-[var(--foreground)]">
               Evidence Base
             </h2>
             <dl className="mt-4 grid grid-cols-2 gap-3">
@@ -1415,7 +1453,7 @@ function OverviewTab({
             </div>
           </section>
           <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--foreground)]">
+            <h2 className="text-base font-semibold text-[var(--foreground)]">
               Signature traceability path
             </h2>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
@@ -1443,6 +1481,7 @@ function EvidenceTab({
   evidence,
   evidenceStrengths,
   filters,
+  findings,
   onFiltersChange,
   sensitivityFlags,
   sources,
@@ -1453,6 +1492,7 @@ function EvidenceTab({
   evidence: EvidenceEntry[];
   evidenceStrengths: string[];
   filters: EvidenceFilters;
+  findings: Finding[];
   onFiltersChange: (filters: EvidenceFilters) => void;
   sensitivityFlags: string[];
   sources: SourceRecord[];
@@ -1466,6 +1506,7 @@ function EvidenceTab({
         evidence={evidence}
         evidenceStrengths={evidenceStrengths}
         filters={filters}
+        findings={findings}
         onFiltersChange={onFiltersChange}
         sensitivityFlags={sensitivityFlags}
         sources={sources}
@@ -1529,6 +1570,7 @@ function SourceInventory({
 function EvidenceMatrix({
   evidence,
   filters,
+  findings,
   onFiltersChange,
   themes,
   sources,
@@ -1539,6 +1581,7 @@ function EvidenceMatrix({
 }: {
   evidence: EvidenceEntry[];
   filters: EvidenceFilters;
+  findings: Finding[];
   onFiltersChange: (filters: EvidenceFilters) => void;
   themes: string[];
   sources: SourceRecord[];
@@ -1595,19 +1638,22 @@ function EvidenceMatrix({
           const isHighlighted = traceHandlers.highlightedId === entry.id;
           const isSandbox = entry.id.startsWith("EV-TEMP-");
           const source = sources.find((item) => item.id === entry.sourceId);
+          const linkedFinding = findings.find((finding) =>
+            finding.supportingEvidenceIds.includes(entry.id),
+          );
 
           return (
             <article
               className={`scroll-mt-32 rounded-lg border transition p-6 flex flex-col justify-between ${
                 isHighlighted
-                  ? "border-[var(--accent)] bg-teal-50/10 shadow-xs"
-                  : "border-[var(--border)] bg-[var(--surface)] hover:border-zinc-300"
+                  ? "border-[var(--trace)] bg-[rgba(56,214,199,0.08)]"
+                  : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]"
               }`}
               id={traceDomId(entry.id)}
               key={entry.id}
             >
               <div>
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-zinc-100 pb-3 mb-4">
+                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] pb-3 mb-4">
                   <div>
                     <TraceButton
                       id={entry.id}
@@ -1636,28 +1682,49 @@ function EvidenceMatrix({
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-3">
-                    <span className="text-[10px] font-bold text-[var(--muted)] uppercase tracking-wider block mb-1">
-                      Observation summary
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3">
+                    <span className="text-[11px] font-semibold text-[var(--muted)] block mb-1">
+                      Observation
                     </span>
-                    <blockquote className="text-sm font-medium leading-6 text-[var(--foreground)]">
-                      &ldquo;{entry.rawEvidence}&rdquo;
-                    </blockquote>
+                    <p className="text-sm font-medium leading-6 text-[var(--foreground)]">
+                      {entry.rawEvidence}
+                    </p>
                   </div>
 
-                  <div className="rounded-lg border border-teal-200 bg-teal-50/40 p-3 text-xs leading-relaxed">
-                    <span className="font-bold text-[var(--foreground)] uppercase tracking-wider text-[9px] block mb-1">
-                      Interpreted meaning
+                  <div className="rounded-lg border border-[rgba(56,214,199,0.24)] bg-[rgba(27,165,150,0.08)] p-3 text-xs leading-relaxed">
+                    <span className="font-semibold text-[var(--muted)] text-[11px] block mb-1">
+                      Interpretation
                     </span>
                     <p className="text-[var(--foreground)] font-medium">
                       {entry.potentialFinding}
                     </p>
                   </div>
+
+                  <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3">
+                    <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
+                      Linked finding
+                    </span>
+                    {linkedFinding ? (
+                      <div>
+                        <TraceButton
+                          id={linkedFinding.id}
+                          onSelect={traceHandlers.onTraceSelect}
+                        />
+                        <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
+                          {linkedFinding.statement}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs leading-5 text-[var(--muted)]">
+                        Not yet linked to a validated finding.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-5 border-t border-zinc-100 pt-4 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-semibold bg-zinc-100 text-zinc-700 px-2 py-0.5 rounded border border-zinc-200/40">
+              <div className="mt-5 border-t border-[var(--border)] pt-4 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-semibold bg-[var(--surface-muted)] text-[var(--muted)] px-2 py-0.5 rounded border border-[var(--border)]">
                   {entry.secondaryTheme}
                 </span>
                 <StrengthBadge value={entry.evidenceStrength} />
@@ -1665,7 +1732,7 @@ function EvidenceMatrix({
                 
                 <button
                   onClick={() => traceHandlers.onTraceSelect(entry.id)}
-                  className="ml-auto min-h-8 rounded border border-teal-200 bg-white px-3 text-xs font-semibold text-[var(--accent)] hover:border-[var(--accent)] hover:text-[var(--accent-strong)] cursor-pointer flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+                  className="ml-auto min-h-8 rounded border border-[rgba(56,214,199,0.28)] bg-[rgba(27,165,150,0.12)] px-3 text-xs font-semibold text-[var(--trace)] hover:border-[var(--trace)] hover:text-[var(--foreground)] cursor-pointer flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-[var(--trace)]"
                 >
                   Inspect Chain &rarr;
                 </button>
@@ -1742,9 +1809,9 @@ function FindingsSection({
               label="Linked recommendations"
               onTraceSelect={traceHandlers.onTraceSelect}
             />
-            <div className="mt-5 pt-4 border-t border-zinc-100">
-              <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--muted)] block mb-1">
-                Visual Traceability Chain
+            <div className="mt-5 pt-4 border-t border-[var(--border)]">
+              <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
+                Claim lineage
               </span>
               <TraceChain id={finding.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
             </div>
@@ -1770,15 +1837,16 @@ function LessonsAndPractices({
       eyebrow="Lessons and good practices"
       title="Reusable learning"
     >
-      <div className="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="flex flex-col gap-4">
-          <h3 className="text-lg font-semibold">Lessons Learned</h3>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <div className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+          <h3 className="text-lg font-semibold">Lessons learned</h3>
+          <div className="mt-4 flex flex-col gap-4">
           {lessons.map((lesson) => (
             <article
               className={traceCardClass(
                 lesson.id,
                 traceHandlers.highlightedId,
-                "p-5",
+                "p-5 min-w-0",
               )}
               id={traceDomId(lesson.id)}
               key={lesson.id}
@@ -1805,16 +1873,18 @@ function LessonsAndPractices({
               <Detail label="Transferability">{lesson.transferability}</Detail>
             </article>
           ))}
+          </div>
         </div>
 
-        <div className="flex flex-col gap-4">
-          <h3 className="text-lg font-semibold">Good Practices</h3>
+        <div className="min-w-0 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+          <h3 className="text-lg font-semibold">Good practices</h3>
+          <div className="mt-4 flex flex-col gap-4">
           {goodPractices.map((practice) => (
             <article
               className={traceCardClass(
                 practice.id,
                 traceHandlers.highlightedId,
-                "p-5",
+                "p-5 min-w-0",
               )}
               id={traceDomId(practice.id)}
               key={practice.id}
@@ -1842,6 +1912,7 @@ function LessonsAndPractices({
               <Detail label="Recommended use">{practice.recommendedUse}</Detail>
             </article>
           ))}
+          </div>
         </div>
       </div>
     </Section>
@@ -1863,47 +1934,78 @@ function RecommendationsSection({
       eyebrow="Recommendations"
       title="No recommendation without a finding"
     >
-      <div className="grid gap-4 xl:grid-cols-3">
+      <div className="space-y-5">
         {priorityOrder.map((priority) => {
           const items = recommendations.filter(
             (recommendation) => recommendation.priority === priority,
           );
 
           return (
-            <div className="flex flex-col gap-4" key={priority}>
-              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
-                <h3 className="text-base font-semibold">{priority} Priority</h3>
+            <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4" key={priority}>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
+                <div>
+                  <h3 className="text-lg font-semibold">{priority} priority</h3>
+                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                    {items.length} recommendation{items.length === 1 ? "" : "s"} requiring executive review.
+                  </p>
+                </div>
+                <PriorityBadge value={priority} />
               </div>
-              {items.map((recommendation) => (
-                <article
-                  className={traceCardClass(
-                    recommendation.id,
-                    traceHandlers.highlightedId,
-                    "p-5",
-                  )}
-                  id={traceDomId(recommendation.id)}
-                  key={recommendation.id}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--border)] pb-3">
-                    <TraceButton
-                      id={recommendation.id}
-                      onSelect={traceHandlers.onTraceSelect}
-                    />
-                    <PriorityBadge value={recommendation.priority} />
-                  </div>
-                  <h4 className="mt-3 text-base font-semibold leading-6 text-[var(--foreground)]">
-                    {recommendation.recommendation}
-                  </h4>
-                  <div className="mt-4 border-t border-[var(--border)] pt-3 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3 text-xs">
-                    <div className="col-span-2">
+
+              <div className="grid gap-3 lg:grid-cols-2">
+                {items.map((recommendation) => (
+                  <article
+                    className={traceCardClass(
+                      recommendation.id,
+                      traceHandlers.highlightedId,
+                      "p-5 min-w-0",
+                    )}
+                    id={traceDomId(recommendation.id)}
+                    key={recommendation.id}
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <TraceButton
+                        id={recommendation.id}
+                        onSelect={traceHandlers.onTraceSelect}
+                      />
                       <LinkedTraceField
                         className=""
                         id={recommendation.linkedFindingId}
-                        label="Linked finding"
+                        label="Finding"
                         onTraceSelect={traceHandlers.onTraceSelect}
                       />
                     </div>
-                    <div className="col-span-2">
+                    <h4 className="mt-4 text-base font-semibold leading-6 text-[var(--foreground)]">
+                      {recommendation.recommendation}
+                    </h4>
+                    <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                      <span className="font-semibold text-[var(--foreground)]">Expected benefit: </span>
+                      {recommendation.expectedBenefit}
+                    </p>
+                    <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 border-t border-[var(--border)] pt-3 text-xs sm:grid-cols-2">
+                      <CompactField
+                        label="Owner"
+                        value={recommendation.responsibleActor}
+                      />
+                      <CompactField
+                        label="Timeframe"
+                        value={recommendation.timeframe}
+                      />
+                      <CompactField
+                        label="Feasibility"
+                        value={recommendation.feasibility}
+                      />
+                      <CompactField
+                        label="Risk / sensitivity"
+                        value={recommendation.riskSensitivity}
+                      />
+                      <CompactField
+                        label="Success indicator"
+                        value={recommendation.successIndicator}
+                        fullWidth
+                      />
+                    </div>
+                    <div className="mt-4 border-t border-[var(--border)] pt-3">
                       <TraceIdList
                         className=""
                         ids={recommendation.evidenceBase}
@@ -1911,42 +2013,16 @@ function RecommendationsSection({
                         onTraceSelect={traceHandlers.onTraceSelect}
                       />
                     </div>
-                    <CompactField
-                      label="Responsible actor"
-                      value={recommendation.responsibleActor}
-                    />
-                    <CompactField
-                      label="Timeframe"
-                      value={recommendation.timeframe}
-                    />
-                    <CompactField
-                      label="Feasibility"
-                      value={recommendation.feasibility}
-                    />
-                    <CompactField
-                      label="Risk / sensitivity"
-                      value={recommendation.riskSensitivity}
-                    />
-                    <CompactField
-                      label="Expected benefit"
-                      value={recommendation.expectedBenefit}
-                      fullWidth
-                    />
-                    <CompactField
-                      label="Success indicator"
-                      value={recommendation.successIndicator}
-                      fullWidth
-                    />
-                  </div>
-                  <div className="mt-5 pt-4 border-t border-zinc-100">
-                    <span className="text-[9px] uppercase tracking-wider font-semibold text-[var(--muted)] block mb-1">
-                      Visual Traceability Chain
-                    </span>
-                    <TraceChain id={recommendation.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
-                  </div>
-                </article>
-              ))}
-            </div>
+                    <div className="mt-4 border-t border-[var(--border)] pt-4">
+                      <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
+                        Claim lineage
+                      </span>
+                      <TraceChain id={recommendation.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
           );
         })}
       </div>
@@ -1963,7 +2039,7 @@ function renderTextWithPills(text: string, onSelect: (id: string) => void) {
         <button
           key={index}
           onClick={() => onSelect(part)}
-          className="mx-0.5 inline-flex items-center rounded border border-teal-200 bg-teal-50 px-1.5 py-0.2 text-[10px] font-mono font-bold text-[var(--accent)] hover:underline cursor-pointer focus:outline-none"
+          className="mx-0.5 inline-flex items-center rounded border border-[rgba(56,214,199,0.28)] bg-[rgba(27,165,150,0.12)] px-1.5 py-0.5 text-[10px] font-mono font-semibold text-[var(--trace)] hover:border-[var(--trace)] cursor-pointer focus:outline-none focus:ring-1 focus:ring-[var(--trace)]"
         >
           {part}
         </button>
@@ -2022,7 +2098,7 @@ function QAReviewSection({
       eyebrow="QA review"
       title="Human review required"
     >
-      <div className="rounded-lg border border-[var(--border)] bg-white p-5">
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
             <h3 className="text-base font-semibold text-[var(--foreground)]">
@@ -2068,23 +2144,23 @@ function QAReviewSection({
       </div>
 
       {!auditRun && !isAuditing ? (
-        <div className="rounded-lg border border-[var(--border)] bg-white p-8 text-center max-w-xl mx-auto">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-8 text-center max-w-xl mx-auto">
           <div className="flex justify-center mb-4 text-[var(--accent)]">
             <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
-          <h3 className="text-base font-bold text-[var(--foreground)]">Workspace QA review not yet run</h3>
+          <h3 className="text-base font-semibold text-[var(--foreground)]">Review gate not yet complete</h3>
           <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed">
             Run the checklist to reveal grouped warnings, needs-review items,
             and passed safeguards for the selected case.
           </p>
           <div className="mt-6 flex flex-col items-center gap-3">
             <button
-              className="min-h-11 px-5 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white font-semibold text-sm rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent)] transition"
+              className="min-h-11 px-5 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white font-semibold text-sm rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--trace)] transition"
               onClick={onRunAudit}
             >
-              Run QA Audit
+              Run review gate
             </button>
             <span className="text-[10px] text-[var(--muted)] font-semibold uppercase tracking-wider">
               Deterministic demo check — not an AI or human evaluation
@@ -2094,12 +2170,12 @@ function QAReviewSection({
       ) : null}
 
       {isAuditing ? (
-        <div className="rounded-lg border border-teal-200 bg-teal-50/30 p-12 text-center max-w-xl mx-auto animate-pulse">
+        <div className="rounded-lg border border-[rgba(56,214,199,0.28)] bg-[rgba(27,165,150,0.08)] p-12 text-center max-w-xl mx-auto animate-pulse">
           <div className="flex justify-center mb-4">
             <div className="h-10 w-10 border-4 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
           </div>
-          <h3 className="text-base font-bold text-[var(--accent-strong)]">Running Workspace Audit</h3>
-          <p className="mt-2 text-xs text-[var(--accent-strong)]/80 font-medium">
+          <h3 className="text-base font-semibold text-[var(--foreground)]">Running review gate</h3>
+          <p className="mt-2 text-xs text-[var(--muted)] font-medium">
             {auditMessage}
           </p>
         </div>
@@ -2110,17 +2186,17 @@ function QAReviewSection({
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-4">
             <div>
               <p className="text-xs text-[var(--muted)] font-semibold uppercase tracking-wider">
-                Audit Status: Complete
+                Review gate complete
               </p>
               <p className="text-[10px] text-amber-700 font-semibold uppercase tracking-wider bg-amber-50 border border-amber-200/50 rounded px-2 py-0.5 mt-1 w-fit">
                 Deterministic demo check — not an AI or human evaluation
               </p>
             </div>
             <button
-              className="px-3 py-1.5 border border-[var(--border)] hover:bg-[var(--surface-muted)] text-[var(--foreground)] font-semibold text-xs rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+              className="px-3 py-1.5 border border-[var(--border)] hover:bg-[var(--surface-muted)] text-[var(--foreground)] font-semibold text-xs rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--trace)]"
               onClick={onRunAudit}
             >
-              Re-Run Audit
+              Re-run gate
             </button>
           </div>
 
@@ -2156,7 +2232,7 @@ function QAReviewSection({
                         <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
                           {renderTextWithPills(item.reviewQuestion, traceHandlers.onTraceSelect)}
                         </p>
-                        <p className="mt-3 text-xs leading-5 text-[var(--foreground)] font-medium bg-zinc-50 border border-[var(--border)] p-2.5 rounded">
+                        <p className="mt-3 text-xs leading-5 text-[var(--foreground)] font-medium bg-[var(--surface-muted)] border border-[var(--border)] p-2.5 rounded">
                           {renderTextWithPills(item.notes, traceHandlers.onTraceSelect)}
                         </p>
                       </article>
@@ -2195,19 +2271,19 @@ function LearningBriefSection({
       eyebrow="Learning brief"
       title="Donor-ready brief preview"
     >
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-6 shadow-xs flex flex-col gap-6">
+      <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] p-5 sm:p-6 flex flex-col gap-6">
         {/* Professional Action Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-zinc-100 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
           <div>
-            <span className="text-[10px] uppercase font-bold tracking-wider text-[var(--muted)]">
-              Output Format: Donor Deliverable Draft
+            <span className="text-xs font-semibold text-[var(--trace)]">
+              Donor deliverable draft
             </span>
             <p className="text-xs text-[var(--muted)] mt-0.5">
               Verify recommendations alignment, key messages, and annex evidence trace links below.
             </p>
           </div>
           <button
-            className="min-h-10 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white px-5 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2 cursor-pointer shadow-xs"
+            className="min-h-10 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white px-5 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer"
             onClick={onCopy}
             type="button"
           >
@@ -2224,12 +2300,12 @@ function LearningBriefSection({
           traceHandlers={traceHandlers}
         />
 
-        <details className="mt-2 rounded-lg border border-[var(--border)] bg-zinc-50/50">
-          <summary className="cursor-pointer px-4 py-3 text-xs font-bold text-[var(--foreground)] uppercase tracking-wider select-none">
+        <details className="mt-2 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]">
+          <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-[var(--foreground)] select-none">
             View raw Markdown payload source
           </summary>
           <textarea
-            className="h-[300px] w-full resize-y border-t border-[var(--border)] bg-white p-4 font-mono text-xs leading-5 text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+            className="h-[300px] w-full resize-y border-t border-[var(--border)] bg-[var(--surface)] p-4 font-mono text-xs leading-5 text-[var(--foreground)] outline-none focus:border-[var(--trace)]"
             readOnly
             value={markdown}
           />
@@ -2247,11 +2323,11 @@ function StyledBriefPreview({
   traceHandlers: TraceHandlers;
 }) {
   return (
-    <div className="bg-zinc-100/60 p-4 sm:p-8 rounded-lg border border-[var(--border)] mt-5">
-      <article className="mx-auto max-w-[820px] bg-white border border-[var(--border)] rounded-md overflow-hidden p-8 sm:p-12">
+    <div className="bg-[rgba(242,247,243,0.05)] p-4 sm:p-8 rounded-lg border border-[var(--border)] mt-5">
+      <article className="brief-document mx-auto max-w-[820px] border border-[rgba(58,70,60,0.16)] rounded-md overflow-hidden p-8 sm:p-12">
         <header className="border-b border-[var(--border)] pb-6 mb-8">
-          <span className="text-[10px] font-bold uppercase text-[var(--accent)] tracking-widest block mb-2">
-            Official Programme Learning Brief
+          <span className="text-[11px] font-semibold text-[var(--accent)] block mb-2">
+            Programme Learning Brief
           </span>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--foreground)]">
             {demoCase.project}
@@ -2262,7 +2338,7 @@ function StyledBriefPreview({
 
           <div className="mt-5 grid gap-2 border-y border-[var(--border)] py-3 text-xs sm:grid-cols-3">
             <div>
-              <span className="block font-semibold uppercase text-[var(--muted)]">
+              <span className="block font-semibold text-[var(--muted)]">
                 Case status
               </span>
               <span className="mt-1 block text-[var(--foreground)]">
@@ -2270,7 +2346,7 @@ function StyledBriefPreview({
               </span>
             </div>
             <div>
-              <span className="block font-semibold uppercase text-[var(--muted)]">
+              <span className="block font-semibold text-[var(--muted)]">
                 Review mode
               </span>
               <span className="mt-1 block text-[var(--foreground)]">
@@ -2278,7 +2354,7 @@ function StyledBriefPreview({
               </span>
             </div>
             <div>
-              <span className="block font-semibold uppercase text-[var(--muted)]">
+              <span className="block font-semibold text-[var(--muted)]">
                 Export
               </span>
               <span className="mt-1 block text-[var(--foreground)]">
@@ -2525,7 +2601,7 @@ function Section({
   return (
     <section role="tabpanel">
       <div className="mb-4">
-        <p className="text-sm font-semibold uppercase text-[var(--accent)]">
+        <p className="text-sm font-semibold text-[var(--trace)]">
           {eyebrow}
         </p>
         <h2 className="mt-2 text-2xl font-semibold tracking-normal sm:text-3xl">
@@ -2560,7 +2636,7 @@ function BriefSection({
 function Metric({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
-      <dt className="text-xs font-medium uppercase text-[var(--muted)]">
+      <dt className="text-xs font-medium text-[var(--muted)]">
         {label}
       </dt>
       <dd className="mt-1 text-2xl font-semibold text-[var(--foreground)]">
@@ -2573,7 +2649,7 @@ function Metric({ label, value }: { label: string; value: number }) {
 function BriefMetric({ label, value }: { label: string; value: number }) {
   return (
     <div className="rounded-lg border border-[var(--border)] bg-white px-3 py-2">
-      <dt className="text-xs font-semibold uppercase text-[var(--muted)]">
+      <dt className="text-xs font-semibold text-[var(--muted)]">
         {label}
       </dt>
       <dd className="mt-1 text-lg font-semibold text-[var(--foreground)]">
@@ -2598,7 +2674,7 @@ function FilterSelect({
     <label className="flex flex-col gap-2 text-sm font-medium text-[var(--foreground)]">
       {label}
       <select
-        className="min-h-11 rounded-lg border border-[var(--border)] bg-white px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+        className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--trace)]"
         onChange={(event) => onChange(event.target.value)}
         value={value}
       >
@@ -2624,7 +2700,7 @@ function TraceButton({
 }) {
   return (
     <button
-      className="inline-flex min-h-7 items-center rounded border border-teal-200 bg-teal-50 px-2.5 py-1 font-mono text-xs font-semibold text-[var(--accent-strong)] cursor-pointer transition hover:border-[var(--accent)] hover:bg-white focus:outline-none focus:ring-2 focus:ring-[var(--accent)] focus:ring-offset-2"
+      className="inline-flex min-h-7 items-center rounded border border-[rgba(56,214,199,0.28)] bg-[rgba(27,165,150,0.12)] px-2.5 py-1 font-mono text-[11px] font-semibold text-[var(--trace)] cursor-pointer transition hover:border-[var(--trace)] hover:bg-[rgba(56,214,199,0.12)] focus:outline-none focus:ring-2 focus:ring-[var(--trace)]"
       onClick={() => onSelect(id)}
       title={`Trace and view details for ${id}`}
       aria-label={`Trace and view details for ${id}`}
@@ -2811,14 +2887,14 @@ function TraceChain({
   const qaId = "QA-001";
 
   return (
-    <div className="flex flex-wrap items-center gap-1 font-mono text-[10px] text-zinc-400">
+    <div className="flex flex-wrap items-center gap-1.5 font-mono text-[10px] text-[var(--muted-soft)]">
       {sourceId && (
         <button
           onClick={() => onSelect(sourceId)}
-          className={`px-1.5 py-0.5 rounded border hover:bg-teal-50 cursor-pointer transition ${
+          className={`px-1.5 py-0.5 rounded border hover:bg-[rgba(56,214,199,0.12)] cursor-pointer transition ${
             id === sourceId
-              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold"
-              : "border-zinc-200 bg-zinc-50 text-zinc-600"
+              ? "border-[var(--trace)] bg-[rgba(56,214,199,0.12)] text-[var(--trace)] font-bold"
+              : "border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)]"
           }`}
         >
           {sourceId}
@@ -2828,10 +2904,10 @@ function TraceChain({
       {evidenceId && (
         <button
           onClick={() => onSelect(evidenceId)}
-          className={`px-1.5 py-0.5 rounded border hover:bg-teal-50 cursor-pointer transition ${
+          className={`px-1.5 py-0.5 rounded border hover:bg-[rgba(56,214,199,0.12)] cursor-pointer transition ${
             id === evidenceId
-              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold"
-              : "border-zinc-200 bg-zinc-50 text-zinc-600"
+              ? "border-[var(--trace)] bg-[rgba(56,214,199,0.12)] text-[var(--trace)] font-bold"
+              : "border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)]"
           }`}
         >
           {evidenceId}
@@ -2841,10 +2917,10 @@ function TraceChain({
       {findingId && (
         <button
           onClick={() => onSelect(findingId)}
-          className={`px-1.5 py-0.5 rounded border hover:bg-teal-50 cursor-pointer transition ${
+          className={`px-1.5 py-0.5 rounded border hover:bg-[rgba(56,214,199,0.12)] cursor-pointer transition ${
             id === findingId
-              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold"
-              : "border-zinc-200 bg-zinc-50 text-zinc-600"
+              ? "border-[var(--trace)] bg-[rgba(56,214,199,0.12)] text-[var(--trace)] font-bold"
+              : "border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)]"
           }`}
         >
           {findingId}
@@ -2854,10 +2930,10 @@ function TraceChain({
       {recId && (
         <button
           onClick={() => onSelect(recId)}
-          className={`px-1.5 py-0.5 rounded border hover:bg-teal-50 cursor-pointer transition ${
+          className={`px-1.5 py-0.5 rounded border hover:bg-[rgba(56,214,199,0.12)] cursor-pointer transition ${
             id === recId
-              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold"
-              : "border-zinc-200 bg-zinc-50 text-zinc-600"
+              ? "border-[var(--trace)] bg-[rgba(56,214,199,0.12)] text-[var(--trace)] font-bold"
+              : "border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)]"
           }`}
         >
           {recId}
@@ -2867,10 +2943,10 @@ function TraceChain({
       {showQaAndBrief && (
         <button
           onClick={() => onSelect(qaId)}
-          className={`px-1.5 py-0.5 rounded border hover:bg-teal-50 cursor-pointer transition ${
+          className={`px-1.5 py-0.5 rounded border hover:bg-[rgba(56,214,199,0.12)] cursor-pointer transition ${
             id === qaId
-              ? "border-[var(--accent)] bg-teal-50 text-[var(--accent)] font-bold"
-              : "border-zinc-200 bg-zinc-50 text-zinc-600"
+              ? "border-[var(--trace)] bg-[rgba(56,214,199,0.12)] text-[var(--trace)] font-bold"
+              : "border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)]"
           }`}
         >
           QA
@@ -2878,7 +2954,7 @@ function TraceChain({
       )}
       {showQaAndBrief && <span>&rarr;</span>}
       {showQaAndBrief && (
-        <span className="px-1.5 py-0.5 rounded border border-zinc-200 bg-white text-zinc-600">
+        <span className="px-1.5 py-0.5 rounded border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)]">
           Brief
         </span>
       )}
@@ -2899,7 +2975,7 @@ function TraceIdList({
 }) {
   return (
     <div className={className}>
-      <p className="text-xs font-semibold uppercase text-[var(--muted)]">
+      <p className="text-xs font-semibold text-[var(--muted)]">
         {label}
       </p>
       <div className="mt-2 flex flex-wrap gap-2">
@@ -2937,7 +3013,7 @@ function CompactField({
 }) {
   return (
     <div className={fullWidth ? "col-span-2" : "col-span-1"}>
-      <span className="font-semibold text-[var(--muted)] uppercase tracking-wider text-[10px] block mb-0.5">
+      <span className="font-semibold text-[var(--muted)] text-[11px] block mb-0.5">
         {label}
       </span>
       <span className="text-[var(--foreground)] leading-5 block">{value}</span>
@@ -2958,7 +3034,7 @@ function LinkedTraceField({
 }) {
   return (
     <div className={className}>
-      <p className="text-xs font-semibold uppercase text-[var(--muted)]">
+      <p className="text-xs font-semibold text-[var(--muted)]">
         {label}
       </p>
       <div className="mt-2">
@@ -2970,6 +3046,26 @@ function LinkedTraceField({
 
 function uniqueValues(values: string[]) {
   return Array.from(new Set(values)).sort((a, b) => a.localeCompare(b));
+}
+
+function fallbackCopyText(text: string) {
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.setAttribute("readonly", "true");
+  textarea.style.position = "fixed";
+  textarea.style.left = "0";
+  textarea.style.top = "0";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  textarea.setSelectionRange(0, text.length);
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (!copied) {
+    throw new Error("Clipboard copy failed");
+  }
 }
 
 function traceDomId(id: string) {
@@ -3005,7 +3101,7 @@ function traceCardClass(id: string, highlightedId: string | null, padding: strin
 
   return `scroll-mt-32 rounded-lg border transition ${padding} ${
     highlighted
-      ? "border-[var(--accent)] bg-teal-50 shadow-[0_0_0_3px_rgba(15,118,110,0.18)]"
+      ? "border-[var(--trace)] bg-[rgba(56,214,199,0.08)]"
       : "border-[var(--border)] bg-[var(--surface)]"
   }`;
 }

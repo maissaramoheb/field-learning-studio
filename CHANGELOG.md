@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.5.0 - Dark Impeccable Workbench Redesign
+
+- Added v0.5 dark workbench redesign using Impeccable shape/layout/typeset/colorize/distill/delight/harden workflow.
+- Created `docs/v0.5_dark_workbench_shape.md` before coding to define the premium evidence command room direction.
+- Reworked the app shell, header, case selector, tabs, cards, drawer, QA gate, and brief preview around a restrained dark visual system.
+- Removed quote-like styling from sanitized evidence observations and added an observation -> interpretation -> linked finding structure.
+- Replaced the recommendations three-column layout with stacked priority sections and stabilized Lessons/Good Practices layout.
+- Preserved static demo data, local-only sandbox behavior, Markdown export, and no-auth/no-db/no-upload/no-backend constraints.
+
 ## v0.3.0 - Impeccable Product Polish Sprint
 
 - **Pre-Implementation Review:** Added `docs/impeccable_v0.3_ui_review.md` documenting strengths, weaknesses, Impeccable critique findings, priorities, design direction, sprint scope, exclusions, and risks before coding.

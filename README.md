@@ -8,17 +8,18 @@ Raw field evidence -> source inventory -> evidence matrix -> findings -> lessons
 
 ## Current Stage
 
-v0.3-demo (Impeccable Product Polish). This is a premium interactive product demonstrator and validation tool, not a production SaaS.
+v0.5-demo (Dark Impeccable Workbench). This is a premium interactive product demonstrator and validation tool, not a production SaaS.
 
 - **Live Production URL:** https://field-learning-studio.vercel.app/
 - **Deployment Platform:** Vercel
-- **Current Version:** v0.3-demo (Professional Evidence-to-Learning Workbench Polish)
+- **Current Version:** v0.5-demo (Dark Evidence Command Room Workbench)
 
 ## Documentation
 
 - [Demo & Validation Pack v0.1](file:///Users/maissaraselim/Library/CloudStorage/OneDrive-Personal/Consultancy/Apps/Field%20Learning%20Studio/docs/demo_validation_pack_v01.md)
 - [Phase 2 Real Case Demo Plan](docs/phase_2_real_case_demo_plan.md)
 - [Impeccable v0.3 UI Review](docs/impeccable_v0.3_ui_review.md)
+- [v0.5 Dark Workbench Shape](docs/v0.5_dark_workbench_shape.md)
 
 ## Setup
 

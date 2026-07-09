@@ -17,6 +17,13 @@
 - [x] Implemented Impeccable P1 interactive traceability (SRC- and QA- ID pills as button controls, tab mappings, dynamic highlight) and restyled navigation tabs.
 - [x] Implemented Impeccable P2/P3 UI polish (reduced warning banner redundancy, restructured recommendation metadata grid, and upgraded font stack to Inter-style).
 - [x] Create Phase 2 sanitized real-case demo plan for a school nutrition and child wellbeing field learning case.
+- [x] Create v0.5 dark workbench shape document before coding.
+- [x] Redesign v0.5 app shell as a premium dark evidence command room.
+- [x] Remove quote-like styling from sanitized evidence observations.
+- [x] Strengthen traceability IDs and claim-lineage drawer.
+- [x] Replace recommendations three-column layout with stacked priority sections.
+- [x] Stabilize Lessons and Good Practices layout for laptop/tablet widths.
+- [x] Preserve styled brief preview and Markdown export in the dark workbench.
 
 ## P1
 
@@ -45,6 +52,7 @@
   - [x] Upgrade case selector into a professional demo pathway chooser
   - [x] Improve workflow map, guided demo path, traceability drawer, evidence cards, QA review, and brief preview
 - [ ] Review the Next.js/PostCSS audit finding and update safely when a compatible patched Next.js release is available.
+- [ ] Browser-review the v0.5 dark workbench branch before deciding whether to merge to production.
 
 ## P2
 

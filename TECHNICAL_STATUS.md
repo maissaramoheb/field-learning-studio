@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.3 product polish is implemented on branch `ui/impeccable-v0.3-product-polish`. The app now presents as a more professional evidence-to-learning workbench with stronger first-screen positioning, a richer case selector, clearer workflow map, improved traceability drawer, refined evidence cards, safeguard-oriented QA review, and a more structured donor-ready brief preview. All validation steps passed locally.
+v0.5 dark Impeccable workbench is implemented on branch `ui/v0.5-impeccable-dark-workbench`. The app now presents as a premium dark evidence command room with a stronger first screen, restrained dark visual system, clearer evidence hierarchy, improved claim-lineage drawer, stable Lessons/Recommendations layouts, deterministic QA review gate, and document-quality brief preview. Static demo data, local-only sandbox behavior, data models, and Markdown export are preserved.
 
 ## Completed Items
 
@@ -45,11 +45,17 @@ v0.3 product polish is implemented on branch `ui/impeccable-v0.3-product-polish`
   - Refined evidence cards around source context, observation, interpreted meaning, and inspect-chain actions.
   - Reframed QA as a deterministic safeguard layer with severity counters and grouped results.
   - Expanded the styled brief preview with metadata, case note, evidence base, themes, safeguarding note, limitations, and traceability annex.
+- Implemented v0.5 dark Impeccable workbench:
+  - Created `docs/v0.5_dark_workbench_shape.md` before coding.
+  - Verified real `/impeccable` slash commands are not callable from this coding harness.
+  - Attempted `npx impeccable --help` and `npx impeccable detect src/`; sandboxed runs failed on network resolution and escalated external npm execution was rejected as unsafe, so the local bundled detector was used as the command-equivalent Impeccable check.
+  - Reworked `src/app/globals.css` to the requested dark green-black surface palette and aligned typography to the documented Arial/Helvetica stack.
+  - Reworked `src/components/FieldLearningStudioApp.tsx` into a dark command-room workbench with a stronger header, compact dark case selector, sticky segmented workspace nav, clearer Overview command center, no quote-style evidence observations, strengthened claim lineage drawer, stable Lessons layout, stacked Recommendations groups, deterministic QA review gate, and a premium document brief preview.
 
 ## Pending Items
 
 - Start demo review with target users.
-- Review the v0.3 Impeccable polish branch in browser before merging to main.
+- Review the v0.5 dark workbench branch in browser before merging to main.
 - Review the Antigravity P0 UX changes with target users.
 - Add editable evidence forms only if still needed after demo review.
 - Consider localStorage persistence only after user validation.
@@ -63,23 +69,29 @@ v0.3 product polish is implemented on branch `ui/impeccable-v0.3-product-polish`
 
 ## Next Recommended Step
 
-Review `ui/impeccable-v0.3-product-polish` visually, then merge to main only after approval and a production smoke test plan.
+Review `ui/v0.5-impeccable-dark-workbench` visually, then merge to main only after approval and a production smoke test plan.
 
 ## Validation Commands
 
 ```bash
 npm run lint
 npm run build
+python3 -m json.tool OPS_UPDATE.json
+git diff --check
+node /Users/maissaraselim/.agents/skills/impeccable/scripts/detect.mjs --json src/
 ```
 
 ## Validation Results
 
 - `npm run lint`: passed (0 errors, 0 warnings).
 - `npm run build`: passed (Next.js production static bundle generated).
-- Local preview HTTP check: passed with `200 OK`.
+- `python3 -m json.tool OPS_UPDATE.json`: passed.
+- `git diff --check`: passed.
+- Local bundled Impeccable detector: passed with `[]` after documenting the dark token system and aligning typography.
+- Local preview/browser smoke: passed for dark mode, first screen, no horizontal overflow, case selector, School Nutrition safety note, sandbox parsing, evidence cards, quote removal, findings, Lessons, Recommendations, QA review gate, brief document preview, traceability drawer, and tablet/laptop layouts. The in-app browser blocked programmatic clipboard writes; raw Markdown export textarea remained populated and visible.
 - Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch).
 - Tests: not configured.
 
 ## Last Update
 
-2026-07-08: Implemented the v0.3 Impeccable product polish branch and validated with lint/build.
+2026-07-09: Implemented the v0.5 dark Impeccable workbench branch and validated with lint, build, JSON, diff-check, local detector, and browser smoke.
