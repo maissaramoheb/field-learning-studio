@@ -8,11 +8,11 @@ Raw field evidence -> source inventory -> evidence matrix -> findings -> lessons
 
 ## Current Stage
 
-v0.6-demo (Blue Command Workbench). This is a premium interactive product demonstrator and validation tool, not a production SaaS.
+v0.7-export-pack (Word, PDF, Markdown Export Package). This is a premium interactive product demonstrator and validation tool, not a production SaaS.
 
 - **Live Production URL:** https://field-learning-studio.vercel.app/
 - **Deployment Platform:** Vercel
-- **Current Version:** v0.6-demo (Blue-Slate Evidence Command Center Workbench)
+- **Current Version:** v0.7-export-pack (Professional Word, PDF, and Markdown Export Pack)
 
 ## Documentation
 
@@ -45,7 +45,7 @@ npm run build
 - No real user data.
 - No external AI API calls.
 - Local/session state only.
-- Markdown export only.
+- Client-side Word, PDF, and Markdown document exports (no upload or backend processing).
 - Human review required.
 
 ## Core Workflow
@@ -54,7 +54,7 @@ npm run build
 2. Try a local sandbox field note or inspect the static evidence base.
 3. Trace evidence into findings, lessons, good practices, and recommendations.
 4. Run deterministic QA review safeguards.
-5. Preview a donor-ready learning brief and copy the Markdown export.
+5. Preview a donor-ready learning brief and download/copy the Word, PDF, or Markdown export.
 
 ## Folder Structure
 

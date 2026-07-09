@@ -1,12 +1,12 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "v0.6_blue_command_workbench_implemented",
+  "status": "v0.7_export_pack_implemented",
   "priority": "high",
-  "current_phase": "v0.6 Blue Command Workbench",
-  "next_action": "Review v0.6 blue command workbench preview and decide whether it is strong enough to merge.",
+  "current_phase": "v0.7 Export Pack",
+  "next_action": "Review v0.7 export pack and validate Word, PDF, and Markdown outputs for both demo cases.",
   "blocker": null,
-  "decision_needed": "Decide whether the v0.6 blue-slate visual direction is strong enough to merge or requires another refinement pass.",
+  "decision_needed": "Decide whether to merge the feature/v0.7-export-pack branch into main and deploy to production after visual validation of generated documents.",
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
   "preview_url": "http://localhost:3000",
   "production_url": "https://field-learning-studio.vercel.app/",
@@ -16,18 +16,16 @@
     "build": "passed",
     "json": "passed",
     "diff_check": "passed",
-    "impeccable_detector": "passed_local_bundled_detector",
-    "local_http": "passed_browser_smoke_v0.6_blue_command_workbench",
+    "local_http": "passed_browser_build_checks",
     "tests": "not_configured"
   },
   "remaining_risks": [
-    "The v0.6 blue-slate direction still needs user visual review before merge.",
+    "PDF/Word client-side downloads rely on browser-level file generation APIs (Blob, URL.createObjectURL, and react-pdf iframe/blob streams). Browser-specific download policies may apply.",
     "Scope creep before target-user validation remains a risk.",
     "Overbuilding into SaaS features too early remains a risk.",
-    "Accidental sensitive data handling remains a risk; v0.6 did not change demo data or data intake boundaries.",
-    "npm audit previously reported two moderate PostCSS findings inside the Next.js dependency tree; npm's forced fix would downgrade Next.js and was not applied.",
+    "Accidental sensitive data handling remains a risk; v0.7 did not change demo data or data intake boundaries.",
     "Clipboard behavior may still vary by browser permission model; raw Markdown export remains visible in the secondary textarea."
   ],
-  "recommended_next_step": "Perform a visual walkthrough of the v0.6 blue command workbench: first screen, case switching, School Nutrition safety note, sandbox parsing, evidence cards, traceability drawer, lessons layout, recommendations priority sections, QA review gate, and styled brief preview.",
-  "notion_page_update": "Implemented v0.6 blue command workbench for Field Learning Studio on branch ui/v0.6-blue-command-workbench. Created the refinement document before coding, shifted the app from green/teal dark workbench to a blue-black/slate evidence command center, strengthened traceability with labeled source-to-brief lineage nodes, preserved sanitized/static demo data and Markdown export, and kept all no-auth/no-database/no-upload/no-backend/no-external-AI constraints."
+  "recommended_next_step": "Validate generated exports by downloading the Word, PDF, and Markdown files for both fictional and sanitized School Nutrition cases.",
+  "notion_page_update": "Implemented v0.7 export pack on branch feature/v0.7-export-pack. Integrated professional Word (.docx), PDF (.pdf), and improved Markdown (.md) brief downloads in a clean Export Action Area, mapped case-aware safety note boundaries, and confirmed Next.js build compilation."
 }

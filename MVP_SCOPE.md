@@ -53,6 +53,12 @@
 - **Traceability Presentation Upgrade (P0):** Reworked `TraceChain` into labeled source-to-brief lineage nodes and routed overview/sandbox trace paths through the traceability drawer.
 - **Screen-Level Polish (P1):** Tuned the hero, case selector, overview, evidence cards, findings, lessons, recommendations, QA review, and brief preview for calmer hierarchy, less terminal feel, and better executive scannability.
 
+## v0.7 Includes
+
+- **Word, PDF, Markdown Export Pack (P0):** Adds professional local download options for Word (.docx), PDF (.pdf), and improved Markdown (.md) to the learning brief workbench.
+- **Shared Export Model (P0):** Implements a shared structured export data model to ensure content parity across all three export types.
+- **Visual Integration (P0):** Houses exports inside a clean "Export Brief Deliverable" action area styled as a premium command tool.
+
 ## v0.1 Does Not Include
 
 - Authentication.
@@ -64,7 +70,7 @@
 - Client portal.
 - Dashboard-heavy analytics.
 - Sensitive data processing.
-- PDF/DOCX export.
+- PDF/DOCX export (originally excluded in v0.1, added in v0.7).
 - Public SaaS features.
 
 ## Feature Amendment Rule
@@ -74,3 +80,4 @@ Only add a new feature if one of the following happens:
 - User testing shows the app is unusable without it.
 - The feature directly improves the evidence-to-learning workflow.
 - The feature improves safety, traceability, or export quality.
+

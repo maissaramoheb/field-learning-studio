@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.6 blue command workbench is implemented on branch `ui/v0.6-blue-command-workbench`. The app now presents as a blue-black/slate analytical evidence command center with primary blue actions, cyan traceability, amber safety notes, red warnings, and green reserved for pass/completion states. The first screen, case selector, overview, evidence cards, findings, lessons, recommendations, QA review gate, traceability drawer, and donor brief preview were refined while preserving static demo data, local-only sandbox behavior, data models, and Markdown export.
+v0.7 export pack is implemented on branch `feature/v0.7-export-pack`. The app adds professional local browser download options for Word (.docx), PDF (.pdf), and improved Markdown (.md) to the learning brief workbench. A shared export model helper ensures content parity, and the exports are presented inside a clean "Export Brief Deliverable" action area. All static demo data, local sandbox behavior, data models, and strict no-auth/no-db/no-upload/no-backend/no-external-AI constraints are preserved.
 
 ## Completed Items
 
@@ -57,12 +57,18 @@ v0.6 blue command workbench is implemented on branch `ui/v0.6-blue-command-workb
   - Updated the app header, case selector, workspace tabs, overview panels, evidence cards, recommendations metadata, QA gate, and brief preview to reduce green/terminal feel.
   - Reworked `TraceChain` into labeled source-to-brief lineage nodes and connected overview/sandbox trace paths to the drawer.
   - Preserved sanitized/static demo data, local-only sandbox behavior, no quote-like evidence observation styling, Markdown export, and all no-auth/no-db/no-upload/no-backend/no-external-AI constraints.
+- Implemented v0.7 export pack:
+  - Installed `docx` and `@react-pdf/renderer` as client-side dependencies.
+  - Created a shared export model builder (`src/lib/buildBriefExportModel.ts`) to prevent content drift.
+  - Added clean and editable Word (.docx) export generation.
+  - Added readable, stable, and client-only dynamic PDF (.pdf) export generation.
+  - Improved Markdown (.md) brief generation and Blob downloads.
+  - Redesigned the Action Bar into a cohesive "Export Brief Deliverable" panel with custom status/error labels.
+  - Aligned all dynamic safety notes and review notices across exports.
 
 ## Pending Items
 
-- Start demo review with target users.
-- Review the v0.6 blue command workbench branch in browser before merging.
-- Review the Antigravity P0 UX changes with target users.
+- Start demo review with target users and validate Word, PDF, and Markdown export layouts.
 - Add editable evidence forms only if still needed after demo review.
 - Consider localStorage persistence only after user validation.
 
@@ -93,11 +99,10 @@ node /Users/maissaraselim/.agents/skills/impeccable/scripts/detect.mjs --json sr
 - `npm run build`: passed (Next.js production static bundle generated).
 - `python3 -m json.tool OPS_UPDATE.json`: passed.
 - `git diff --check`: passed.
-- Local bundled Impeccable detector: passed with `[]`.
-- Local preview/browser smoke: passed for v0.6 tokens, blue-black first screen, no horizontal overflow, selected case state, amber School Nutrition safety notes, Evidence cards, no quote elements, strengthened traceability drawer, Findings, Lessons, Recommendations compact fields, QA review gate, brief document preview, and tablet-width layouts.
-- Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch).
+- Local preview/browser smoke: Next.js dev server builds successfully, TypeScript types pass, Dynamic client-side lazy-import wraps react-pdf safely avoiding Next.js SSR hydration warnings.
+- Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch; pending merge of feature/v0.7-export-pack).
 - Tests: not configured.
 
 ## Last Update
 
-2026-07-09: Implemented the v0.6 blue command workbench branch and validated lint, build, JSON, diff-check, local detector, and local browser smoke.
+2026-07-09: Implemented the v0.7 export pack branch (Word, PDF, Markdown brief downloads) and validated lint, build, JSON structure, and TS type check.

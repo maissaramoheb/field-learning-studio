@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.7.0 - Word, PDF, and Markdown Brief Export Pack
+
+- Added v0.7 export pack with Word, PDF, and Markdown brief downloads.
+- Implemented a shared export model builder (`src/lib/buildBriefExportModel.ts`) to maintain content parity and avoid data drift.
+- Created local Word (`.docx`) file generator utilizing `docx` library with professional margins, clear typography, and a structured metadata table.
+- Created local PDF (`.pdf`) document generator with `@react-pdf/renderer` using Helvetica typeface, margins, metadata rows, and structured annex details.
+- Wrapped PDF generation in client-side lazy-import hooks to bypass Next.js server-side rendering (SSR) hydration warnings and preserve quick compilation times.
+- Redesigned the final Action Bar on the Brief tab into an "Export Brief Deliverable" control panel containing primary Word download, secondary PDF, tertiary Markdown, and transparent Copy buttons.
+- Integrated dynamic safety and review disclaimer notes across all three document layouts based on the active case switcher.
+- Validation: `npm run lint` and `npm run build` passed with zero errors.
+
 ## v0.6.0 - Blue Command Workbench Refinement
 
 - Refined v0.5 dark workbench into v0.6 blue-slate command workspace with calmer color roles, improved traceability emphasis, and stronger premium visual hierarchy.

@@ -28,6 +28,7 @@
 - [x] Refine v0.5 dark workbench into a blue-slate analytical command workspace.
 - [x] Rework TraceChain into labeled source-to-brief lineage nodes.
 - [x] Preserve static demo data, local-only sandbox behavior, and Markdown export in v0.6.
+- [x] v0.7 Export Pack: client-side Word (.docx), PDF (.pdf), and improved Markdown (.md) brief downloads in a shared export model.
 
 ## P1
 
@@ -56,7 +57,7 @@
   - [x] Upgrade case selector into a professional demo pathway chooser
   - [x] Improve workflow map, guided demo path, traceability drawer, evidence cards, QA review, and brief preview
 - [ ] Review the Next.js/PostCSS audit finding and update safely when a compatible patched Next.js release is available.
-- [ ] Review the v0.6 blue command workbench preview before deciding whether to merge.
+- [x] Review the v0.6 blue command workbench preview before deciding whether to merge.
 
 ## P2
 
@@ -64,5 +65,4 @@
 - [ ] File upload.
 - [ ] Authentication.
 - [ ] Database.
-- [ ] DOCX/PDF export.
 - [ ] Paid pilot mode.

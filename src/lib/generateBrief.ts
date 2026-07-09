@@ -53,8 +53,8 @@ export function generateLearningBriefMarkdown(demoCase: DemoCase): string {
     : "";
 
   const safetyNote = demoCase.id === "school-nutrition"
-    ? "This case is a sanitized demo derived from prior fieldwork. No raw identifiable field data is included."
-    : "This demo brief uses fictional data only. Do not use v0.1 with real sensitive field evidence.";
+    ? "This case is a sanitized demo derived from prior fieldwork. No raw identifiable field data is included.\n\nGenerated from Field Learning Studio demo. Review required before external use."
+    : "This case uses fictional demo data for product validation.\n\nGenerated from Field Learning Studio demo. Review required before external use.";
 
   return `# ${demoCase.project}: Learning Brief
 

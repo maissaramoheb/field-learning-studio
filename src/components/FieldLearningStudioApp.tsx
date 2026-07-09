@@ -24,6 +24,10 @@ import type {
 import { generateQAReview } from "@/lib/qa";
 import { generateLearningBriefMarkdown } from "@/lib/generateBrief";
 import { demoCases } from "@/data/cases";
+import { buildBriefExportModel } from "@/lib/buildBriefExportModel";
+import { downloadBriefDocx } from "@/lib/exportDocx";
+import { downloadBriefPdf } from "@/lib/exportPdf";
+import { downloadBriefMarkdown } from "@/lib/exportMarkdown";
 
 interface FieldLearningStudioAppProps {
   demoCase: DemoCase;
@@ -2262,6 +2266,44 @@ function LearningBriefSection({
   onCopy: () => void;
   traceHandlers: TraceHandlers;
 }) {
+  const [exportStatus, setExportStatus] = React.useState<"idle" | "docx-loading" | "pdf-loading" | "md-loading" | "error">("idle");
+
+  const handleDownloadDocx = async () => {
+    try {
+      setExportStatus("docx-loading");
+      const model = buildBriefExportModel(demoCase);
+      downloadBriefDocx(model);
+      setExportStatus("idle");
+    } catch (err) {
+      console.error("Docx export error:", err);
+      setExportStatus("error");
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      setExportStatus("pdf-loading");
+      const model = buildBriefExportModel(demoCase);
+      await downloadBriefPdf(model);
+      setExportStatus("idle");
+    } catch (err) {
+      console.error("PDF export error:", err);
+      setExportStatus("error");
+    }
+  };
+
+  const handleDownloadMarkdown = async () => {
+    try {
+      setExportStatus("md-loading");
+      const model = buildBriefExportModel(demoCase);
+      downloadBriefMarkdown(model);
+      setExportStatus("idle");
+    } catch (err) {
+      console.error("Markdown export error:", err);
+      setExportStatus("error");
+    }
+  };
+
   return (
     <Section
       description={
@@ -2273,27 +2315,67 @@ function LearningBriefSection({
       title="Donor-ready brief preview"
     >
       <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] p-5 sm:p-6 flex flex-col gap-6">
-        {/* Professional Action Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
-          <div>
-            <span className="text-xs font-semibold text-[var(--trace)]">
-              Donor deliverable draft
-            </span>
-            <p className="text-xs text-[var(--muted)] mt-0.5">
-              Verify recommendations alignment, key messages, and annex evidence trace links below.
-            </p>
+        {/* Professional Export Action Area */}
+        <div className="flex flex-col gap-4 border-b border-[var(--border)] pb-5">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <span className="text-xs font-semibold text-[var(--trace)] uppercase tracking-wider">
+                Export Brief Deliverable
+              </span>
+              <p className="text-xs text-[var(--muted-soft)] mt-0.5">
+                Download structured documents generated from the active demo case. No data is uploaded.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              {exportStatus === "pdf-loading" && (
+                <span className="text-xs text-[var(--warning-text)] bg-[var(--accent-wash-strong)] px-3 py-1.5 rounded border border-[var(--warning)] font-mono animate-pulse">
+                  Preparing PDF…
+                </span>
+              )}
+              {exportStatus === "error" && (
+                <span className="text-xs text-[var(--danger-text)] bg-[rgba(248,113,113,0.1)] px-3 py-1.5 rounded border border-[var(--danger)] font-mono">
+                  Export failed. Please try again.
+                </span>
+              )}
+            </div>
           </div>
-          <button
-            className="min-h-10 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white px-5 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer"
-            onClick={onCopy}
-            type="button"
-          >
-            {copyStatus === "copied"
-              ? "✓ Copied to Clipboard"
-              : copyStatus === "error"
-                ? "Copy failed"
-                : "Copy Brief Markdown"}
-          </button>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              className="min-h-10 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white px-5 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer disabled:opacity-50"
+              disabled={exportStatus !== "idle"}
+              onClick={handleDownloadDocx}
+              type="button"
+            >
+              {exportStatus === "docx-loading" ? "Generating Word..." : "Download Word brief"}
+            </button>
+
+            <button
+              className="min-h-10 rounded-lg bg-[var(--surface-soft)] hover:bg-[var(--surface-elevated)] border border-[var(--border-strong)] text-[var(--foreground)] px-5 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer disabled:opacity-50"
+              disabled={exportStatus !== "idle"}
+              onClick={handleDownloadPdf}
+              type="button"
+            >
+              {exportStatus === "pdf-loading" ? "Preparing PDF..." : "Download PDF"}
+            </button>
+
+            <button
+              className="min-h-10 rounded-lg bg-transparent hover:bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--muted)] px-5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer disabled:opacity-50"
+              disabled={exportStatus !== "idle"}
+              onClick={handleDownloadMarkdown}
+              type="button"
+            >
+              {exportStatus === "md-loading" ? "Generating..." : "Download Markdown"}
+            </button>
+
+            <button
+              className="min-h-10 rounded-lg bg-transparent hover:bg-[var(--accent-wash)] text-[var(--trace)] px-4 text-xs font-medium transition focus:outline-none cursor-pointer"
+              onClick={onCopy}
+              type="button"
+            >
+              {copyStatus === "copied" ? "✓ Copied Markdown" : "Copy Markdown"}
+            </button>
+          </div>
         </div>
 
         <StyledBriefPreview
