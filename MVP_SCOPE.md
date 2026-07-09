@@ -80,4 +80,3 @@ Only add a new feature if one of the following happens:
 - User testing shows the app is unusable without it.
 - The feature directly improves the evidence-to-learning workflow.
 - The feature improves safety, traceability, or export quality.
-
