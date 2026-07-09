@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.6.0 - Blue Command Workbench Refinement
+
+- Refined v0.5 dark workbench into v0.6 blue-slate command workspace with calmer color roles, improved traceability emphasis, and stronger premium visual hierarchy.
+- Created `docs/v0.6_blue_command_workbench_refinement.md` before coding to document the visual assessment, blue-slate direction, color system, typography, component plan, traceability plan, screen-specific plan, exclusions, and validation checklist.
+- Updated runtime and documented design tokens from green-black/teal to blue-black/slate with primary blue actions, cyan traceability, amber safety notes, red warnings, and green reserved for pass/completion states.
+- Reworked `TraceChain` into larger labeled source-to-brief lineage nodes and connected overview/sandbox trace paths to the drawer interaction.
+- Tuned the hero, case selector, overview panels, evidence cards, findings, lessons, recommendations, QA review, and brief preview for calmer executive scannability while preserving static demo data and Markdown export.
+- Validation: `npm run lint` and `npm run build` passed locally.
+
 ## v0.5.0 - Dark Impeccable Workbench Redesign
 
 - Added v0.5 dark workbench redesign using Impeccable shape/layout/typeset/colorize/distill/delight/harden workflow.

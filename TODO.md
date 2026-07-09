@@ -24,6 +24,10 @@
 - [x] Replace recommendations three-column layout with stacked priority sections.
 - [x] Stabilize Lessons and Good Practices layout for laptop/tablet widths.
 - [x] Preserve styled brief preview and Markdown export in the dark workbench.
+- [x] Create v0.6 blue command workbench refinement document before coding.
+- [x] Refine v0.5 dark workbench into a blue-slate analytical command workspace.
+- [x] Rework TraceChain into labeled source-to-brief lineage nodes.
+- [x] Preserve static demo data, local-only sandbox behavior, and Markdown export in v0.6.
 
 ## P1
 
@@ -52,7 +56,7 @@
   - [x] Upgrade case selector into a professional demo pathway chooser
   - [x] Improve workflow map, guided demo path, traceability drawer, evidence cards, QA review, and brief preview
 - [ ] Review the Next.js/PostCSS audit finding and update safely when a compatible patched Next.js release is available.
-- [ ] Browser-review the v0.5 dark workbench branch before deciding whether to merge to production.
+- [ ] Review the v0.6 blue command workbench preview before deciding whether to merge.
 
 ## P2
 

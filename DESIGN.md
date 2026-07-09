@@ -2,43 +2,46 @@
 name: Field Learning Studio
 description: Traceable Field Evidence Synthesis
 colors:
-  primary: "#0f766e"
-  primary-strong: "#0f8f83"
-  accent-wash-strong: "rgba(27, 165, 150, 0.13)"
-  accent-wash: "rgba(27, 165, 150, 0.10)"
-  trace: "#38d6c7"
-  trace-text: "#8de9df"
-  background: "#07110f"
-  foreground: "#f2f7f3"
-  muted: "#b8c7bf"
-  muted-soft: "#7e9188"
-  border: "rgba(180, 205, 190, 0.16)"
-  surface: "#0f1b17"
-  surface-muted: "#14231e"
-  surface-elevated: "#162620"
-  warning: "#d99a2b"
-  warning-text: "#f2c66d"
-  danger: "#f97066"
-  danger-text: "#ffaaa2"
-  success: "#46d38a"
-  success-text: "#8af0b8"
-  document: "#f6f3eb"
-  document-surface: "#fffdf6"
-  document-ink: "#1d211d"
-  document-muted: "#5e665f"
-  document-border: "rgba(58, 70, 60, 0.16)"
+  primary: "#2563EB"
+  primary-strong: "#3B82F6"
+  accent-wash-strong: "rgba(37, 99, 235, 0.16)"
+  accent-wash: "rgba(37, 99, 235, 0.10)"
+  trace: "#22D3EE"
+  trace-text: "#67E8F9"
+  trace-wash: "rgba(34, 211, 238, 0.10)"
+  background: "#050B14"
+  background-secondary: "#07111F"
+  foreground: "#F8FAFC"
+  muted: "#CBD5E1"
+  muted-soft: "#94A3B8"
+  border: "rgba(148, 163, 184, 0.22)"
+  surface: "#101B2C"
+  surface-muted: "#0B1625"
+  surface-elevated: "#162338"
+  surface-soft: "#1D2B42"
+  warning: "#F59E0B"
+  warning-text: "#FCD34D"
+  danger: "#F87171"
+  danger-text: "#FDA4AF"
+  success: "#34D399"
+  success-text: "#A7F3D0"
+  document: "#F8FAFC"
+  document-surface: "#FFFFFF"
+  document-ink: "#0F172A"
+  document-muted: "#475569"
+  document-border: "rgba(15, 23, 42, 0.14)"
 typography:
   display:
     fontFamily: "ui-sans-serif, system-ui, sans-serif"
-    fontSize: "3.25rem"
+    fontSize: "3rem"
     fontWeight: 600
     lineHeight: 1.15
-    letterSpacing: "-0.02em"
+    letterSpacing: "0"
   body:
     fontFamily: "ui-sans-serif, system-ui, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
-    lineHeight: 1.75
+    lineHeight: 1.7
     letterSpacing: "normal"
 rounded:
   sm: "4px"
@@ -50,7 +53,7 @@ spacing:
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
-    textColor: "{colors.surface}"
+    textColor: "#FFFFFF"
     rounded: "{rounded.md}"
     padding: "8px 16px"
   button-primary-hover:
@@ -61,120 +64,155 @@ components:
 
 ## 1. Overview
 
-**Creative North Star: "The Evidence Command Room"**
+**Creative North Star: "The Blue Evidence Command Center"**
 
-Field Learning Studio is designed as a premium analytical workspace for Monitoring, Evaluation, and Learning (MEL) practitioners. The visual environment should feel like a calm evidence command room: dark, serious, structured, and tuned for reviewing sensitive field evidence. Space, boundaries, and typography are optimized for scanning dense programmatic findings, source logs, recommendations, QA checks, and donor-facing brief content without cognitive fatigue.
+Field Learning Studio is designed as a premium analytical workspace for Monitoring, Evaluation, and Learning practitioners. The visual environment should feel like a blue-black evidence command center: calm, serious, institutional, donor-safe, and tuned for reviewing sensitive field evidence without cognitive fatigue.
 
-### Key Characteristics:
-- **Restrained dark color strategy**: Deep green-black neutrals carry the workspace; teal is reserved for primary actions and traceability.
-- **Clear dark surfaces**: Depth comes from stepped surface lightness, thin borders, and explicit content regions rather than drop shadows.
-- **High-contrast readability**: Strict compliance with WCAG AA/AAA text legibility for institutional settings.
-- **Explicit traceability**: Visual linking of claims to their exact raw source logs.
+### Key Characteristics
 
-**The Command Room Rule.** Every interface element must support evidence review, claim tracing, recommendation checking, QA review, or brief preparation. Visual decoration that does not contribute to hierarchy, scanning speed, or validation of claims is prohibited.
+- **Restrained blue-slate color strategy**: Deep blue-black surfaces carry the workspace; primary blue is used for current selection and major actions.
+- **Traceability as signature accent**: Cyan is reserved for traceability, focus rings, and active claim-lineage states.
+- **Clear dark surfaces**: Depth comes from stepped slate surfaces, thin borders, and explicit content regions rather than shadow or decorative effects.
+- **High-contrast readability**: Text must remain readable in dark mode for institutional review contexts.
+- **Document contrast**: The learning brief remains a light paper canvas inside the dark workspace.
 
-**The Restraint Rule.** Avoid flashy trends, decorative background grids, neon highlights, glassmorphism, and purple AI gradients. The tool must look at home in a donor briefing room or senior evaluation review session.
+**The Command Center Rule.** Every interface element must support evidence review, claim tracing, recommendation checking, QA review, or brief preparation. Visual decoration that does not improve hierarchy, scanning speed, or claim validation is prohibited.
+
+**The Restraint Rule.** Avoid green terminal styling, cyberpunk glow, decorative grids, heavy glassmorphism, purple AI gradients, and playful SaaS visuals. The product should look credible in a donor briefing room or senior evaluation review session.
 
 ---
 
 ## 2. Colors
 
-The color palette is a restrained dark green-black neutral scale with a deep teal primary accent and controlled trace cyan. Teal must remain scarce and purposeful.
+The v0.6 palette is a restrained blue-slate dark system with separate roles for primary actions, traceability, safety, risk, and pass states.
 
 ### Primary
-- **Refined Teal** (#1ba596): Used for primary call-to-actions and active workspace navigation.
-- **Deep Teal** (#0f8f83): Used for primary hover and active press states.
-- **Trace Cyan** (#38d6c7): Used for traceability IDs, claim-lineage highlights, and focus rings.
+
+- **Command Blue** (#2563EB): Primary actions, selected navigation, and selected case state.
+- **Command Blue Hover** (#3B82F6): Hover and active primary action states.
+- **Trace Cyan** (#22D3EE): Traceability IDs, claim-lineage active nodes, and focus rings.
+- **Trace Cyan Text** (#67E8F9): Trace labels and active lineage text.
 
 ### Neutral
-- **Command Background** (#07110f / #08130f): The primary canvas background.
-- **Main Surface** (#0f1b17): Primary workbench panels.
-- **Elevated Card** (#14231e / #162620): Cards, drawers, filter panels, and active case surfaces.
-- **Primary Text** (#f2f7f3): Main headings and body text.
-- **Secondary Text** (#b8c7bf): Descriptions, captions, and metadata.
-- **Muted Text** (#7e9188): Low-priority metadata only.
-- **Dark Border** (rgba(180, 205, 190, 0.16)): Thin divider and frame borders.
-- **Document Sheet** (#f6f3eb): Brief preview sheet only.
 
-### Status
-- **Amber Warning** (#d99a2b): Signals data sensitivity or checklist items that need human review.
-- **Risk Red** (#f97066): Highlights critical warnings, risk, or failed QA rules.
-- **Success Green** (#46d38a): Signals passed review checks.
+- **Main Background** (#050B14): Primary page canvas.
+- **Secondary Background** (#07111F): Subtle depth layer for the top shell.
+- **Primary Surface** (#101B2C): Main workbench panels.
+- **Secondary Surface** (#0B1625): Toolbars, filters, compact metadata, and nested panels.
+- **Elevated Surface** (#162338): Active case and selected surfaces.
+- **Soft Surface** (#1D2B42): Rare, stronger depth surface.
+- **Primary Text** (#F8FAFC): Main headings and high-priority content.
+- **Secondary Text** (#CBD5E1): Body copy and explanatory text.
+- **Muted Text** (#94A3B8): Low-priority metadata only.
+- **Border** (rgba(148, 163, 184, 0.22)): Standard boundaries.
 
-**The Accent Rarity Rule.** Teal and trace cyan must not dominate the screen. Their strength lies in scarcity; they should only call out primary actions, active tabs, focus states, and traceability endpoints.
+### Semantic
+
+- **Amber Warning** (#F59E0B): Safety notices, needs-review states, and sanitized-data warnings.
+- **Risk Red** (#F87171): Warnings and failed QA/risk states.
+- **Success Green** (#34D399): Pass and completion states only.
+- **Document Paper** (#F8FAFC / #FFFFFF): Learning brief preview only.
+
+**The Color Role Rule.** Blue is the product primary. Cyan is mainly traceability. Amber is safety and review. Red is risk. Green is only pass/success.
 
 ---
 
 ## 3. Typography
 
-The default typography uses highly legible, standard system sans-serif font families to guarantee maximum compatibility, accessibility, and fast load times in low-bandwidth field environments.
+The product uses a single highly legible system sans-serif stack for compatibility, performance, and density. This is product UI; typography should support executive analysis rather than marketing display.
 
 **Display Font:** ui-sans-serif, system-ui, sans-serif
 **Body Font:** ui-sans-serif, system-ui, sans-serif
 
 ### Hierarchy
-- **Display / H1** (Semi-bold, 48-56px desktop, 1.15 line-height): Used for the main workspace title. Uses normal tracking to keep dark-mode headings readable.
-- **Headline / H2** (Semi-bold, 30px / 1.875rem, 1.25 line-height): Used for workspace section headers (e.g. "Evidence Matrix", "QA Review").
-- **Title / H3** (Semi-bold, 18px / 1.125rem, 1.4 line-height): Used for individual card headers, finding statements, and modal titles.
-- **Body** (Regular, 16px / 1rem, 1.75 line-height): Used for descriptions, notes, explanations, and raw field logs. Max line length is restricted to 75ch.
-- **Label / Mono** (Medium, 12px / 0.75rem, uppercase or monospace): Used for ID pills (e.g. `SRC-001`, `EV-010`), status badges, and metadata.
 
-**The Monospace Identifier Rule.** Any reference to a record ID, source ID, finding ID, or recommendation ID must use a monospaced font family, structured as a pill, to make its status as a reference marker distinct.
+- **Display / H1**: Semi-bold, 40-48px desktop, 1.15 line-height, no negative tracking.
+- **Headline / H2**: Semi-bold, 24-30px, 1.25 line-height.
+- **Title / H3**: Semi-bold, 16-18px, 1.4 line-height.
+- **Body**: Regular, 16px, 1.7 line-height, max 75ch for prose.
+- **Metadata**: 11-12px, medium or semibold, used sparingly.
+- **Identifier**: Monospaced 10-12px pill or trace node.
+
+**The Metadata Restraint Rule.** Metadata must support scanning, not dominate content. Avoid excessive uppercase labels and tiny grey text.
 
 ---
 
 ## 4. Elevation
 
-The system operates on a clean, layered flat aesthetic. It explicitly rejects deep blurs, heavy drop shadows, or floating cards in favor of thin borders and tonal shifts.
+The system uses flat layered surfaces, not decorative shadows.
 
-- **Flat Canvas**: The default state. Sections are separated by Dark Border 1px lines.
-- **Low Layering**: Cards and interactive elements use stepped dark surfaces with no decorative shadow.
-- **High Layering (Drawers/Popovers)**: Used only for overlay drawers or select dropdowns, utilizing a stronger border and dark overlay.
+- **Canvas**: Main blue-black page background.
+- **Workbench Surface**: Primary cards, sections, and panels.
+- **Nested Surface**: Filters, compact metadata, observation panels, and toolbars.
+- **Elevated Surface**: Selected cards, active case intelligence panel, drawer, and active navigation surfaces.
+- **Document Surface**: Light paper canvas for final brief output.
 
-**The Shadow Ban Rule.** Do not pair a 1px solid border with a soft drop shadow on buttons, cards, or inputs. Choose either a solid 1px border at rest OR a flat background tint; never use shadows as decoration.
+**The Shadow Ban Rule.** Do not pair a 1px solid border with a soft drop shadow on buttons, cards, or inputs. Use tonal surface steps and borders instead.
 
 ---
 
 ## 5. Components
 
 ### Buttons
-- **Shape**: Rounded corners (8px radius / `rounded-md`).
-- **Primary**: Solid Refined Teal (#1ba596) background with White text. Vertical padding: 8px, Horizontal padding: 16px.
-- **Hover**: Transitions smoothly over 150ms to Deep Teal (#0f8f83).
 
-### ID Pills
-- **Style**: Monospace font, 11-12px, controlled trace border, dark tinted trace background, trace cyan text. Very low rounding (4px radius) to maintain a database-style appearance.
+- **Shape**: 8px radius.
+- **Primary**: Solid Command Blue with white text.
+- **Hover**: Command Blue Hover.
+- **Focus**: Trace Cyan ring.
+
+### Trace Buttons and Trace Nodes
+
+- **TraceButton**: Monospaced ID pill with cyan text, cyan border, and low-opacity cyan wash.
+- **TraceChain**: Labeled source-to-brief lineage nodes, not a row of tiny tags. Active node uses Trace Cyan; inactive nodes use slate surfaces.
+- **Trace Drawer**: Must feel like the most important inspection interaction in the product.
 
 ### Cards / Containers
-- **Corner Style**: Rounded corners (8px radius).
-- **Background**: Main Surface (#0f1b17) or Elevated Card (#14231e).
-- **Border**: 1px solid Dark Border.
-- **Internal Padding**: 16px (sm-md) to 20px (lg) to prevent cramped text.
+
+- **Corner Style**: 8px radius.
+- **Background**: Primary Surface or Secondary Surface.
+- **Border**: 1px solid Border.
+- **Padding**: 16-24px depending on density.
+- **Nested cards**: Avoid unless the nested area is a tool, drawer, repeated item, or document region.
 
 ### Inputs / Fields
-- **Style**: Elevated Card background, 1px solid Dark Border, rounded corners (8px).
-- **Focus**: Transitions to Trace Cyan (#38d6c7) focus ring.
 
-### Navigation / Stepper
-- **Style**: Sticky dark segmented tab bar, dark surface background, 1px border, active teal selection. Interactive links have a 4px corner radius and restrained dark hover state.
+- **Style**: Secondary Surface background, 1px border, 8px radius.
+- **Focus**: Trace Cyan border/ring.
+
+### Navigation / Tabs
+
+- **Style**: Sticky blue-slate segmented tab bar.
+- **Active**: Command Blue fill with white text.
+- **Hover**: Secondary/elevated slate surface.
+- **Focus**: Trace Cyan ring.
+
+### Brief Preview
+
+- **Document**: Light paper canvas, cool off-white, dark slate ink.
+- **Markdown Source**: Secondary and hidden behind disclosure by default.
 
 ---
 
 ## 6. Do's and Don'ts
 
-### Do:
-- **Do** check contrast ratios for secondary and status text to guarantee at least 4.5:1 against the canvas.
-- **Do** wrap display titles in `text-wrap: balance` to prevent awkward orphaned words.
-- **Do** restrict body line lengths to a readable width (max 75ch).
-- **Do** keep every ID pill linked to a source view or action.
+### Do
 
-### Don't:
-- **Don't** look like a flashy AI startup landing page.
-- **Don't** use purple-gradient AI aesthetics.
-- **Don't** use playful SaaS visuals.
-- **Don't** use heavy glassmorphism.
-- **Don't** use excessive animations or motion.
-- **Don't** make it look like a generic chatbot.
-- **Don't** use side-stripe borders (e.g., border-left-4) as accents on findings or recommendations cards.
-- **Don't** use gradient text under any circumstances.
-- **Don't** use card corners with border-radius larger than 8px.
+- Do preserve the evidence-to-learning workflow.
+- Do keep traceability visually inspectable and interactive.
+- Do check contrast for dark-mode body and metadata text.
+- Do keep cyan scarce and tied to traceability.
+- Do keep amber safety notes visible but refined.
+- Do use green only for pass/completion states.
+- Do keep card radius at 8px.
+- Do preserve future RTL compatibility.
+
+### Don't
+
+- Don't make the product green, terminal-like, cyberpunk, or security-console-like.
+- Don't use purple AI gradients.
+- Don't use heavy glassmorphism.
+- Don't use decorative grid backgrounds.
+- Don't use side-stripe borders as accents.
+- Don't use gradient text.
+- Don't use over-rounded cards.
+- Don't introduce auth, database, file upload, backend, external AI calls, or real sensitive data processing in v0.6.

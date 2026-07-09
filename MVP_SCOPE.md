@@ -45,6 +45,14 @@
 - **Layout Hardening (P0):** Replaced the awkward recommendations three-column layout with stacked priority sections, stabilized Lessons/Good Practices, and tightened tablet/laptop overflow behavior.
 - **Brief Preview Upgrade (P0):** Preserved raw Markdown copy/export while presenting the brief as a premium document sheet inside the dark workbench.
 
+## v0.6 Includes
+
+- **Blue Command Workbench Refinement (P0):** Refined the v0.5 dark workbench into a blue-black/slate analytical workspace while preserving the same static demo data, local-only sandbox, data models, and Markdown export.
+- **Pre-Coding Refinement Plan (P0):** Created `docs/v0.6_blue_command_workbench_refinement.md` before code edits to document the assessment, blue-slate direction, component plan, traceability plan, exclusions, and validation checklist.
+- **Blue-Slate Visual System (P0):** Updated the runtime and documented design tokens from green-black/teal to blue-black/slate with primary blue actions, cyan traceability, amber safety notes, red warnings, and green only for pass/completion states.
+- **Traceability Presentation Upgrade (P0):** Reworked `TraceChain` into labeled source-to-brief lineage nodes and routed overview/sandbox trace paths through the traceability drawer.
+- **Screen-Level Polish (P1):** Tuned the hero, case selector, overview, evidence cards, findings, lessons, recommendations, QA review, and brief preview for calmer hierarchy, less terminal feel, and better executive scannability.
+
 ## v0.1 Does Not Include
 
 - Authentication.

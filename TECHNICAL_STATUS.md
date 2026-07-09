@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.5 dark Impeccable workbench is implemented on branch `ui/v0.5-impeccable-dark-workbench`. The app now presents as a premium dark evidence command room with a stronger first screen, restrained dark visual system, clearer evidence hierarchy, improved claim-lineage drawer, stable Lessons/Recommendations layouts, deterministic QA review gate, and document-quality brief preview. Static demo data, local-only sandbox behavior, data models, and Markdown export are preserved.
+v0.6 blue command workbench is implemented on branch `ui/v0.6-blue-command-workbench`. The app now presents as a blue-black/slate analytical evidence command center with primary blue actions, cyan traceability, amber safety notes, red warnings, and green reserved for pass/completion states. The first screen, case selector, overview, evidence cards, findings, lessons, recommendations, QA review gate, traceability drawer, and donor brief preview were refined while preserving static demo data, local-only sandbox behavior, data models, and Markdown export.
 
 ## Completed Items
 
@@ -51,11 +51,17 @@ v0.5 dark Impeccable workbench is implemented on branch `ui/v0.5-impeccable-dark
   - Attempted `npx impeccable --help` and `npx impeccable detect src/`; sandboxed runs failed on network resolution and escalated external npm execution was rejected as unsafe, so the local bundled detector was used as the command-equivalent Impeccable check.
   - Reworked `src/app/globals.css` to the requested dark green-black surface palette and aligned typography to the documented Arial/Helvetica stack.
   - Reworked `src/components/FieldLearningStudioApp.tsx` into a dark command-room workbench with a stronger header, compact dark case selector, sticky segmented workspace nav, clearer Overview command center, no quote-style evidence observations, strengthened claim lineage drawer, stable Lessons layout, stacked Recommendations groups, deterministic QA review gate, and a premium document brief preview.
+- Implemented v0.6 blue command workbench refinement:
+  - Created `docs/v0.6_blue_command_workbench_refinement.md` before coding.
+  - Updated `DESIGN.md` and runtime CSS variables from green-black/teal to blue-black/slate with clear semantic roles.
+  - Updated the app header, case selector, workspace tabs, overview panels, evidence cards, recommendations metadata, QA gate, and brief preview to reduce green/terminal feel.
+  - Reworked `TraceChain` into labeled source-to-brief lineage nodes and connected overview/sandbox trace paths to the drawer.
+  - Preserved sanitized/static demo data, local-only sandbox behavior, no quote-like evidence observation styling, Markdown export, and all no-auth/no-db/no-upload/no-backend/no-external-AI constraints.
 
 ## Pending Items
 
 - Start demo review with target users.
-- Review the v0.5 dark workbench branch in browser before merging to main.
+- Review the v0.6 blue command workbench branch in browser before merging.
 - Review the Antigravity P0 UX changes with target users.
 - Add editable evidence forms only if still needed after demo review.
 - Consider localStorage persistence only after user validation.
@@ -69,7 +75,7 @@ v0.5 dark Impeccable workbench is implemented on branch `ui/v0.5-impeccable-dark
 
 ## Next Recommended Step
 
-Review `ui/v0.5-impeccable-dark-workbench` visually, then merge to main only after approval and a production smoke test plan.
+Review `ui/v0.6-blue-command-workbench` visually and decide whether it is strong enough to merge.
 
 ## Validation Commands
 
@@ -87,11 +93,11 @@ node /Users/maissaraselim/.agents/skills/impeccable/scripts/detect.mjs --json sr
 - `npm run build`: passed (Next.js production static bundle generated).
 - `python3 -m json.tool OPS_UPDATE.json`: passed.
 - `git diff --check`: passed.
-- Local bundled Impeccable detector: passed with `[]` after documenting the dark token system and aligning typography.
-- Local preview/browser smoke: passed for dark mode, first screen, no horizontal overflow, case selector, School Nutrition safety note, sandbox parsing, evidence cards, quote removal, findings, Lessons, Recommendations, QA review gate, brief document preview, traceability drawer, and tablet/laptop layouts. The in-app browser blocked programmatic clipboard writes; raw Markdown export textarea remained populated and visible.
+- Local bundled Impeccable detector: passed with `[]`.
+- Local preview/browser smoke: passed for v0.6 tokens, blue-black first screen, no horizontal overflow, selected case state, amber School Nutrition safety notes, Evidence cards, no quote elements, strengthened traceability drawer, Findings, Lessons, Recommendations compact fields, QA review gate, brief document preview, and tablet-width layouts.
 - Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch).
 - Tests: not configured.
 
 ## Last Update
 
-2026-07-09: Implemented the v0.5 dark Impeccable workbench branch and validated with lint, build, JSON, diff-check, local detector, and browser smoke.
+2026-07-09: Implemented the v0.6 blue command workbench branch and validated lint, build, JSON, diff-check, local detector, and local browser smoke.
