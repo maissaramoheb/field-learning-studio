@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.9 Phase 3 (Field Intake Studio) is implemented on branch `feature/v0.9-field-sensemaking`. The intake studio provides a persistent local-first workspace for capturing narrative field notes into IndexedDB, running automated safeguarding/PII heuristic scans ("No automated warning detected", confirmation required on warning), and extracting discrete evidence entries with strict separation of raw observations from analytical interpretations. Human-readable IDs (`SRC-001`, `EV-001`) are safely generated using max-numerical-suffix algorithms. All 72 Vitest tests pass across 9 test files (27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics + 7 ID generator + 5 Field Intake integration). Next.js production build and ESLint pass with zero errors and zero warnings.
+v0.9 Phase 4 (Editable Evidence Management + Human Validation Workflow) is implemented on branch `feature/v0.9-field-sensemaking`. The Evidence Matrix has been transformed from a static/demo viewing surface into a controlled human evidence-review workspace. Evaluators can inspect live validation states, submit drafts for review, record explicit human reviewer identity, validate or reject evidence with mandatory rationales, reopen rejected items, and perform substantive edits on validated evidence with automatic revision increments (`Revision 2+`), status resets to `Needs Review`, and re-validation requirements. Pristine demo templates remain strictly read-only. All 91 Vitest tests pass across 10 test files (27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics + 7 ID generator + 5 Field Intake + 19 Validation Lifecycle). Next.js production build and ESLint pass with zero errors and zero warnings. Full 14-step browser acceptance audit completed cleanly with CDP screenshots.
 
 ## Completed Items
 
@@ -47,8 +47,6 @@ v0.9 Phase 3 (Field Intake Studio) is implemented on branch `feature/v0.9-field-
   - Expanded the styled brief preview with metadata, case note, evidence base, themes, safeguarding note, limitations, and traceability annex.
 - Implemented v0.5 dark Impeccable workbench:
   - Created `docs/v0.5_dark_workbench_shape.md` before coding.
-  - Verified real `/impeccable` slash commands are not callable from this coding harness.
-  - Attempted `npx impeccable --help` and `npx impeccable detect src/`; sandboxed runs failed on network resolution and escalated external npm execution was rejected as unsafe, so the local bundled detector was used as the command-equivalent Impeccable check.
   - Reworked `src/app/globals.css` to the requested dark green-black surface palette and aligned typography to the documented Arial/Helvetica stack.
   - Reworked `src/components/FieldLearningStudioApp.tsx` into a dark command-room workbench with a stronger header, compact dark case selector, sticky segmented workspace nav, clearer Overview command center, no quote-style evidence observations, strengthened claim lineage drawer, stable Lessons layout, stacked Recommendations groups, deterministic QA review gate, and a premium document brief preview.
 - Implemented v0.6 blue command workbench refinement:
@@ -83,7 +81,6 @@ v0.9 Phase 3 (Field Intake Studio) is implemented on branch `feature/v0.9-field-
   - Created `src/lib/analytics/index.ts` re-exporting analytical tools.
   - Documented engine in `docs/v0.9_evidence_support_model.md`.
   - Added 17 unit tests across `tests/supportProfile.test.ts` (8 tests) and `tests/gapDetector.test.ts` (9 tests) covering Cases A through H. Total test suite: 60 passing tests.
-
 - Implemented v0.9 Phase 3 Field Intake Studio:
   - Created safe human-readable ID generator in `src/lib/idGenerator.ts` (`getNextSourceId`, `getNextEvidenceId`, etc.) parsing max numerical suffixes to avoid ID collisions on deletion or import.
   - Enhanced narrative safety scanner in `src/lib/sandboxParser.ts` (`scanNarrativeSafety`) reporting "No automated warning detected" when clean and requiring explicit practitioner confirmation when heuristic warnings trigger.
@@ -95,10 +92,26 @@ v0.9 Phase 3 (Field Intake Studio) is implemented on branch `feature/v0.9-field-
   - Integrated Field Intake into `FieldLearningStudioApp` tab navigation and updated `CaseSelector` with persistent local studies and new blank study creation.
   - Documented intake architecture and workflows in `docs/v0.9_field_intake_guide.md`.
   - Added 12 new tests across `tests/idGenerator.test.ts` (7 tests) and `tests/fieldIntake.test.ts` (5 tests). Total test suite: 72 passing tests across 9 files.
+- Implemented v0.9 Phase 4 Editable Evidence Management + Human Validation Workflow:
+  - Created pure domain lifecycle module `src/lib/validation/validationLifecycle.ts` and `src/lib/validation/index.ts` enforcing strict validation state machine: `Draft` -> `Needs Review` -> `Validated` / `Rejected`.
+  - Guarded state transitions: Draft cannot be validated or rejected directly; validation requires explicit non-empty reviewer identity; rejection requires explicit non-empty rationale; rejected items can be reopened to Draft preserving rejection history.
+  - Implemented deterministic substantive change detection `isSubstantiveEvidenceChange` comparing trimmed observation text, interpretation, themes, strength, sensitivity, stakeholder, and site.
+  - Implemented substantive edit handler `applySubstantiveEvidenceEdit`: substantive edits to `Validated` evidence increment revision (`revision = original.revision + 1`), preserve historical validation audit metadata (`lastValidatedAt`, `lastValidatedBy`), set `previousValidationStatus = "Validated"`, reset `validationStatus = "Needs Review"`, and flag re-validation required.
+  - Updated safeguarding acknowledgment wording in `SourceCaptureForm.tsx` to: *"I have reviewed the warning and confirm I am authorized to save this information in this local study."*
+  - Built modular Evidence Review UI in `src/components/evidence/`:
+    - `ValidationStatusBadge`: displays true validation status and revision badge with accessible styling.
+    - `ReviewerIdentityBar`: allows setting/updating accountable evaluator identity with `localStorage` persistence under `fls_reviewer_name`.
+    - `StatusFilterPills`: interactive status filter pills (`All`, `Draft`, `Needs Review`, `Validated`, `Rejected`) with live dynamic counts.
+    - `EvidenceCard`: renders validation badge, revision indicator, re-validation warning banner, validated attribution banner, rejection rationale banner, provenance, analytical interpretation, and contextual action controls.
+    - `EvidenceEditModal`: keyed modal with explicit amber re-validation warning when editing validated evidence.
+    - `EvidenceRejectModal`: keyed modal requiring non-empty methodological rationale.
+    - `EvidenceReviewWorkspace`: integrated tab workspace connecting state machine, filters, reviewer identity, and IndexedDB persistence.
+  - Enforced read-only protection for pristine demo cases (`community-bridges`, `school-nutrition`), rendering "Demo Reference" badges and suppressing review/edit actions.
+  - Added 19 unit and persistence round-trip tests in `tests/validationLifecycle.test.ts`. Total test suite: 91 passing tests across 10 files.
+  - Conducted full 14-step browser acceptance audit via CDP in headless Chrome covering Scenarios A through F with all screenshots captured.
 
 ## Pending Items
 
-- Implement Phase 4: Editable Evidence Management & Human Validation Workflow (`Draft` -> `Needs Review` -> `Validated` / `Rejected`, re-review upon edit, re-validation).
 - Implement Phase 5: Daily Field Debrief Studio (chronological field debriefs with multi-site support, emerging hypotheses, shaken assumptions, tomorrow's priorities).
 - Implement Phase 6: Action Desk & Defensible Claim Synthesis (gap review, contradiction management, finding synthesis).
 
@@ -111,7 +124,7 @@ v0.9 Phase 3 (Field Intake Studio) is implemented on branch `feature/v0.9-field-
 
 ## Next Recommended Step
 
-Proceed to Phase 4: Editable Evidence Management & Human Validation Workflow after review and approval of Phase 3 Field Intake Studio.
+Proceed to Phase 5: Daily Field Debrief Studio after product owner review and approval of Phase 4 Editable Evidence Management + Human Validation Workflow.
 
 ## Validation Commands
 
@@ -127,13 +140,12 @@ git diff --check
 
 - `npm run lint`: passed (0 errors, 0 warnings).
 - `npm run build`: passed (Next.js production static bundle generated).
-- `npm test`: passed (9 test files, 72 passing tests: 27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics + 7 ID generator + 5 Field Intake).
+- `npm test`: passed (10 test files, 91 passing tests: 27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics + 7 ID generator + 5 Field Intake + 19 Validation Lifecycle).
 - `python3 -m json.tool OPS_UPDATE.json`: passed.
 - `git diff --check`: passed.
-- Local preview/browser smoke: Next.js dev server builds successfully, TypeScript types pass.
+- Local preview/browser smoke: 14-step automated CDP audit passed with 14 screenshots verified.
 - Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch; pending merge of feature/v0.9-field-sensemaking).
-- Tests: 72 passing in Vitest.
 
 ## Last Update
 
-2026-09-26: Implemented v0.9 Phase 3 Field Intake Studio on branch `feature/v0.9-field-sensemaking`. All 72 tests pass. Production build and ESLint pass with zero errors and zero warnings.
+2026-09-26: Implemented v0.9 Phase 4 Editable Evidence Management + Human Validation Workflow on branch `feature/v0.9-field-sensemaking`. All 91 tests pass. Production build, ESLint, and 14-step browser acceptance audit pass with zero errors.

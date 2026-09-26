@@ -382,8 +382,7 @@ export function SourceCaptureForm({ study, onSourceSaved }: SourceCaptureFormPro
                   ))}
                 </ul>
                 <p className="mt-1.5 text-[11px] text-amber-400">
-                  Please anonymize before continuing, or confirm it is safe for
-                  processing.
+                  Please review and remove sensitive identifying details before continuing, or confirm authorization for local intake.
                 </p>
               </div>
 
@@ -395,8 +394,7 @@ export function SourceCaptureForm({ study, onSourceSaved }: SourceCaptureFormPro
                   className="accent-amber-400"
                 />
                 <span>
-                  I confirm this note is safe or sufficiently sanitized for local
-                  study intake.
+                  I have reviewed the warning and confirm I am authorized to save this information in this local study.
                 </span>
               </label>
             </div>

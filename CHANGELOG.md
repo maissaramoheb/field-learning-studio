@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.9.0-phase4 - Editable Evidence Management & Human Validation Workflow
+
+- Built pure validation lifecycle state machine in `src/lib/validation/validationLifecycle.ts`:
+  - Lifecycle: `Draft` -> `Needs Review` -> `Validated` / `Rejected`.
+  - Reopen rejected items: `Rejected` -> `Draft` (preserving rejection history).
+  - Substantive edit handler: substantive changes to `Validated` evidence increment revision number (`revision = original.revision + 1`), preserve audit metadata (`lastValidatedAt`, `lastValidatedBy`), set `previousValidationStatus = "Validated"`, reset status to `Needs Review`, and require formal re-validation.
+  - Deterministic substantive change detector `isSubstantiveEvidenceChange` comparing trimmed observation text, interpretation, themes, strength, sensitivity, stakeholder, and site.
+- Corrected safeguarding acknowledgment text in `SourceCaptureForm.tsx` to: *"I have reviewed the warning and confirm I am authorized to save this information in this local study."*
+- Built modular Evidence Review UI in `src/components/evidence/`:
+  - `ValidationStatusBadge`: displays true validation status and revision.
+  - `ReviewerIdentityBar`: records accountable evaluator identity with `localStorage` persistence under `fls_reviewer_name`.
+  - `StatusFilterPills`: interactive status filter pills (`All`, `Draft`, `Needs Review`, `Validated`, `Rejected`) with live dynamic counts.
+  - `EvidenceCard`: renders validation badge, revision indicator, re-validation warning banner, validated attribution banner, rejection rationale banner, provenance, analytical interpretation, and contextual action controls.
+  - `EvidenceEditModal`: keyed modal with explicit amber re-validation warning when editing validated evidence.
+  - `EvidenceRejectModal`: keyed modal requiring non-empty methodological rationale.
+  - `EvidenceReviewWorkspace`: integrated tab workspace connecting state machine, filters, reviewer identity, and IndexedDB persistence.
+- Enforced read-only protection for pristine demo cases (`community-bridges`, `school-nutrition`), rendering "Demo Reference" badges and suppressing review/edit actions.
+- Added 19 unit and persistence round-trip tests in `tests/validationLifecycle.test.ts`. Total test suite: 91 passing tests across 10 files.
+- Completed 14-step browser acceptance audit via CDP in headless Chrome covering Scenarios A through F with all screenshots captured.
+
 ## v0.9.0-phase3 - Field Intake Studio
 
 - Replaced single-note sandbox mockup with persistent, local-first **Field Intake Studio**:

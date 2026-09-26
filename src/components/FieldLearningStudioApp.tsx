@@ -33,6 +33,7 @@ import { downloadBriefMarkdown } from "@/lib/exportMarkdown";
 import { runSandboxSafetyCheck, parseSandboxInput } from "@/lib/sandboxParser";
 import { FieldIntakeView } from "@/components/intake/FieldIntakeView";
 import { MinimalStudyModal } from "@/components/studies/MinimalStudyModal";
+import { EvidenceReviewWorkspace } from "@/components/evidence";
 import {
   bootstrapDemoTemplates,
   listStudies,
@@ -49,6 +50,7 @@ type EvidenceFilters = {
   stakeholderType: string;
   evidenceStrength: string;
   sensitivityFlag: string;
+  validationStatus?: string;
 };
 
 type WorkspaceTabId =
@@ -94,6 +96,7 @@ export function FieldLearningStudioApp({
     stakeholderType: "All",
     evidenceStrength: "All",
     sensitivityFlag: "All",
+    validationStatus: "All",
   });
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
     "idle",
@@ -135,7 +138,16 @@ export function FieldLearningStudioApp({
         if (!isMounted) return;
         setAllStudies(studies);
 
-        const targetId = demoCase.id || studies[0]?.id;
+        const savedStudyId =
+          typeof window !== "undefined"
+            ? localStorage.getItem("fls_active_study_id")
+            : null;
+        const targetId =
+          savedStudyId && studies.some((s) => s.id === savedStudyId)
+            ? savedStudyId
+            : demoCase.id || studies[0]?.id;
+
+        setSelectedCaseId(targetId);
         if (targetId) {
           const assembled = await assembleStudy(targetId);
           if (isMounted && assembled) {
@@ -206,6 +218,9 @@ export function FieldLearningStudioApp({
       if (!proceed) return;
     }
     setSelectedCaseId(caseId);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fls_active_study_id", caseId);
+    }
     setSandboxEvidence([]);
     setSandboxSources([]);
     setSandboxFindings([]);
@@ -285,6 +300,8 @@ export function FieldLearningStudioApp({
   const filteredEvidence = useMemo(
     () =>
       activeDemoCase.evidence.filter((entry) => {
+        const itemStatus =
+          entry.validationStatus || (currentStudy?.isDemoCase ? "Validated" : "Draft");
         return (
           (filters.theme === "All" || entry.primaryTheme === filters.theme) &&
           (filters.stakeholderType === "All" ||
@@ -292,10 +309,13 @@ export function FieldLearningStudioApp({
           (filters.evidenceStrength === "All" ||
             entry.evidenceStrength === filters.evidenceStrength) &&
           (filters.sensitivityFlag === "All" ||
-            entry.sensitivityFlag === filters.sensitivityFlag)
+            entry.sensitivityFlag === filters.sensitivityFlag) &&
+          (!filters.validationStatus ||
+            filters.validationStatus === "All" ||
+            itemStatus === filters.validationStatus)
         );
       }),
-    [activeDemoCase.evidence, filters],
+    [activeDemoCase.evidence, filters, currentStudy?.isDemoCase],
   );
 
   const currentQaItems = useMemo(() => {
@@ -798,6 +818,7 @@ export function FieldLearningStudioApp({
           {activeTab === "evidence" ? (
             <EvidenceTab
               evidence={filteredEvidence}
+              rawEvidenceList={activeDemoCase.evidence}
               evidenceStrengths={evidenceStrengths}
               filters={filters}
               findings={activeDemoCase.findings}
@@ -807,6 +828,8 @@ export function FieldLearningStudioApp({
               stakeholderTypes={stakeholderTypes}
               themes={themes}
               traceHandlers={traceHandlers}
+              currentStudy={currentStudy}
+              onRefreshStudy={handleRefreshCurrentStudy}
             />
           ) : null}
           {activeTab === "findings" ? (
@@ -1892,6 +1915,7 @@ function OverviewTab({
 
 function EvidenceTab({
   evidence,
+  rawEvidenceList,
   evidenceStrengths,
   filters,
   findings,
@@ -1901,8 +1925,11 @@ function EvidenceTab({
   stakeholderTypes,
   themes,
   traceHandlers,
+  currentStudy,
+  onRefreshStudy,
 }: {
   evidence: EvidenceEntry[];
+  rawEvidenceList: EvidenceEntry[];
   evidenceStrengths: string[];
   filters: EvidenceFilters;
   findings: Finding[];
@@ -1912,11 +1939,14 @@ function EvidenceTab({
   stakeholderTypes: string[];
   themes: string[];
   traceHandlers: TraceHandlers;
+  currentStudy: FieldStudy | null;
+  onRefreshStudy: () => Promise<void> | void;
 }) {
   return (
-    <div className="grid gap-5">
-      <EvidenceMatrix
+    <div className="grid gap-8">
+      <EvidenceReviewWorkspace
         evidence={evidence}
+        rawEvidenceList={rawEvidenceList}
         evidenceStrengths={evidenceStrengths}
         filters={filters}
         findings={findings}
@@ -1926,6 +1956,8 @@ function EvidenceTab({
         stakeholderTypes={stakeholderTypes}
         themes={themes}
         traceHandlers={traceHandlers}
+        currentStudy={currentStudy}
+        onRefreshStudy={onRefreshStudy}
       />
       <SourceInventory sources={sources} traceHandlers={traceHandlers} />
     </div>
@@ -1980,198 +2012,6 @@ function SourceInventory({
   );
 }
 
-function EvidenceMatrix({
-  evidence,
-  filters,
-  findings,
-  onFiltersChange,
-  themes,
-  sources,
-  stakeholderTypes,
-  evidenceStrengths,
-  sensitivityFlags,
-  traceHandlers,
-}: {
-  evidence: EvidenceEntry[];
-  filters: EvidenceFilters;
-  findings: Finding[];
-  onFiltersChange: (filters: EvidenceFilters) => void;
-  themes: string[];
-  sources: SourceRecord[];
-  stakeholderTypes: string[];
-  evidenceStrengths: string[];
-  sensitivityFlags: string[];
-  traceHandlers: TraceHandlers;
-}) {
-  return (
-    <Section
-      description="Evidence IDs are clickable traceability anchors. Demo data remains static and safe for product validation."
-      eyebrow="Evidence matrix"
-      title="Theme-coded evidence"
-    >
-      <div className="text-xs font-semibold text-amber-700 bg-amber-50/60 border border-amber-200/50 rounded-lg px-3 py-1.5 w-fit">
-        Static demo data
-      </div>
-
-      <div className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-4">
-        <FilterSelect
-          label="Theme"
-          onChange={(theme) => onFiltersChange({ ...filters, theme })}
-          options={themes}
-          value={filters.theme}
-        />
-        <FilterSelect
-          label="Stakeholder"
-          onChange={(stakeholderType) =>
-            onFiltersChange({ ...filters, stakeholderType })
-          }
-          options={stakeholderTypes}
-          value={filters.stakeholderType}
-        />
-        <FilterSelect
-          label="Strength"
-          onChange={(evidenceStrength) =>
-            onFiltersChange({ ...filters, evidenceStrength })
-          }
-          options={evidenceStrengths}
-          value={filters.evidenceStrength}
-        />
-        <FilterSelect
-          label="Sensitivity"
-          onChange={(sensitivityFlag) =>
-            onFiltersChange({ ...filters, sensitivityFlag })
-          }
-          options={sensitivityFlags}
-          value={filters.sensitivityFlag}
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {evidence.map((entry) => {
-          const isHighlighted = traceHandlers.highlightedId === entry.id;
-          const isSandbox = entry.id.includes("SBX") || entry.id.startsWith("EV-TEMP-");
-          const source = sources.find((item) => item.id === entry.sourceId);
-          const linkedFinding = findings.find((finding) =>
-            finding.supportingEvidenceIds.includes(entry.id),
-          );
-
-          return (
-            <article
-              className={`scroll-mt-32 rounded-lg border transition p-6 flex flex-col justify-between ${
-                isHighlighted
-                  ? "border-[var(--trace)] bg-[var(--trace-wash)]"
-                  : isSandbox
-                  ? "border-[var(--border)] bg-[rgba(11,22,37,0.4)] hover:border-[var(--border-strong)]"
-                  : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]"
-              }`}
-              id={traceDomId(entry.id)}
-              key={entry.id}
-            >
-              <div>
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] pb-3 mb-4">
-                  <div>
-                    <TraceButton
-                      id={entry.id}
-                      onSelect={traceHandlers.onTraceSelect}
-                    />
-                    <h3 className="mt-3 text-lg font-semibold leading-7 text-[var(--foreground)]">
-                      {entry.primaryTheme}
-                    </h3>
-                    <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                      {entry.stakeholderType}
-                      {source ? ` from ${source.sourceType}` : ""}
-                    </p>
-                    {isSandbox && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        <span className="inline-flex items-center rounded border border-cyan-800/30 bg-cyan-950/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--trace)]">
-                          Sandbox draft
-                        </span>
-                        <span className="inline-flex items-center rounded border border-slate-700 bg-slate-800/50 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--muted)]">
-                          Local only
-                        </span>
-                        <span className="inline-flex items-center rounded border border-amber-900/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-500">
-                          Not validated
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <TraceButton
-                      id={entry.sourceId}
-                      onSelect={traceHandlers.onTraceSelect}
-                    />
-                    <StatusBadge label={entry.qaStatus} tone="qa" />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3">
-                    <span className="text-[11px] font-semibold text-[var(--muted)] block mb-1">
-                      Observation
-                    </span>
-                    <p className="text-sm font-medium leading-6 text-[var(--foreground)]">
-                      {entry.rawEvidence}
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace-wash)] p-3 text-xs leading-relaxed">
-                    <span className="font-semibold text-[var(--muted)] text-[11px] block mb-1">
-                      Interpretation
-                    </span>
-                    <p className="text-[var(--foreground)] font-medium">
-                      {entry.potentialFinding}
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3">
-                    <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
-                      Linked finding
-                    </span>
-                    {linkedFinding ? (
-                      <div>
-                        <TraceButton
-                          id={linkedFinding.id}
-                          onSelect={traceHandlers.onTraceSelect}
-                        />
-                        <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                          {linkedFinding.statement}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-xs leading-5 text-[var(--muted)]">
-                        Not yet linked to a validated finding.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 border-t border-[var(--border)] pt-4 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-semibold bg-[var(--surface-muted)] text-[var(--muted)] px-2 py-0.5 rounded border border-[var(--border)]">
-                  {entry.secondaryTheme}
-                </span>
-                <StrengthBadge value={entry.evidenceStrength} />
-                <StatusBadge label={entry.sensitivityFlag} tone="sensitivity" />
-                
-                <button
-                  onClick={() => traceHandlers.onTraceSelect(entry.id)}
-                  className="ml-auto min-h-9 rounded border border-[var(--trace-border)] bg-[var(--trace)] px-3 text-xs font-semibold text-[#03121a] hover:border-[var(--trace)] hover:bg-[var(--trace-text)] cursor-pointer flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-[var(--trace)]"
-                >
-                  Inspect Chain &rarr;
-                </button>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-      {evidence.length === 0 ? (
-        <div className="p-6 text-sm text-[var(--muted)] border border-[var(--border)] rounded-lg bg-[var(--surface)] text-center">
-          No evidence entries match the selected filters.
-        </div>
-      ) : null}
-    </Section>
-  );
-}
 
 function FindingsSection({
   findings,
@@ -3415,35 +3255,6 @@ function BriefMetric({ label, value }: { label: string; value: number }) {
   );
 }
 
-function FilterSelect({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="flex flex-col gap-2 text-sm font-medium text-[var(--foreground)]">
-      {label}
-      <select
-        className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--trace)]"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        <option value="All">All</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
 
 

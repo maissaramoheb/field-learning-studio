@@ -55,7 +55,16 @@
   - [x] Update `CaseSelector` with persistent local studies and "+ New Blank Study" action.
   - [x] Document intake architecture in `docs/v0.9_field_intake_guide.md`.
   - [x] Add unit and integration tests in `tests/idGenerator.test.ts` and `tests/fieldIntake.test.ts` (12 tests, 72 total suite).
-- [ ] v0.9 Phase 4: Editable Evidence Management & Human Validation Workflow.
+- [x] v0.9 Phase 4: Editable Evidence Management & Human Validation Workflow:
+  - [x] Implement pure validation state machine (`Draft` -> `Needs Review` -> `Validated` / `Rejected`, reopen to `Draft`) in `src/lib/validation/validationLifecycle.ts`.
+  - [x] Enforce mandatory reviewer identity for validation and non-empty rationale for rejection.
+  - [x] Implement deterministic substantive change detector `isSubstantiveEvidenceChange`.
+  - [x] Implement substantive edit handler: increment revision number (`Revision 2+`), set `previousValidationStatus: "Validated"`, reset to `Needs Review`, and require re-validation.
+  - [x] Correct safeguarding acknowledgment text in `SourceCaptureForm.tsx` to authorized confirmation.
+  - [x] Build modular Evidence Review UI (`ValidationStatusBadge`, `ReviewerIdentityBar`, `StatusFilterPills`, `EvidenceCard`, `EvidenceEditModal`, `EvidenceRejectModal`, `EvidenceReviewWorkspace`).
+  - [x] Enforce read-only protection and "Demo Reference" badge for pristine demo templates.
+  - [x] Add unit and persistence tests in `tests/validationLifecycle.test.ts` (19 tests, 91 total suite).
+  - [x] Conduct full 14-step browser acceptance audit via CDP with verified screenshots.
 - [ ] v0.9 Phase 5: Daily Field Debrief Studio.
 - [ ] v0.9 Phase 6: Action Desk & Defensible Claim Synthesis.
 
