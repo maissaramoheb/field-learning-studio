@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.9.0-phase3 - Field Intake Studio
+
+- Replaced single-note sandbox mockup with persistent, local-first **Field Intake Studio**:
+  - Narrative capture with full provenance metadata (date, site, stakeholder group, collection method, collector name, consent status, anonymization status, sensitivity flag).
+  - Direct atomic persistence to IndexedDB (`studyStore.saveSource`).
+- Implemented safe human-readable ID generation in `src/lib/idGenerator.ts`:
+  - Deterministically extracts maximum numerical suffixes (`^PREFIX-(\d+)$` -> `maxNum + 1`) to guarantee collision-free IDs across deletions and sparse imports.
+  - Generates `SRC-001`, `EV-001`, `FND-001`, `LES-001`, `GP-001`, `REC-001`, `DBR-001`.
+- Enhanced narrative safety & PII scanner in `src/lib/sandboxParser.ts`:
+  - `scanNarrativeSafety` returns structured warning details for phone numbers, email addresses, exact dates, names, and high-sensitivity safeguarding terms.
+  - Displays *"No automated warning detected"* when clean (never claims "Safe" or "Anonymized").
+  - Enforces explicit practitioner confirmation checkbox before allowing intake if heuristic warnings trigger.
+- Implemented `ObservationCaptureForm`:
+  - Links directly to the active source record.
+  - Supports rapid text selection from narrative box.
+  - Strictly separates raw observations (what was seen/heard) from analytical interpretations (what it might mean).
+  - Initializes observations with `validationStatus: "Draft"`, `revision: 1`. Does not auto-generate findings.
+- Implemented `SourceHistory` drawer:
+  - Lists all captured sources with extracted observation counts and sensitivity badges.
+  - Allows one-click switching of active source for further observation extraction.
+- Implemented `MinimalStudyModal` and updated `CaseSelector`:
+  - Enables creating blank editable local studies with target sites, stakeholder groups, and collection methods.
+  - Displays local editable studies in the main case selector alongside pristine demo templates.
+  - Displays one-click cloning prompt when viewing read-only demo templates.
+- Added comprehensive documentation in `docs/v0.9_field_intake_guide.md`.
+- Added 12 new Vitest unit and integration tests across `tests/idGenerator.test.ts` (7 tests) and `tests/fieldIntake.test.ts` (5 tests). Total test suite: 72 passing tests across 9 files.
+
 ## v0.9.0-phase2 - Evidence Support Profile & Gap Detection Engine
 
 - Implemented pure analytical module `src/lib/analytics/supportProfile.ts`:

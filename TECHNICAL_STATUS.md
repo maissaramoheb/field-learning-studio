@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.9 Phase 2 (Evidence Support Profile / Triangulation + Gap Detection Engine) is implemented on branch `feature/v0.9-field-sensemaking`. The engine provides deterministic, transparent, and study-aware evaluation of finding support tiers (`Strongly Supported`, `Partially Supported`, `Emerging`), enforces the source independence rule (multiple excerpts from 1 source = 1 source), respects single-site vs. multi-site and stakeholder-specific scopes, surfaces method concentration and active contradictions, and detects actionable evidence gaps with calibrated severities (`Info`, `Needs Attention`, `Critical`). All 60 Vitest tests pass across 7 test files (27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics). Next.js production build and linting pass cleanly with zero errors. All logic is pure domain logic outside React components without UI modifications.
+v0.9 Phase 3 (Field Intake Studio) is implemented on branch `feature/v0.9-field-sensemaking`. The intake studio provides a persistent local-first workspace for capturing narrative field notes into IndexedDB, running automated safeguarding/PII heuristic scans ("No automated warning detected", confirmation required on warning), and extracting discrete evidence entries with strict separation of raw observations from analytical interpretations. Human-readable IDs (`SRC-001`, `EV-001`) are safely generated using max-numerical-suffix algorithms. All 72 Vitest tests pass across 9 test files (27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics + 7 ID generator + 5 Field Intake integration). Next.js production build and ESLint pass with zero errors and zero warnings.
 
 ## Completed Items
 
@@ -84,11 +84,23 @@ v0.9 Phase 2 (Evidence Support Profile / Triangulation + Gap Detection Engine) i
   - Documented engine in `docs/v0.9_evidence_support_model.md`.
   - Added 17 unit tests across `tests/supportProfile.test.ts` (8 tests) and `tests/gapDetector.test.ts` (9 tests) covering Cases A through H. Total test suite: 60 passing tests.
 
+- Implemented v0.9 Phase 3 Field Intake Studio:
+  - Created safe human-readable ID generator in `src/lib/idGenerator.ts` (`getNextSourceId`, `getNextEvidenceId`, etc.) parsing max numerical suffixes to avoid ID collisions on deletion or import.
+  - Enhanced narrative safety scanner in `src/lib/sandboxParser.ts` (`scanNarrativeSafety`) reporting "No automated warning detected" when clean and requiring explicit practitioner confirmation when heuristic warnings trigger.
+  - Implemented `MinimalStudyModal` for creating blank local editable studies with target sites, stakeholder groups, and collection methods.
+  - Implemented `SourceCaptureForm` with full provenance tracking (date, site, stakeholder group, collection method, collector name, consent, anonymization, sensitivity level).
+  - Implemented `ObservationCaptureForm` with text selection from narrative, raw observation vs. analytical interpretation separation, theme tagging, and `validationStatus: "Draft"`, `revision: 1`.
+  - Implemented `SourceHistory` drawer with active selection and extracted observation counts.
+  - Implemented top-level `FieldIntakeView` with demo template cloning prompt and two-column responsive layout.
+  - Integrated Field Intake into `FieldLearningStudioApp` tab navigation and updated `CaseSelector` with persistent local studies and new blank study creation.
+  - Documented intake architecture and workflows in `docs/v0.9_field_intake_guide.md`.
+  - Added 12 new tests across `tests/idGenerator.test.ts` (7 tests) and `tests/fieldIntake.test.ts` (5 tests). Total test suite: 72 passing tests across 9 files.
+
 ## Pending Items
 
-- Implement Phase 3: Study Workspace & Setup Flow (connecting study selector to IndexedDB, study creation, cloning UI, and study-level configuration).
-- Add editable evidence forms and Daily Debrief UI.
-- Implement Action Desk for gap review and contradiction management.
+- Implement Phase 4: Editable Evidence Management & Human Validation Workflow (`Draft` -> `Needs Review` -> `Validated` / `Rejected`, re-review upon edit, re-validation).
+- Implement Phase 5: Daily Field Debrief Studio (chronological field debriefs with multi-site support, emerging hypotheses, shaken assumptions, tomorrow's priorities).
+- Implement Phase 6: Action Desk & Defensible Claim Synthesis (gap review, contradiction management, finding synthesis).
 
 ## Known Risks
 
@@ -99,7 +111,7 @@ v0.9 Phase 2 (Evidence Support Profile / Triangulation + Gap Detection Engine) i
 
 ## Next Recommended Step
 
-Proceed to Phase 3: Study Workspace & Setup Flow after review and approval of Phase 2 engine.
+Proceed to Phase 4: Editable Evidence Management & Human Validation Workflow after review and approval of Phase 3 Field Intake Studio.
 
 ## Validation Commands
 
@@ -115,13 +127,13 @@ git diff --check
 
 - `npm run lint`: passed (0 errors, 0 warnings).
 - `npm run build`: passed (Next.js production static bundle generated).
-- `npm test`: passed (7 test files, 60 passing tests: 27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics).
+- `npm test`: passed (9 test files, 72 passing tests: 27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics + 7 ID generator + 5 Field Intake).
 - `python3 -m json.tool OPS_UPDATE.json`: passed.
 - `git diff --check`: passed.
 - Local preview/browser smoke: Next.js dev server builds successfully, TypeScript types pass.
 - Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch; pending merge of feature/v0.9-field-sensemaking).
-- Tests: 60 passing in Vitest.
+- Tests: 72 passing in Vitest.
 
 ## Last Update
 
-2026-09-26: Implemented v0.9 Phase 2 Evidence Support Profile and Gap Detection engine on branch `feature/v0.9-field-sensemaking`. All 60 tests pass.
+2026-09-26: Implemented v0.9 Phase 3 Field Intake Studio on branch `feature/v0.9-field-sensemaking`. All 72 tests pass. Production build and ESLint pass with zero errors and zero warnings.

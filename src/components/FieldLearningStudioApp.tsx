@@ -20,6 +20,8 @@ import type {
   SensitivityFlag,
   SourceRecord,
   SourceRecordId,
+  FieldStudy,
+  StudyMeta,
 } from "@/lib/types";
 import { generateQAReview } from "@/lib/qa";
 import { generateLearningBriefMarkdown } from "@/lib/generateBrief";
@@ -29,6 +31,14 @@ import { downloadBriefDocx } from "@/lib/exportDocx";
 import { downloadBriefPdf } from "@/lib/exportPdf";
 import { downloadBriefMarkdown } from "@/lib/exportMarkdown";
 import { runSandboxSafetyCheck, parseSandboxInput } from "@/lib/sandboxParser";
+import { FieldIntakeView } from "@/components/intake/FieldIntakeView";
+import { MinimalStudyModal } from "@/components/studies/MinimalStudyModal";
+import {
+  bootstrapDemoTemplates,
+  listStudies,
+  assembleStudy,
+  adaptFieldStudyToDemoCase,
+} from "@/lib/storage";
 
 interface FieldLearningStudioAppProps {
   demoCase: DemoCase;
@@ -43,6 +53,7 @@ type EvidenceFilters = {
 
 type WorkspaceTabId =
   | "overview"
+  | "intake"
   | "evidence"
   | "findings"
   | "lessons"
@@ -57,6 +68,7 @@ type TraceHandlers = {
 
 const workspaceTabs: Array<{ id: WorkspaceTabId; label: string }> = [
   { id: "overview", label: "Overview" },
+  { id: "intake", label: "Field Intake" },
   { id: "evidence", label: "Evidence" },
   { id: "findings", label: "Findings" },
   { id: "lessons", label: "Lessons" },
@@ -89,10 +101,63 @@ export function FieldLearningStudioApp({
 
   // Multi-case architecture states
   const [selectedCaseId, setSelectedCaseId] = useState<string>(demoCase.id);
+  const [allStudies, setAllStudies] = useState<StudyMeta[]>([]);
+  const [currentStudy, setCurrentStudy] = useState<FieldStudy | null>(null);
+  const [isNewStudyModalOpen, setIsNewStudyModalOpen] = useState(false);
+
+  const refreshStudiesList = async (targetId?: string) => {
+    try {
+      await bootstrapDemoTemplates();
+      const studies = await listStudies();
+      setAllStudies(studies);
+
+      const idToLoad = targetId || selectedCaseId || studies[0]?.id;
+      if (idToLoad) {
+        if (targetId && targetId !== selectedCaseId) {
+          setSelectedCaseId(targetId);
+        }
+        const assembled = await assembleStudy(idToLoad);
+        if (assembled) {
+          setCurrentStudy(assembled);
+        }
+      }
+    } catch (err) {
+      console.error("Storage error:", err);
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    async function initStudies() {
+      try {
+        await bootstrapDemoTemplates();
+        const studies = await listStudies();
+        if (!isMounted) return;
+        setAllStudies(studies);
+
+        const targetId = demoCase.id || studies[0]?.id;
+        if (targetId) {
+          const assembled = await assembleStudy(targetId);
+          if (isMounted && assembled) {
+            setCurrentStudy(assembled);
+          }
+        }
+      } catch (err) {
+        console.error("Storage initialization error:", err);
+      }
+    }
+    initStudies();
+    return () => {
+      isMounted = false;
+    };
+  }, [demoCase.id]);
 
   const currentBaseCase = useMemo(() => {
+    if (currentStudy) {
+      return adaptFieldStudyToDemoCase(currentStudy);
+    }
     return demoCases.find((c) => c.id === selectedCaseId) || demoCases[0];
-  }, [selectedCaseId]);
+  }, [currentStudy, selectedCaseId]);
 
   // v0.2/v0.8 local session sandbox additions
   const [sandboxEvidence, setSandboxEvidence] = useState<EvidenceEntry[]>([]);
@@ -135,7 +200,7 @@ export function FieldLearningStudioApp({
   });
 
   // Clear session sandbox and progress on case change
-  function handleSelectCase(caseId: string) {
+  async function handleSelectCase(caseId: string) {
     if (sandboxEvidence.length > 0) {
       const proceed = window.confirm("Changing cases will clear all your local sandbox drafts. Do you want to proceed?");
       if (!proceed) return;
@@ -163,7 +228,31 @@ export function FieldLearningStudioApp({
       step4: false,
       step5: false,
     });
+
+    try {
+      const assembled = await assembleStudy(caseId);
+      if (assembled) {
+        setCurrentStudy(assembled);
+      }
+    } catch (err) {
+      console.error("Failed to load study:", err);
+    }
   }
+
+  const handleRefreshCurrentStudy = async () => {
+    if (selectedCaseId) {
+      try {
+        const assembled = await assembleStudy(selectedCaseId);
+        if (assembled) {
+          setCurrentStudy(assembled);
+        }
+        const studies = await listStudies();
+        setAllStudies(studies);
+      } catch (err) {
+        console.error("Failed to refresh study:", err);
+      }
+    }
+  };
 
   // Derived dynamic active case data mapping
   const activeDemoCase = useMemo(() => {
@@ -653,7 +742,12 @@ export function FieldLearningStudioApp({
   return (
     <main className="fls-dark-workbench min-h-screen text-[var(--foreground)]">
       <AppHeader demoCase={activeDemoCase} />
-      <CaseSelector selectedId={selectedCaseId} onSelect={handleSelectCase} />
+      <CaseSelector
+        selectedId={selectedCaseId}
+        onSelect={handleSelectCase}
+        editableStudies={allStudies.filter((s) => !s.isDemoCase)}
+        onCreateNewStudy={() => setIsNewStudyModalOpen(true)}
+      />
 
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <WorkspaceTabs
@@ -687,6 +781,19 @@ export function FieldLearningStudioApp({
               demoProgress={demoProgress}
               traceHandlers={traceHandlers}
             />
+          ) : null}
+          {activeTab === "intake" ? (
+            currentStudy ? (
+              <FieldIntakeView
+                study={currentStudy}
+                onStudyChange={handleSelectCase}
+                onRefreshStudy={handleRefreshCurrentStudy}
+              />
+            ) : (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center text-xs text-[var(--muted)]">
+                Loading study repository...
+              </div>
+            )
           ) : null}
           {activeTab === "evidence" ? (
             <EvidenceTab
@@ -749,6 +856,15 @@ export function FieldLearningStudioApp({
 
         {renderDrawer()}
       </div>
+
+      <MinimalStudyModal
+        isOpen={isNewStudyModalOpen}
+        onClose={() => setIsNewStudyModalOpen(false)}
+        onStudyCreated={async (studyId) => {
+          await refreshStudiesList(studyId);
+          setActiveTab("intake");
+        }}
+      />
     </main>
   );
 }
@@ -778,9 +894,13 @@ function caseProfile(demoCase: DemoCase) {
 function CaseSelector({
   selectedId,
   onSelect,
+  editableStudies = [],
+  onCreateNewStudy,
 }: {
   selectedId: string;
   onSelect: (id: string) => void;
+  editableStudies?: StudyMeta[];
+  onCreateNewStudy?: () => void;
 }) {
   return (
     <div
@@ -791,96 +911,169 @@ function CaseSelector({
         <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs font-semibold text-[var(--trace)]">
-              Demo pathway
+              Workspace & Evidence Context
             </p>
             <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">
-              Select the evidence context you want to inspect
+              Select or create an evidence study
             </h2>
           </div>
-          <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Each case uses static demo data to show how field evidence becomes
-            findings, recommendations, QA checks, and a donor-ready brief.
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="hidden max-w-xl text-sm leading-6 text-[var(--muted)] sm:block">
+              Choose a pristine demo case or an active local field study with persistent narrative intake.
+            </p>
+            {onCreateNewStudy && (
+              <button
+                type="button"
+                onClick={onCreateNewStudy}
+                className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[var(--accent-strong)] transition cursor-pointer"
+              >
+                <span>+</span> New Blank Study
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          {demoCases.map((c) => {
-            const isSelected = c.id === selectedId;
-            const profile = caseProfile(c);
-            return (
-              <button
-                key={c.id}
-                onClick={() => onSelect(c.id)}
-                type="button"
-                className={`text-left rounded-lg border p-5 transition cursor-pointer ${
-                  isSelected
-                    ? "border-[var(--trace)] bg-[var(--surface-elevated)] ring-1 ring-[rgba(34,211,238,0.3)]"
-                    : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-elevated)]"
-                }`}
-              >
-                <div>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <span className="text-base font-semibold leading-6 text-[var(--foreground)]">
-                      {c.project}
-                    </span>
-                    <span
-                      className={`inline-flex items-center rounded px-2 py-1 text-[10px] font-bold uppercase ${
-                        c.id === "school-nutrition"
-                          ? "border border-amber-300 bg-amber-50 text-amber-900"
-                          : "border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)]"
-                      }`}
-                    >
-                      {c.status}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                    {c.subtitle}
-                  </p>
-                </div>
+        {editableStudies.length > 0 && (
+          <div className="mb-5">
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--muted-strong)]">
+                Local Field Studies ({editableStudies.length})
+              </span>
+              <span className="text-[10px] rounded bg-emerald-950/60 border border-emerald-700/60 px-1.5 py-0.5 font-medium text-emerald-400">
+                IndexedDB Persistent
+              </span>
+            </div>
+            <div className="grid gap-4 lg:grid-cols-2">
+              {editableStudies.map((s) => {
+                const isSelected = s.id === selectedId;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => onSelect(s.id)}
+                    type="button"
+                    className={`text-left rounded-lg border p-5 transition cursor-pointer ${
+                      isSelected
+                        ? "border-[var(--trace)] bg-[var(--surface-elevated)] ring-1 ring-[rgba(34,211,238,0.3)]"
+                        : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-elevated)]"
+                    }`}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <span className="text-base font-semibold leading-6 text-[var(--foreground)]">
+                          {s.title}
+                        </span>
+                        <p className="mt-1 text-xs text-[var(--muted)]">{s.subtitle}</p>
+                      </div>
+                      <span className="inline-flex items-center rounded border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold uppercase text-emerald-300">
+                        {s.status}
+                      </span>
+                    </div>
+                    <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
+                      <div>
+                        <dt className="text-[11px] font-semibold text-[var(--muted)]">Sites</dt>
+                        <dd className="mt-0.5 text-[var(--foreground)]">{s.scope?.targetSites?.length || 0} sites</dd>
+                      </div>
+                      <div>
+                        <dt className="text-[11px] font-semibold text-[var(--muted)]">Stakeholders</dt>
+                        <dd className="mt-0.5 text-[var(--foreground)]">{s.scope?.targetStakeholderGroups?.length || 0} groups</dd>
+                      </div>
+                      <div>
+                        <dt className="text-[11px] font-semibold text-[var(--muted)]">Methods</dt>
+                        <dd className="mt-0.5 text-[var(--foreground)]">{s.scope?.expectedMethods?.length || 0} planned</dd>
+                      </div>
+                    </dl>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-                <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+        <div>
+          {editableStudies.length > 0 && (
+            <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-[var(--muted-strong)]">
+              Demo Templates (Read-Only)
+            </p>
+          )}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {demoCases.map((c) => {
+              const isSelected = c.id === selectedId;
+              const profile = caseProfile(c);
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => onSelect(c.id)}
+                  type="button"
+                  className={`text-left rounded-lg border p-5 transition cursor-pointer ${
+                    isSelected
+                      ? "border-[var(--trace)] bg-[var(--surface-elevated)] ring-1 ring-[rgba(34,211,238,0.3)]"
+                      : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-elevated)]"
+                  }`}
+                >
                   <div>
-                    <dt className="font-semibold text-[var(--muted)]">
-                      Use case
-                    </dt>
-                    <dd className="mt-1 leading-5 text-[var(--foreground)]">
-                      {profile.useCase}
-                    </dd>
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <span className="text-base font-semibold leading-6 text-[var(--foreground)]">
+                        {c.project}
+                      </span>
+                      <span
+                        className={`inline-flex items-center rounded px-2 py-1 text-[10px] font-bold uppercase ${
+                          c.id === "school-nutrition"
+                            ? "border border-amber-300 bg-amber-50 text-amber-900"
+                            : "border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)]"
+                        }`}
+                      >
+                        {c.status}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                      {c.subtitle}
+                    </p>
                   </div>
-                  <div>
-                    <dt className="font-semibold text-[var(--muted)]">
-                      Evidence base
-                    </dt>
-                    <dd className="mt-1 font-mono leading-5 text-[var(--foreground)]">
-                      {c.evidenceBase.sourceRecords} sources / {c.evidenceBase.evidenceEntries} evidence entries
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-semibold text-[var(--muted)]">
-                      Sensitivity level
-                    </dt>
-                    <dd className="mt-1 leading-5 text-[var(--foreground)]">
-                      {profile.sensitivity}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-semibold text-[var(--muted)]">
-                      Demonstrates
-                    </dt>
-                    <dd className="mt-1 leading-5 text-[var(--foreground)]">
-                      {profile.demonstrates}
-                    </dd>
-                  </div>
-                </dl>
 
-                <div className="mt-4 border-t border-[var(--border)] pt-3">
-                  <p className="text-xs font-medium leading-5 text-[var(--muted)]">
-                    {profile.note}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
+                  <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+                    <div>
+                      <dt className="font-semibold text-[var(--muted)]">
+                        Use case
+                      </dt>
+                      <dd className="mt-1 leading-5 text-[var(--foreground)]">
+                        {profile.useCase}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold text-[var(--muted)]">
+                        Evidence base
+                      </dt>
+                      <dd className="mt-1 font-mono leading-5 text-[var(--foreground)]">
+                        {c.evidenceBase.sourceRecords} sources / {c.evidenceBase.evidenceEntries} evidence entries
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold text-[var(--muted)]">
+                        Sensitivity level
+                      </dt>
+                      <dd className="mt-1 leading-5 text-[var(--foreground)]">
+                        {profile.sensitivity}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="font-semibold text-[var(--muted)]">
+                        Demonstrates
+                      </dt>
+                      <dd className="mt-1 leading-5 text-[var(--foreground)]">
+                        {profile.demonstrates}
+                      </dd>
+                    </div>
+                  </dl>
+
+                  <div className="mt-4 border-t border-[var(--border)] pt-3">
+                    <p className="text-xs font-medium leading-5 text-[var(--muted)]">
+                      {profile.note}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
         </div>
         <p className="mt-3 text-[11px] font-medium text-amber-500/80">
           Note: switching demo cases clears any temporary local sandbox drafts.

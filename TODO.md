@@ -44,6 +44,20 @@
   - [x] Implement pure `detectFindingGaps()` and `detectStudyGaps()` in `src/lib/analytics/gapDetector.ts` with 6 explicit gap types and calibrated severities.
   - [x] Document evidence support model in `docs/v0.9_evidence_support_model.md`.
   - [x] Create unit tests in `tests/supportProfile.test.ts` and `tests/gapDetector.test.ts` covering Cases A through H (17 tests, 60 total suite).
+- [x] v0.9 Phase 3: Field Intake Studio:
+  - [x] Implement safe human-readable ID generation in `src/lib/idGenerator.ts` (`maxNum + 1` algorithm).
+  - [x] Implement `scanNarrativeSafety` in `src/lib/sandboxParser.ts` with "No automated warning detected" feedback and confirmation gate.
+  - [x] Implement `MinimalStudyModal` for creating blank local editable studies.
+  - [x] Implement `SourceCaptureForm` with full provenance tracking and IndexedDB persistence.
+  - [x] Implement `ObservationCaptureForm` separating raw observations from interpretations with text selection and Draft status.
+  - [x] Implement `SourceHistory` drawer for active source switching and observation counting.
+  - [x] Implement `FieldIntakeView` workbench and integrate into app tabs.
+  - [x] Update `CaseSelector` with persistent local studies and "+ New Blank Study" action.
+  - [x] Document intake architecture in `docs/v0.9_field_intake_guide.md`.
+  - [x] Add unit and integration tests in `tests/idGenerator.test.ts` and `tests/fieldIntake.test.ts` (12 tests, 72 total suite).
+- [ ] v0.9 Phase 4: Editable Evidence Management & Human Validation Workflow.
+- [ ] v0.9 Phase 5: Daily Field Debrief Studio.
+- [ ] v0.9 Phase 6: Action Desk & Defensible Claim Synthesis.
 
 ## P1
 

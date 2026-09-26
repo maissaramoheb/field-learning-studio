@@ -5,34 +5,60 @@ import type {
   Recommendation,
 } from "@/lib/types";
 
-// Scans text for sensitive patterns. Does not guarantee anonymization.
-export function runSandboxSafetyCheck(text: string): boolean {
-  if (!text) return false;
+export interface SafetyScanResult {
+  hasWarning: boolean;
+  warnings: string[];
+}
+
+export function scanNarrativeSafety(text: string): SafetyScanResult {
+  if (!text) return { hasWarning: false, warnings: [] };
+
+  const warnings: string[] = [];
 
   // 1. Emails
   const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
-  if (emailRegex.test(text)) return true;
+  if (emailRegex.test(text)) {
+    warnings.push("Contains email address pattern");
+  }
 
   // 2. Phone numbers (standard formats)
   const phoneRegex = /\b(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/;
-  if (phoneRegex.test(text)) return true;
+  if (phoneRegex.test(text)) {
+    warnings.push("Contains phone number pattern");
+  }
 
   // 3. Exact dates (YYYY-MM-DD, MM-DD-YYYY, etc.)
   const dateRegex = /\b\d{4}[-/]\d{2}[-/]\d{2}\b|\b\d{2}[-/]\d{2}[-/]\d{4}\b/;
-  if (dateRegex.test(text)) return true;
+  if (dateRegex.test(text)) {
+    warnings.push("Contains specific calendar date");
+  }
 
   // 4. Child name indicators (named X, called X, age X, X years old)
   const childIndicatorRegex = /\b(named|called|age\s+\d{1,2}|\d{1,2}\s*years?\s+old)\b/i;
-  if (childIndicatorRegex.test(text)) return true;
+  if (childIndicatorRegex.test(text)) {
+    warnings.push("Contains child name or age indicator");
+  }
 
   // 5. Trigger words (abuse, violence, medical condition, pregnancy, harassment, assault)
   const triggerRegex = /\b(abuse|violence|medical\s+condition|pregnancy|harassment|assault)\b/i;
-  if (triggerRegex.test(text)) return true;
+  if (triggerRegex.test(text)) {
+    warnings.push("Contains sensitive protection trigger keyword");
+  }
 
   // 6. Text length threshold
-  if (text.length > 800) return true;
+  if (text.length > 800) {
+    warnings.push("Text length exceeds 800 character threshold");
+  }
 
-  return false;
+  return {
+    hasWarning: warnings.length > 0,
+    warnings,
+  };
+}
+
+// Scans text for sensitive patterns. Does not guarantee anonymization.
+export function runSandboxSafetyCheck(text: string): boolean {
+  return scanNarrativeSafety(text).hasWarning;
 }
 
 export interface SandboxInputParams {
