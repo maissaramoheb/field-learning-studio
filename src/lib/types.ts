@@ -38,6 +38,59 @@ export type CollectionMethod =
 
 export type SupportTier = "Strongly Supported" | "Partially Supported" | "Emerging";
 
+export type EvidenceGapType =
+  | "MissingStakeholder"
+  | "MissingSite"
+  | "SingleSourceDependency"
+  | "MethodConcentration"
+  | "UnresolvedContradiction"
+  | "InsufficientCoverage";
+
+export type EvidenceGapSeverity = "Info" | "Needs Attention" | "Critical";
+
+export interface EvidenceGap {
+  id: string;
+  gapType: EvidenceGapType;
+  title: string;
+  description: string;
+  severity: EvidenceGapSeverity;
+  findingId?: FindingId;
+  relatedEntityId?: string;
+  missingDimension?: string;
+  suggestedAction?: string;
+}
+
+export interface EvidenceSupportProfile {
+  independentSourceCount: number;
+
+  methodDiversity: {
+    methodsFound: CollectionMethod[];
+    isMultiMethod: boolean;
+  };
+
+  stakeholderCoverage: {
+    stakeholdersFound: string[];
+    isMultiStakeholder: boolean;
+    missingTargetStakeholders: string[];
+  };
+
+  siteCoverage: {
+    sitesFound: string[];
+    isCrossSite: boolean;
+    missingSites: string[];
+  };
+
+  contradictionState: {
+    hasContradictions: boolean;
+    unresolvedCount: number;
+    notes: string[];
+  };
+
+  supportTier: SupportTier;
+
+  transparencyFlags: string[];
+}
+
 export interface StudyScopeConfig {
   targetSites: string[];
   isSingleSiteStudy: boolean;

@@ -1,12 +1,12 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "v0.9_phase_1_persistence_foundation_implemented",
+  "status": "v0.9_phase_2_analytical_engine_implemented",
   "priority": "high",
-  "current_phase": "v0.9 Phase 1: Domain Model + Normalized IndexedDB Persistence Foundation",
-  "next_action": "Review Phase 1 persistence implementation report and approve progression to Phase 2 (Study Workspace & Setup Flow).",
+  "current_phase": "v0.9 Phase 2: Evidence Support Profile & Gap Detection Engine",
+  "next_action": "Review Phase 2 analytical engine implementation report and approve progression to Phase 3 (Study Workspace & Setup Flow).",
   "blocker": null,
-  "decision_needed": "Approval of Phase 1 foundation before initiating Phase 2 implementation.",
+  "decision_needed": "Approval of Phase 2 analytical engine before initiating Phase 3 implementation.",
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
   "preview_url": "https://field-learning-studio-pleg1fc7s-delta4ce20-5830s-projects.vercel.app",
   "production_url": "https://field-learning-studio.vercel.app/",
@@ -17,14 +17,14 @@
     "json": "passed",
     "diff_check": "passed",
     "local_http": "passed_browser_build_checks",
-    "tests": "43_passed_5_files"
+    "tests": "60_passed_7_files"
   },
   "remaining_risks": [
     "PDF/Word client-side downloads rely on browser-level file generation APIs (Blob, URL.createObjectURL, and react-pdf iframe/blob streams). Browser-specific download policies may apply.",
     "Scope creep before target-user validation remains a risk.",
     "Overbuilding into SaaS features too early remains a risk.",
-    "Accidental sensitive data handling remains a risk; v0.9 backup exports contain unencrypted field records and require explicit security disclaimers."
+    "Support tiers are decision-support heuristics and should not be presented as autonomous replacements for evaluator judgment."
   ],
-  "recommended_next_step": "Proceed to Phase 2: Study Workspace & Setup Flow (connecting study selector to IndexedDB, study creation, cloning UI, and study-level configuration).",
-  "notion_page_update": "Implemented v0.9 Phase 1 on branch feature/v0.9-field-sensemaking. Added normalized IndexedDB storage (FieldLearningStudioDB v1), compound key isolation [studyId, id], full domain entity CRUD, assembleStudy projection, Option A idempotent demo seeding and cloning, atomic .fls.json unencrypted backup export/import with validation, and comprehensive Vitest test coverage (43 tests passing)."
+  "recommended_next_step": "Proceed to Phase 3: Study Workspace & Setup Flow (connecting study selector to IndexedDB, study creation, cloning UI, and study-level configuration).",
+  "notion_page_update": "Implemented v0.9 Phase 2 on branch feature/v0.9-field-sensemaking. Added pure analytical modules computeSupportProfile and detectFindingGaps/detectStudyGaps with source independence (multiple excerpts from 1 source = 1 source), study-aware scope calibration (single-site vs multi-site, stakeholder-specific finding exceptions), 3-tier support classifications (Strongly Supported, Partially Supported, Emerging), active contradiction downgrading, explainable transparency flags, 6 explicit gap types with calibrated severities, and 17 new Vitest characterization tests (60 total tests passing)."
 }

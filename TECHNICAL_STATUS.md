@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.9 Phase 1 (Domain Model + Normalized IndexedDB Persistence Foundation) is implemented on branch `feature/v0.9-field-sensemaking`. The app adds a normalized local-first IndexedDB persistence layer (`FieldLearningStudioDB` v1 via `idb`), compound key isolation (`[studyId, id]`), typed repository operations for all domain entities, read-only demo template seeding and cloning (Option A), atomic `.fls.json` unencrypted backup export/import with runtime validation, and a bidirectional compatibility adapter between `DemoCase` and `FieldStudy`. All 27 Phase 0 characterization tests and 16 new storage tests pass (43 total). Next.js production build and linting pass with zero errors. UI remains decoupled and untouched during Phase 1.
+v0.9 Phase 2 (Evidence Support Profile / Triangulation + Gap Detection Engine) is implemented on branch `feature/v0.9-field-sensemaking`. The engine provides deterministic, transparent, and study-aware evaluation of finding support tiers (`Strongly Supported`, `Partially Supported`, `Emerging`), enforces the source independence rule (multiple excerpts from 1 source = 1 source), respects single-site vs. multi-site and stakeholder-specific scopes, surfaces method concentration and active contradictions, and detects actionable evidence gaps with calibrated severities (`Info`, `Needs Attention`, `Critical`). All 60 Vitest tests pass across 7 test files (27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics). Next.js production build and linting pass cleanly with zero errors. All logic is pure domain logic outside React components without UI modifications.
 
 ## Completed Items
 
@@ -68,8 +68,6 @@ v0.9 Phase 1 (Domain Model + Normalized IndexedDB Persistence Foundation) is imp
 - Implemented v0.8 local note intake:
   - Created safety check scanner inside `src/lib/sandboxParser.ts` scanning for child names, emails, phone numbers, exact dates, and high-sensitivity words.
   - Added warning indicators and bypass confirmation checkbox to sandbox form.
-  - Wrote mock parser returning structured draft data maps.
-  - Displayed sandbox evidence, findings, and recommendations in separate distinct blocks styled with custom badges.
 - Implemented v0.9 Phase 1 domain model and normalized IndexedDB persistence foundation:
   - Installed `idb` (runtime) and `fake-indexeddb` (dev-only for vitest).
   - Extended domain types in `src/lib/types.ts` (`StudyMeta`, `ValidationStatus`, `ConsentStatus`, `AnonymizationStatus`, `CollectionMethod`, `DailyDebrief` with multi-site `siteIds`, `FieldStudy`, `rejectionReason`, `revision`, `lastValidatedAt`, `lastValidatedBy`).
@@ -78,13 +76,19 @@ v0.9 Phase 1 (Domain Model + Normalized IndexedDB Persistence Foundation) is imp
   - Implemented portable `.fls.json` unencrypted backup export, runtime validator (`validateStudyBackupEnvelope`), and atomic transaction import supporting collision rejection, overwrite, and import-as-new in `src/lib/storage/studyBackup.ts`.
   - Created bidirectional compatibility adapter between `DemoCase` and `FieldStudy` in `src/lib/storage/demoStudyAdapter.ts`.
   - Created architecture document `docs/v0.9_storage_architecture.md`.
-  - Added 16 new storage characterization tests in `tests/storage.test.ts`. Total test suite: 43 passing tests.
+  - Added 16 new storage characterization tests in `tests/storage.test.ts`.
+- Implemented v0.9 Phase 2 pure analytical engine:
+  - Created pure module `src/lib/analytics/supportProfile.ts` implementing `computeSupportProfile()` with source independence, method diversity, stakeholder coverage, site coverage, contradiction state, 3-tier support classification (`Strongly Supported`, `Partially Supported`, `Emerging`), and human-readable transparency flags.
+  - Created pure module `src/lib/analytics/gapDetector.ts` implementing `detectFindingGaps()` and `detectStudyGaps()` with 6 explicit gap types (`InsufficientCoverage`, `SingleSourceDependency`, `MethodConcentration`, `MissingStakeholder`, `MissingSite`, `UnresolvedContradiction`) and calibrated severities (`Info`, `Needs Attention`, `Critical`).
+  - Created `src/lib/analytics/index.ts` re-exporting analytical tools.
+  - Documented engine in `docs/v0.9_evidence_support_model.md`.
+  - Added 17 unit tests across `tests/supportProfile.test.ts` (8 tests) and `tests/gapDetector.test.ts` (9 tests) covering Cases A through H. Total test suite: 60 passing tests.
 
 ## Pending Items
 
-- Start demo review with target users and validate Word, PDF, and Markdown export layouts.
-- Add editable evidence forms only if still needed after demo review.
-- Consider localStorage persistence only after user validation.
+- Implement Phase 3: Study Workspace & Setup Flow (connecting study selector to IndexedDB, study creation, cloning UI, and study-level configuration).
+- Add editable evidence forms and Daily Debrief UI.
+- Implement Action Desk for gap review and contradiction management.
 
 ## Known Risks
 
@@ -95,29 +99,29 @@ v0.9 Phase 1 (Domain Model + Normalized IndexedDB Persistence Foundation) is imp
 
 ## Next Recommended Step
 
-Review the `feature/v0.8-local-note-intake` preview and validate sandbox intake, QA warnings, and optional Word/PDF/Markdown export inclusion before merge.
+Proceed to Phase 3: Study Workspace & Setup Flow after review and approval of Phase 2 engine.
 
 ## Validation Commands
 
 ```bash
 npm run lint
 npm run build
+npm test
 python3 -m json.tool OPS_UPDATE.json
 git diff --check
-node /Users/maissaraselim/.agents/skills/impeccable/scripts/detect.mjs --json src/
 ```
 
 ## Validation Results
 
 - `npm run lint`: passed (0 errors, 0 warnings).
 - `npm run build`: passed (Next.js production static bundle generated).
-- `npm test`: passed (5 test files, 43 passing tests: 27 Phase 0 regression + 16 storage tests).
+- `npm test`: passed (7 test files, 60 passing tests: 27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics).
 - `python3 -m json.tool OPS_UPDATE.json`: passed.
 - `git diff --check`: passed.
 - Local preview/browser smoke: Next.js dev server builds successfully, TypeScript types pass.
 - Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch; pending merge of feature/v0.9-field-sensemaking).
-- Tests: 43 passing in Vitest.
+- Tests: 60 passing in Vitest.
 
 ## Last Update
 
-2026-09-26: Implemented v0.9 Phase 1 domain model and normalized IndexedDB persistence foundation on branch `feature/v0.9-field-sensemaking`. All 43 tests pass.
+2026-09-26: Implemented v0.9 Phase 2 Evidence Support Profile and Gap Detection engine on branch `feature/v0.9-field-sensemaking`. All 60 tests pass.

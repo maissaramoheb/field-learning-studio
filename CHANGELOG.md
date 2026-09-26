@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.9.0-phase2 - Evidence Support Profile & Gap Detection Engine
+
+- Implemented pure analytical module `src/lib/analytics/supportProfile.ts`:
+  - Enforced strict Source Independence Rule: multiple evidence citations from the same source count as 1 independent source.
+  - Implemented study-aware scope calibration: single-site studies are not penalized for lack of cross-site evidence; multi-site studies track geographic concentration.
+  - Implemented stakeholder-specific claim handling: claims targeted at specific stakeholder groups evaluate target representation without requiring artificial non-target diversity.
+  - Enforced contradiction state tracking: unresolved contradictory evidence prevents findings from achieving `Strongly Supported` and downgrades them to `Emerging`.
+  - Implemented 3 explainable support tiers: `Strongly Supported`, `Partially Supported`, and `Emerging`.
+  - Generated factual, deterministic transparency flags for source counts, method diversity, stakeholder coverage, site distribution, and contradiction status.
+- Implemented pure gap detection engine `src/lib/analytics/gapDetector.ts`:
+  - 6 explicit gap types: `InsufficientCoverage`, `SingleSourceDependency`, `MethodConcentration`, `MissingStakeholder`, `MissingSite`, and `UnresolvedContradiction`.
+  - Calibrated severities (`Info`, `Needs Attention`, `Critical`) and actionable remediation guidance.
+  - Added finding-level and study-level scope gap scanners.
+- Documented analytical architecture in `docs/v0.9_evidence_support_model.md`.
+- Added 17 unit tests in `tests/supportProfile.test.ts` and `tests/gapDetector.test.ts` covering Cases A through H. Total test suite: 60 passing tests across 7 files.
+
 ## v0.9.0-phase1 - Domain Model & Normalized IndexedDB Persistence Foundation
 
 - Implemented normalized local-first IndexedDB persistence using `idb` (`FieldLearningStudioDB` v1) with 8 stores (`studies`, `sources`, `evidence`, `debriefs`, `findings`, `lessons`, `goodPractices`, `recommendations`).

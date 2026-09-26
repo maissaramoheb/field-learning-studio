@@ -39,6 +39,11 @@
   - [x] Implement bidirectional compatibility adapter in `src/lib/storage/demoStudyAdapter.ts`.
   - [x] Document storage architecture in `docs/v0.9_storage_architecture.md`.
   - [x] Create comprehensive Vitest suite in `tests/storage.test.ts` (16 tests, 43 total suite).
+- [x] v0.9 Phase 2: Evidence Support Profile & Gap Detection Engine:
+  - [x] Implement pure `computeSupportProfile()` in `src/lib/analytics/supportProfile.ts` with source independence, method diversity, stakeholder coverage, site coverage, contradiction handling, 3 support tiers, and transparency flags.
+  - [x] Implement pure `detectFindingGaps()` and `detectStudyGaps()` in `src/lib/analytics/gapDetector.ts` with 6 explicit gap types and calibrated severities.
+  - [x] Document evidence support model in `docs/v0.9_evidence_support_model.md`.
+  - [x] Create unit tests in `tests/supportProfile.test.ts` and `tests/gapDetector.test.ts` covering Cases A through H (17 tests, 60 total suite).
 
 ## P1
 
