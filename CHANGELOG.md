@@ -1,6 +1,16 @@
 # Changelog
 
-## v0.8.0 - Local-Only Field Note Intake Sandbox
+## v0.9.0-phase1 - Domain Model & Normalized IndexedDB Persistence Foundation
+
+- Implemented normalized local-first IndexedDB persistence using `idb` (`FieldLearningStudioDB` v1) with 8 stores (`studies`, `sources`, `evidence`, `debriefs`, `findings`, `lessons`, `goodPractices`, `recommendations`).
+- Implemented compound primary keys `[studyId, id]` across all child stores to ensure human-readable entity IDs (e.g. `EV-001`, `SRC-001`) remain isolated per study without collisions.
+- Extended domain model in `src/lib/types.ts`: `StudyMeta`, `ValidationStatus` (`Draft` -> `Needs Review` -> `Validated` / `Rejected`), `ConsentStatus`, `AnonymizationStatus`, `CollectionMethod`, `DailyDebrief` supporting multi-site `siteIds`, `rejectionReason`, `revision`, `lastValidatedAt`, and `FieldStudy` projection.
+- Implemented typed repository operations in `src/lib/storage/studyStore.ts` including CRUD for all entities, `assembleStudy` non-authoritative projection, and atomic whole-study transactions.
+- Implemented Option A demo template strategy: `bootstrapDemoTemplates` seeds pristine fixtures idempotently with deletion guards, while `cloneDemoStudy` produces editable copies with new unique study IDs.
+- Implemented portable `.fls.json` unencrypted backup export and atomic multi-strategy import (`reject_collision`, `overwrite`, `import_as_new`) with strict runtime schema validation.
+- Created bidirectional compatibility adapter between `DemoCase` and `FieldStudy` in `src/lib/storage/demoStudyAdapter.ts`.
+- Created comprehensive storage test suite with 16 tests in `tests/storage.test.ts` using `fake-indexeddb`. Total test suite: 43 passing tests across 5 test files.
+
 
 - Added v0.8 local-only field note intake workflow with sandbox draft evidence and optional export inclusion.
 - Added deterministic local safety warning checks for possible identifying or sensitive details before draft generation.

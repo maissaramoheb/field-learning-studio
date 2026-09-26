@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.8 local note intake is implemented on branch `feature/v0.8-local-note-intake`. The app adds a controlled local browser sandbox note pasting and safety warning bypass check area, a mock theme-coded parser, separate tab layout blocks for sandbox-generated findings and recommendations, QA warnings checklist flags, and toggle-conditional downloads for Word (.docx), PDF (.pdf), and Markdown (.md). All local-only state constraints are preserved.
+v0.9 Phase 1 (Domain Model + Normalized IndexedDB Persistence Foundation) is implemented on branch `feature/v0.9-field-sensemaking`. The app adds a normalized local-first IndexedDB persistence layer (`FieldLearningStudioDB` v1 via `idb`), compound key isolation (`[studyId, id]`), typed repository operations for all domain entities, read-only demo template seeding and cloning (Option A), atomic `.fls.json` unencrypted backup export/import with runtime validation, and a bidirectional compatibility adapter between `DemoCase` and `FieldStudy`. All 27 Phase 0 characterization tests and 16 new storage tests pass (43 total). Next.js production build and linting pass with zero errors. UI remains decoupled and untouched during Phase 1.
 
 ## Completed Items
 
@@ -70,8 +70,15 @@ v0.8 local note intake is implemented on branch `feature/v0.8-local-note-intake`
   - Added warning indicators and bypass confirmation checkbox to sandbox form.
   - Wrote mock parser returning structured draft data maps.
   - Displayed sandbox evidence, findings, and recommendations in separate distinct blocks styled with custom badges.
-  - Embedded dynamic sandbox reviews into the QA audit generator.
-  - Integrated export toggles conditionally compiling sandbox drafts to Word, PDF, and Markdown.
+- Implemented v0.9 Phase 1 domain model and normalized IndexedDB persistence foundation:
+  - Installed `idb` (runtime) and `fake-indexeddb` (dev-only for vitest).
+  - Extended domain types in `src/lib/types.ts` (`StudyMeta`, `ValidationStatus`, `ConsentStatus`, `AnonymizationStatus`, `CollectionMethod`, `DailyDebrief` with multi-site `siteIds`, `FieldStudy`, `rejectionReason`, `revision`, `lastValidatedAt`, `lastValidatedBy`).
+  - Implemented normalized IndexedDB database `FieldLearningStudioDB` v1 in `src/lib/storage/indexedDb.ts` across 8 stores with compound primary keys `[studyId, id]` and scoped indexes.
+  - Implemented typed repository operations in `src/lib/storage/studyStore.ts` for full CRUD, projection assembly (`assembleStudy`), atomic multi-store writing (`saveCompleteStudy`), idempotent demo template seeding (`bootstrapDemoTemplates`), and demo cloning (`cloneDemoStudy`).
+  - Implemented portable `.fls.json` unencrypted backup export, runtime validator (`validateStudyBackupEnvelope`), and atomic transaction import supporting collision rejection, overwrite, and import-as-new in `src/lib/storage/studyBackup.ts`.
+  - Created bidirectional compatibility adapter between `DemoCase` and `FieldStudy` in `src/lib/storage/demoStudyAdapter.ts`.
+  - Created architecture document `docs/v0.9_storage_architecture.md`.
+  - Added 16 new storage characterization tests in `tests/storage.test.ts`. Total test suite: 43 passing tests.
 
 ## Pending Items
 
@@ -104,12 +111,13 @@ node /Users/maissaraselim/.agents/skills/impeccable/scripts/detect.mjs --json sr
 
 - `npm run lint`: passed (0 errors, 0 warnings).
 - `npm run build`: passed (Next.js production static bundle generated).
+- `npm test`: passed (5 test files, 43 passing tests: 27 Phase 0 regression + 16 storage tests).
 - `python3 -m json.tool OPS_UPDATE.json`: passed.
 - `git diff --check`: passed.
-- Local preview/browser smoke: Next.js dev server builds successfully, TypeScript types pass, Dynamic client-side lazy-import wraps react-pdf safely avoiding Next.js SSR hydration warnings.
-- Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch; pending merge of feature/v0.8-local-note-intake).
-- Tests: not configured.
+- Local preview/browser smoke: Next.js dev server builds successfully, TypeScript types pass.
+- Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch; pending merge of feature/v0.9-field-sensemaking).
+- Tests: 43 passing in Vitest.
 
 ## Last Update
 
-2026-07-10: Implemented v0.8 local note intake on branch `feature/v0.8-local-note-intake`; branch requires preview validation before merge.
+2026-09-26: Implemented v0.9 Phase 1 domain model and normalized IndexedDB persistence foundation on branch `feature/v0.9-field-sensemaking`. All 43 tests pass.

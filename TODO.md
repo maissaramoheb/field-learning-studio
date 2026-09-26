@@ -30,6 +30,15 @@
 - [x] Preserve static demo data, local-only sandbox behavior, and Markdown export in v0.6.
 - [x] v0.7 Export Pack: client-side Word (.docx), PDF (.pdf), and improved Markdown (.md) brief downloads in a shared export model.
 - [x] v0.8 Local Note Intake: local sandbox note paste, regex safety checks, confirmation bypass gate, mock parser, separate drafts in findings/recommendations, QA flags, and conditional exports.
+- [x] v0.9 Phase 1: Domain Model + Normalized IndexedDB Persistence Foundation:
+  - [x] Extend domain types in `src/lib/types.ts` (`StudyMeta`, `ValidationStatus`, `ConsentStatus`, `AnonymizationStatus`, `CollectionMethod`, `DailyDebrief` with multi-site `siteIds`, `rejectionReason`, `revision`, `FieldStudy`).
+  - [x] Implement normalized `FieldLearningStudioDB` v1 schema across 8 object stores with compound keys `[studyId, id]` in `src/lib/storage/indexedDb.ts`.
+  - [x] Implement typed repository operations in `src/lib/storage/studyStore.ts` (CRUD, `assembleStudy` projection, atomic persistence).
+  - [x] Implement Option A demo template strategy (idempotent `bootstrapDemoTemplates`, deletion guard, `cloneDemoStudy` with fresh UUIDs).
+  - [x] Implement portable `.fls.json` backup export and atomic multi-strategy import with runtime validator in `src/lib/storage/studyBackup.ts`.
+  - [x] Implement bidirectional compatibility adapter in `src/lib/storage/demoStudyAdapter.ts`.
+  - [x] Document storage architecture in `docs/v0.9_storage_architecture.md`.
+  - [x] Create comprehensive Vitest suite in `tests/storage.test.ts` (16 tests, 43 total suite).
 
 ## P1
 
