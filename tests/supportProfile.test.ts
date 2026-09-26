@@ -793,4 +793,166 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
       );
     });
   });
+
+  describe("Phase 6 Workflow-Friction Audit: Support Profile Rigor & Scope Gaps", () => {
+    const multiScope: StudyScopeConfig = {
+      targetSites: ["Minya", "Assiut"],
+      isSingleSiteStudy: false,
+      targetStakeholderGroups: ["Teachers", "Parents", "Children"],
+    };
+
+    const sources: SourceRecord[] = [
+      {
+        id: "SRC-001",
+        title: "Teacher Interview Minya",
+        sourceType: "Key Informant Interview",
+        date: "2026-03-01",
+        stakeholderType: "Teachers",
+        location: "Minya",
+        summary: "Teacher perspective",
+        sensitivityFlag: "None",
+      },
+      {
+        id: "SRC-002",
+        title: "Parent FGD Assiut",
+        sourceType: "Focus Group Discussion",
+        date: "2026-03-02",
+        stakeholderType: "Parents",
+        location: "Assiut",
+        summary: "Parent perspective",
+        sensitivityFlag: "None",
+      },
+      {
+        id: "SRC-003",
+        title: "Teacher Interview Assiut",
+        sourceType: "Key Informant Interview",
+        date: "2026-03-03",
+        stakeholderType: "Teachers",
+        location: "Assiut",
+        summary: "Teacher perspective Assiut",
+        sensitivityFlag: "None",
+      },
+      {
+        id: "SRC-004",
+        title: "Child Observation Minya",
+        sourceType: "Direct Observation",
+        date: "2026-03-04",
+        stakeholderType: "Children",
+        location: "Minya",
+        summary: "Child meal observation",
+        sensitivityFlag: "None",
+      },
+    ];
+
+    const evidence: EvidenceEntry[] = [
+      {
+        id: "EV-001",
+        sourceId: "SRC-001",
+        siteId: "Minya",
+        stakeholderType: "Teachers",
+        rawEvidence: "Teachers report delivery delays.",
+        primaryTheme: "Nutrition",
+        evidenceStrength: "High",
+        sensitivityFlag: "None",
+        potentialFinding: "Delays occur",
+        qaStatus: "Reviewed",
+      },
+      {
+        id: "EV-002",
+        sourceId: "SRC-002",
+        siteId: "Assiut",
+        stakeholderType: "Parents",
+        rawEvidence: "Parents report meals arrive late.",
+        primaryTheme: "Nutrition",
+        evidenceStrength: "High",
+        sensitivityFlag: "None",
+        potentialFinding: "Delays occur",
+        qaStatus: "Reviewed",
+      },
+      {
+        id: "EV-003",
+        sourceId: "SRC-003",
+        siteId: "Assiut",
+        stakeholderType: "Teachers",
+        rawEvidence: "Assiut teachers confirm timing mismatch.",
+        primaryTheme: "Nutrition",
+        evidenceStrength: "High",
+        sensitivityFlag: "None",
+        potentialFinding: "Delays occur",
+        qaStatus: "Reviewed",
+      },
+      {
+        id: "EV-004",
+        sourceId: "SRC-004",
+        siteId: "Minya",
+        stakeholderType: "Children",
+        rawEvidence: "Observed children receiving meals after recess.",
+        primaryTheme: "Nutrition",
+        evidenceStrength: "High",
+        sensitivityFlag: "None",
+        potentialFinding: "Delays occur",
+        qaStatus: "Reviewed",
+      },
+    ];
+
+    it("does NOT classify broad finding as Strongly Supported when Children perspective is missing", () => {
+      const broadFinding = createDummyFinding({
+        id: "FND-010",
+        statement: "Delivery delays prevent regular student meal access.",
+        supportingEvidenceIds: ["EV-001", "EV-002", "EV-003"], // 3 sources, 2 methods (KII + FGD), 2 sites (Minya + Assiut), but NO Children
+        isStakeholderSpecific: false,
+      });
+
+      const profile = computeSupportProfile(broadFinding, multiScope, evidence, sources);
+
+      // Verify missingTargetStakeholders includes Children
+      expect(profile.stakeholderCoverage.missingTargetStakeholders).toContain("Children");
+      expect(profile.transparencyFlags).toContain("Missing perspective(s): Children");
+
+      // Verify that even with 3 sources, multi-method, and cross-site, it is NOT Strongly Supported
+      expect(profile.independentSourceCount).toBe(3);
+      expect(profile.methodDiversity.isMultiMethod).toBe(true);
+      expect(profile.siteCoverage.isCrossSite).toBe(true);
+      expect(profile.supportTier).toBe("Partially Supported");
+      expect(profile.supportTier).not.toBe("Strongly Supported");
+    });
+
+    it("upgrades to Strongly Supported when appropriate Children evidence is added", () => {
+      const completedFinding = createDummyFinding({
+        id: "FND-011",
+        statement: "Delivery delays prevent regular student meal access across all groups.",
+        supportingEvidenceIds: ["EV-001", "EV-002", "EV-003", "EV-004"], // Now includes EV-004 (Children, Direct Observation)
+        isStakeholderSpecific: false,
+      });
+
+      const profile = computeSupportProfile(completedFinding, multiScope, evidence, sources);
+
+      expect(profile.stakeholderCoverage.missingTargetStakeholders).toHaveLength(0);
+      expect(profile.independentSourceCount).toBe(4);
+      expect(profile.methodDiversity.methodsFound).toEqual(
+        expect.arrayContaining(["Key Informant Interview", "Focus Group Discussion", "Direct Observation"])
+      );
+      expect(profile.siteCoverage.isCrossSite).toBe(true);
+      expect(profile.supportTier).toBe("Strongly Supported");
+      expect(profile.transparencyFlags).not.toContain("Missing perspective(s): Children");
+    });
+
+    it("detects multi-site gap when evidence is limited to Minya in a Minya + Assiut study", () => {
+      const singleSiteFinding = createDummyFinding({
+        id: "FND-012",
+        statement: "Storage conditions compromise meal quality.",
+        supportingEvidenceIds: ["EV-001", "EV-004"], // Both Minya
+        isStakeholderSpecific: false,
+      });
+
+      const profile = computeSupportProfile(singleSiteFinding, multiScope, evidence, sources);
+
+      expect(profile.siteCoverage.missingSites).toContain("Assiut");
+      expect(profile.siteCoverage.isCrossSite).toBe(false);
+      expect(profile.supportTier).toBe("Partially Supported");
+      expect(profile.transparencyFlags).toContain(
+        "Evidence currently limited to Minya; missing Assiut"
+      );
+    });
+  });
 });

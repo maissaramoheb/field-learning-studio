@@ -684,5 +684,36 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
         expect(exportModel.recommendations.map((r) => r.id)).not.toContain("REC-002");
       }
     });
+
+    it("supports blank criterion and custom non-evaluation criteria", async () => {
+      const qBlank: StudyQuestion = {
+        id: "RQ-010",
+        question: "How ready is the field office to transition operations?",
+        shortLabel: "Transition Readiness",
+        criterion: undefined, // blank criterion
+        isActive: true,
+      };
+
+      const qCustom: StudyQuestion = {
+        id: "RQ-011",
+        question: "What governance bottlenecks impact supply chain accountability?",
+        shortLabel: "Governance Bottlenecks",
+        criterion: "Operational Readiness", // custom non-evaluation criterion
+        isActive: true,
+      };
+
+      await saveStudyQuestion(testStudyId, qBlank);
+      await saveStudyQuestion(testStudyId, qCustom);
+
+      const assembled = await assembleStudy(testStudyId);
+      expect(assembled).not.toBeNull();
+      const loadedBlank = assembled?.questions?.find((q) => q.id === "RQ-010");
+      const loadedCustom = assembled?.questions?.find((q) => q.id === "RQ-011");
+
+      expect(loadedBlank).toBeDefined();
+      expect(loadedBlank?.criterion).toBeUndefined();
+      expect(loadedCustom).toBeDefined();
+      expect(loadedCustom?.criterion).toBe("Operational Readiness");
+    });
   });
 });

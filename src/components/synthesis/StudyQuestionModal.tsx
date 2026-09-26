@@ -49,14 +49,24 @@ function StudyQuestionModalContent({
   existingQuestions,
   initialQuestion,
 }: Omit<StudyQuestionModalProps, "isOpen">) {
+  const isPredefined =
+    initialQuestion?.criterion &&
+    EVALUATION_CRITERIA.includes(initialQuestion.criterion);
+  const initialMode = !initialQuestion?.criterion
+    ? ""
+    : isPredefined
+    ? initialQuestion.criterion
+    : "custom";
+
   const [questionText, setQuestionText] = useState(
     initialQuestion ? initialQuestion.question : ""
   );
   const [shortLabel, setShortLabel] = useState(
     initialQuestion?.shortLabel || ""
   );
-  const [criterion, setCriterion] = useState(
-    initialQuestion?.criterion || EVALUATION_CRITERIA[0]
+  const [selectedMode, setSelectedMode] = useState<string>(initialMode);
+  const [customCriterion, setCustomCriterion] = useState<string>(
+    !isPredefined && initialQuestion?.criterion ? initialQuestion.criterion : ""
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -72,11 +82,16 @@ function StudyQuestionModalContent({
       initialQuestion?.id ||
       getNextQuestionId(existingQuestions.map((q) => q.id));
 
+    const resolvedCriterion =
+      selectedMode === "custom"
+        ? customCriterion.trim() || undefined
+        : selectedMode.trim() || undefined;
+
     const updated: StudyQuestion = {
       id: nextId,
       question: trimmed,
       shortLabel: shortLabel.trim() || undefined,
-      criterion: criterion.trim() || undefined,
+      criterion: resolvedCriterion,
       isActive: initialQuestion ? initialQuestion.isActive : true,
       createdAt: initialQuestion?.createdAt || Date.now(),
       updatedAt: Date.now(),
@@ -153,20 +168,34 @@ function StudyQuestionModalContent({
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted-strong)]">
-                Evaluation Criterion
+                Criterion / Dimension
               </label>
               <select
-                value={criterion}
-                onChange={(e) => setCriterion(e.target.value)}
+                value={selectedMode}
+                onChange={(e) => setSelectedMode(e.target.value)}
                 className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-sm text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
               >
-                <option value="">None / Custom</option>
-                {EVALUATION_CRITERIA.map((crit) => (
-                  <option key={crit} value={crit}>
-                    {crit}
-                  </option>
-                ))}
+                <option value="">None / Blank</option>
+                <optgroup label="Standard Evaluation Criteria">
+                  {EVALUATION_CRITERIA.map((crit) => (
+                    <option key={crit} value={crit}>
+                      {crit}
+                    </option>
+                  ))}
+                </optgroup>
+                <option value="custom">Custom Criterion / Dimension...</option>
               </select>
+
+              {selectedMode === "custom" && (
+                <input
+                  type="text"
+                  value={customCriterion}
+                  onChange={(e) => setCustomCriterion(e.target.value)}
+                  placeholder="e.g. Operational Readiness, Governance, Service Quality"
+                  className="mt-2 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
+                  autoFocus
+                />
+              )}
             </div>
           </div>
 
