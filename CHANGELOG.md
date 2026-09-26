@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.9.0-phase5 - Daily Field Debrief Studio
+
+- Implemented dedicated **Daily Field Debrief Studio** situated between Evidence and Findings in the primary navigation:
+  - Guided practitioner reflection across 7 key methodological questions: *What surprised us?*, *What patterns repeated?*, *What contradicted earlier information?*, *Which assumptions should we question?*, *Where might researcher bias be influencing interpretation?*, *Whose perspective is still missing?*, and *What hypotheses are emerging?*.
+  - Multi-site support: debriefs support study-wide scope (`siteIds: []`) or multiple study sites simultaneously (`siteIds: string[]`), plus dynamic custom site addition.
+  - Discrete tomorrow action priorities manager: add, inline edit, and remove discrete questions/tasks for tomorrow's field inquiries.
+  - System evidence-gap signal: integrated read-only calibration signal from the Phase 2 gap detector displaying target stakeholder groups with zero recorded observations.
+  - Field grounding: dedicated `RecordLinkSelector` for referencing today's Source records and Evidence observations with date-matching toggle and validation status badges.
+- Enforced strict architectural boundaries and non-mutation invariants:
+  - No `ValidationStatus` on `DailyDebrief` (internal methodological log, not donor claim).
+  - Evidence non-mutation invariant: creating or editing debriefs never alters Evidence validation status, revisions, or contradiction IDs.
+  - Contradiction independence: reflections in `contradictionsObserved` never write to `EvidenceEntry.contradictionIds`.
+  - Hypothesis isolation: prominent amber `Boundary Guardrail` notice enforces that emerging hypotheses are working theories to focus fieldwork, never auto-promoted to findings.
+  - Traceability Drawer integration: inspecting `DBR-*` suppresses the linear `TraceChain` claim lineage while displaying metadata, reflections, and linked records.
+- Built modular Daily Debrief UI in `src/components/debrief/`:
+  - `DebriefHistory`: reverse-chronological timeline, search/filtering, summary count badges, reflection snippet previews, and empty state with CTA.
+  - `DebriefForm`: full reflection form with multi-site selection, attendees parser, priorities list, and link selector.
+  - `RecordLinkSelector`: multi-tab selector for linking sources and observations with date matching filter.
+  - `DebriefDetail`: comprehensive full view of reflections, checkable priorities list, and linked records with drawer triggers.
+  - `DailyDebriefView`: tab-level coordinator managing list/create/edit/detail view transitions, cloning, and persistence.
+- Enforced pristine demo case protection with `Create Editable Copy` cloning workflow.
+- Updated `CaseSelector` active study persistence to preserve active study selection across page reloads.
+- Created technical documentation in `docs/v0.9_daily_debrief_guide.md`.
+- Added 12 new Vitest unit and storage integration tests in `tests/dailyDebrief.test.ts`. Total test suite: 103 passing tests across 11 files.
+- Completed 11-step browser acceptance audit via CDP in headless Chrome covering study creation, note intake, debrief recording, editing, detail view, traceability drawer suppression, page reload persistence, invariant checks, and demo cloning with 10 screenshots captured.
+
 ## v0.9.0-phase4 - Editable Evidence Management & Human Validation Workflow
 
 - Built pure validation lifecycle state machine in `src/lib/validation/validationLifecycle.ts`:

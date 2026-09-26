@@ -65,7 +65,16 @@
   - [x] Enforce read-only protection and "Demo Reference" badge for pristine demo templates.
   - [x] Add unit and persistence tests in `tests/validationLifecycle.test.ts` (19 tests, 91 total suite).
   - [x] Conduct full 14-step browser acceptance audit via CDP with verified screenshots.
-- [ ] v0.9 Phase 5: Daily Field Debrief Studio.
+- [x] v0.9 Phase 5: Daily Field Debrief Studio:
+  - [x] Implement `DailyDebrief` schema with multi-site support (`siteIds: string[]`), attendees, 7 guided reflection questions, discrete priorities list, and linked records.
+  - [x] Enforce non-negotiable architectural boundaries: no `ValidationStatus` on debriefs, non-mutation invariant for Evidence validation/revisions/contradictions, hypothesis isolation behind Boundary Guardrails, and Traceability Drawer linear trace suppression for `DBR-*`.
+  - [x] Build modular debrief UI in `src/components/debrief/`: `DebriefHistory`, `DebriefForm`, `RecordLinkSelector`, `DebriefDetail`, and `DailyDebriefView`.
+  - [x] Integrate Daily Debrief tab into primary navigation between Evidence and Findings and update pipeline steps.
+  - [x] Enforce pristine demo case protection with `Create Editable Copy` cloning workflow.
+  - [x] Persist active study selection to localStorage across page reloads.
+  - [x] Document debrief methodology and architecture in `docs/v0.9_daily_debrief_guide.md`.
+  - [x] Add unit and storage persistence tests in `tests/dailyDebrief.test.ts` (12 tests, 103 total suite).
+  - [x] Conduct full 11-step browser acceptance audit via CDP with 10 verified screenshots.
 - [ ] v0.9 Phase 6: Action Desk & Defensible Claim Synthesis.
 
 ## P1

@@ -34,6 +34,7 @@ import { runSandboxSafetyCheck, parseSandboxInput } from "@/lib/sandboxParser";
 import { FieldIntakeView } from "@/components/intake/FieldIntakeView";
 import { MinimalStudyModal } from "@/components/studies/MinimalStudyModal";
 import { EvidenceReviewWorkspace } from "@/components/evidence";
+import { DailyDebriefView } from "@/components/debrief";
 import {
   bootstrapDemoTemplates,
   listStudies,
@@ -57,6 +58,7 @@ type WorkspaceTabId =
   | "overview"
   | "intake"
   | "evidence"
+  | "debrief"
   | "findings"
   | "lessons"
   | "recommendations"
@@ -72,6 +74,7 @@ const workspaceTabs: Array<{ id: WorkspaceTabId; label: string }> = [
   { id: "overview", label: "Overview" },
   { id: "intake", label: "Field Intake" },
   { id: "evidence", label: "Evidence" },
+  { id: "debrief", label: "Daily Debrief" },
   { id: "findings", label: "Findings" },
   { id: "lessons", label: "Lessons" },
   { id: "recommendations", label: "Recommendations" },
@@ -118,6 +121,9 @@ export function FieldLearningStudioApp({
       if (idToLoad) {
         if (targetId && targetId !== selectedCaseId) {
           setSelectedCaseId(targetId);
+        }
+        if (typeof window !== "undefined") {
+          localStorage.setItem("fls_active_study_id", idToLoad);
         }
         const assembled = await assembleStudy(idToLoad);
         if (assembled) {
@@ -610,6 +616,69 @@ export function FieldLearningStudioApp({
           "QA checks protect the brief from unsupported claims, weak triangulation, and unsafe use of sensitive field evidence.";
         safeguardNote = `Status: ${qa.status}. Human review is still required before donor-facing use.`;
       }
+    } else if (id.startsWith("DBR-")) {
+      itemType = "Daily Field Debrief";
+      const debrief = currentStudy?.debriefs?.find((d) => d.id === id);
+      if (debrief) {
+        title = `Daily Debrief: ${debrief.date} (${debrief.id})`;
+        textContent = debrief.whatSurprisedUs
+          ? `Surprises & Patterns: ${debrief.whatSurprisedUs}`
+          : debrief.emergingHypotheses
+          ? `Working Theory: ${debrief.emergingHypotheses}`
+          : "Field team sensemaking session";
+        metadata = [
+          { label: "Date", value: debrief.date },
+          {
+            label: "Sites Covered",
+            value:
+              debrief.siteIds && debrief.siteIds.length > 0
+                ? debrief.siteIds.join(", ")
+                : "Study-wide / Not specified",
+          },
+          {
+            label: "Attendees",
+            value:
+              debrief.attendees && debrief.attendees.length > 0
+                ? debrief.attendees.join(", ")
+                : "Not recorded",
+          },
+          {
+            label: "Tomorrow Priorities",
+            value:
+              debrief.tomorrowPriorities && debrief.tomorrowPriorities.length > 0
+                ? debrief.tomorrowPriorities.join("; ")
+                : "None recorded",
+          },
+          { label: "Surprises Noted", value: debrief.whatSurprisedUs || "None" },
+          { label: "Patterns Repeated", value: debrief.whatRepeated || "None" },
+          {
+            label: "Contradictions Observed",
+            value: debrief.contradictionsObserved || "None",
+          },
+          {
+            label: "Assumptions Shaken",
+            value: debrief.shakenAssumptions || "None",
+          },
+          { label: "Potential Biases", value: debrief.potentialBiases || "None" },
+          {
+            label: "Missing Perspectives",
+            value: debrief.missingPerspectives || "None",
+          },
+          {
+            label: "Emerging Hypotheses",
+            value: debrief.emergingHypotheses || "None",
+          },
+        ];
+        linkedIds = [
+          ...(debrief.linkedSourceIds || []),
+          ...(debrief.linkedEvidenceIds || []),
+        ];
+        linkedLabel = "Linked Sources & Evidence Considered";
+        whyThisMatters =
+          "Daily debriefs capture team sensemaking, emerging hypotheses, and contradictions while fresh from the field. They guide subsequent investigation without being treated as formal findings.";
+        safeguardNote =
+          "Debrief notes are internal methodological records and working theories. They are NOT donor-facing claims.";
+      }
     }
 
     if (!itemType) {
@@ -677,12 +746,14 @@ export function FieldLearningStudioApp({
               )}
             </div>
 
-            <div className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace-wash)] p-4">
-              <span className="text-[11px] font-semibold text-[var(--trace)] block mb-2">
-                Source-to-brief path
-              </span>
-              <TraceChain id={id} demoCase={activeDemoCase} onSelect={setDrawerItemId} />
-            </div>
+            {!id.startsWith("DBR-") && (
+              <div className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace-wash)] p-4">
+                <span className="text-[11px] font-semibold text-[var(--trace)] block mb-2">
+                  Source-to-brief path
+                </span>
+                <TraceChain id={id} demoCase={activeDemoCase} onSelect={setDrawerItemId} />
+              </div>
+            )}
 
             {metadata.length > 0 && (
               <div className="border-t border-[var(--border)] pt-4">
@@ -832,6 +903,20 @@ export function FieldLearningStudioApp({
               onRefreshStudy={handleRefreshCurrentStudy}
             />
           ) : null}
+          {activeTab === "debrief" ? (
+            currentStudy ? (
+              <DailyDebriefView
+                study={currentStudy}
+                onRefreshStudy={handleRefreshCurrentStudy}
+                onStudyChange={handleSelectCase}
+                traceHandlers={traceHandlers}
+              />
+            ) : (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center text-xs text-[var(--muted)]">
+                Loading study repository...
+              </div>
+            )
+          ) : null}
           {activeTab === "findings" ? (
             <FindingsSection
               findings={activeDemoCase.findings}
@@ -884,6 +969,9 @@ export function FieldLearningStudioApp({
         isOpen={isNewStudyModalOpen}
         onClose={() => setIsNewStudyModalOpen(false)}
         onStudyCreated={async (studyId) => {
+          if (typeof window !== "undefined") {
+            localStorage.setItem("fls_active_study_id", studyId);
+          }
           await refreshStudiesList(studyId);
           setActiveTab("intake");
         }}
@@ -1319,6 +1407,11 @@ function OverviewTab({
       id: "evidence",
       label: "Evidence matrix",
       description: "Theme-coded observations and meaning",
+    },
+    {
+      id: "debrief",
+      label: "Daily debrief",
+      description: "End-of-day sensemaking and priorities",
     },
     {
       id: "findings",
@@ -3675,6 +3768,10 @@ function traceDomId(id: string) {
 }
 
 function tabForTraceId(id: string): WorkspaceTabId {
+  if (id.startsWith("DBR-")) {
+    return "debrief";
+  }
+
   if (id.startsWith("EV-") || id.startsWith("SRC-")) {
     return "evidence";
   }
