@@ -140,6 +140,13 @@ export function adaptDemoCaseToFieldStudy(demoCase: DemoCase): FieldStudy {
     executiveSummary: demoCase.executiveSummary,
     keyMessages: [...(demoCase.keyMessages || [])],
     limitations: [...(demoCase.limitations || [])],
+    questions: [],
+    patternNotes: [],
+    outputConfig: {
+      includeRecommendations: true,
+      includeLessons: true,
+      includeGoodPractices: true,
+    },
     createdAt: baseTimestamp,
     updatedAt: baseTimestamp,
     sources,

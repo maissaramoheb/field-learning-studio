@@ -4,6 +4,8 @@ import { adaptDemoCaseToFieldStudy } from "./demoStudyAdapter";
 import type {
   StudyId,
   StudyMeta,
+  StudyQuestion,
+  PatternNote,
   SourceRecord,
   SourceRecordId,
   EvidenceEntry,
@@ -38,6 +40,141 @@ export async function getStudyMeta(studyId: StudyId): Promise<StudyMeta | undefi
 export async function saveStudyMeta(study: StudyMeta): Promise<void> {
   const db = await getDb();
   await db.put("studies", study);
+}
+
+export async function saveStudyQuestion(
+  studyId: StudyId,
+  question: StudyQuestion
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const questions = meta.questions ? [...meta.questions] : [];
+  const idx = questions.findIndex((q) => q.id === question.id);
+  if (idx >= 0) {
+    questions[idx] = { ...question, updatedAt: Date.now() };
+  } else {
+    questions.push({
+      ...question,
+      createdAt: question.createdAt ?? Date.now(),
+      updatedAt: Date.now(),
+    });
+  }
+  await saveStudyMeta({
+    ...meta,
+    questions,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function deleteStudyQuestion(
+  studyId: StudyId,
+  questionId: string
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const questions = (meta.questions || []).filter((q) => q.id !== questionId);
+  await saveStudyMeta({
+    ...meta,
+    questions,
+    updatedAt: Date.now(),
+  });
+
+  const evidenceList = await listEvidence(studyId);
+  for (const entry of evidenceList) {
+    if (entry.studyQuestionIds && entry.studyQuestionIds.includes(questionId)) {
+      const updatedIds = entry.studyQuestionIds.filter((id) => id !== questionId);
+      await saveEvidence({
+        ...entry,
+        studyId,
+        studyQuestionIds: updatedIds,
+        updatedAt: Date.now(),
+      });
+    }
+  }
+}
+
+export async function savePatternNote(
+  studyId: StudyId,
+  pattern: PatternNote
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const notes = meta.patternNotes ? [...meta.patternNotes] : [];
+  const idx = notes.findIndex((p) => p.id === pattern.id);
+  if (idx >= 0) {
+    notes[idx] = { ...pattern, updatedAt: Date.now() };
+  } else {
+    notes.push({
+      ...pattern,
+      createdAt: pattern.createdAt ?? Date.now(),
+      updatedAt: Date.now(),
+    });
+  }
+  await saveStudyMeta({
+    ...meta,
+    patternNotes: notes,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function deletePatternNote(
+  studyId: StudyId,
+  patternId: string
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const notes = (meta.patternNotes || []).filter((p) => p.id !== patternId);
+  await saveStudyMeta({
+    ...meta,
+    patternNotes: notes,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function bulkAssignEvidenceToQuestion(
+  studyId: StudyId,
+  evidenceIds: EvidenceEntryId[],
+  questionId: string
+): Promise<void> {
+  const db = await getDb();
+  const tx = db.transaction("evidence", "readwrite");
+  const store = tx.objectStore("evidence");
+  for (const evId of evidenceIds) {
+    const entry = await store.get([studyId, evId]);
+    if (entry) {
+      const currentQuestions = entry.studyQuestionIds ? [...entry.studyQuestionIds] : [];
+      if (!currentQuestions.includes(questionId)) {
+        currentQuestions.push(questionId);
+      }
+      await store.put({
+        ...entry,
+        studyQuestionIds: currentQuestions,
+        updatedAt: Date.now(),
+      });
+    }
+  }
+  await tx.done;
+}
+
+export async function bulkAssignEvidenceTheme(
+  studyId: StudyId,
+  evidenceIds: EvidenceEntryId[],
+  theme: string
+): Promise<void> {
+  const db = await getDb();
+  const tx = db.transaction("evidence", "readwrite");
+  const store = tx.objectStore("evidence");
+  for (const evId of evidenceIds) {
+    const entry = await store.get([studyId, evId]);
+    if (entry) {
+      await store.put({
+        ...entry,
+        primaryTheme: theme,
+        updatedAt: Date.now(),
+      });
+    }
+  }
+  await tx.done;
 }
 
 export async function deleteStudy(studyId: StudyId): Promise<void> {

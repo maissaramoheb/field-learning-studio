@@ -98,6 +98,37 @@ export interface StudyScopeConfig {
   expectedMethods?: CollectionMethod[];
 }
 
+export type StudyQuestionId = `RQ-${string}`;
+export type PatternNoteId = `PAT-${string}`;
+
+export interface StudyQuestion {
+  id: string;
+  question: string;
+  shortLabel?: string;
+  criterion?: string;
+  isActive: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface PatternNote {
+  id: string;
+  studyId: StudyId;
+  statement: string;
+  evidenceIds: EvidenceEntryId[];
+  questionId?: string;
+  theme?: string;
+  contradictionNote?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface StudyOutputConfig {
+  includeRecommendations: boolean;
+  includeLessons: boolean;
+  includeGoodPractices: boolean;
+}
+
 export interface StudyMeta {
   id: StudyId;
   title: string;
@@ -109,6 +140,9 @@ export interface StudyMeta {
   executiveSummary: string;
   keyMessages: string[];
   limitations: string[];
+  questions?: StudyQuestion[];
+  patternNotes?: PatternNote[];
+  outputConfig?: StudyOutputConfig;
   createdAt: number;
   updatedAt: number;
 }
@@ -149,6 +183,7 @@ export interface EvidenceEntry {
   qaStatus: QAStatus;
   validationStatus?: ValidationStatus;
   contradictionIds?: EvidenceEntryId[];
+  studyQuestionIds?: string[];
   revision?: number;
   rejectionReason?: string;
   lastValidatedAt?: number;
@@ -193,6 +228,8 @@ export interface Finding {
   validationStatus?: ValidationStatus;
   isStakeholderSpecific?: boolean;
   targetStakeholderGroup?: string;
+  studyQuestionId?: string;
+  limitationNote?: string;
   revision?: number;
   rejectionReason?: string;
   lastValidatedAt?: number;

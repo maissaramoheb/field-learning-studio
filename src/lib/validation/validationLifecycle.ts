@@ -1,4 +1,10 @@
-import type { EvidenceEntry, ValidationStatus } from "@/lib/types";
+import type {
+  EvidenceEntry,
+  Finding,
+  Recommendation,
+  EvidenceSupportProfile,
+  ValidationStatus,
+} from "@/lib/types";
 
 /**
  * Normalizes text for substantive change comparison by trimming and collapsing
@@ -148,8 +154,9 @@ export function validateArtifact<
     lastValidatedAt?: number;
     rejectionReason?: string;
     updatedAt?: number;
+    limitationNote?: string;
   }
->(artifact: T, reviewerName: string): T {
+>(artifact: T, reviewerName: string, validationNote?: string): T {
   const trimmedReviewer = reviewerName?.trim();
   if (!trimmedReviewer) {
     throw new Error("Validation requires a non-empty reviewer name.");
@@ -172,6 +179,7 @@ export function validateArtifact<
     lastValidatedBy: trimmedReviewer,
     lastValidatedAt: now,
     rejectionReason: undefined,
+    ...(validationNote?.trim() ? { limitationNote: validationNote.trim() } : {}),
     updatedAt: now,
   };
 }
@@ -347,4 +355,261 @@ export function requiresRevalidation(entry: EvidenceEntry): boolean {
     entry.validationStatus === "Needs Review" &&
     (entry.revision ?? 1) > 1
   );
+}
+
+// ============================================================================
+// Finding Validation Lifecycle Helpers
+// ============================================================================
+
+export function isSubstantiveFindingChange(
+  original: Finding,
+  proposed: Partial<Finding>
+): boolean {
+  if (
+    proposed.statement !== undefined &&
+    normalizeComparableText(proposed.statement) !== normalizeComparableText(original.statement)
+  ) {
+    return true;
+  }
+  if (
+    proposed.explanation !== undefined &&
+    normalizeComparableText(proposed.explanation) !== normalizeComparableText(original.explanation)
+  ) {
+    return true;
+  }
+  if (
+    proposed.programmeImplication !== undefined &&
+    normalizeComparableText(proposed.programmeImplication) !== normalizeComparableText(original.programmeImplication)
+  ) {
+    return true;
+  }
+  if (proposed.supportingEvidenceIds !== undefined) {
+    const origSet = new Set(original.supportingEvidenceIds || []);
+    const propSet = new Set(proposed.supportingEvidenceIds || []);
+    if (origSet.size !== propSet.size || ![...origSet].every((id) => propSet.has(id))) {
+      return true;
+    }
+  }
+  if (proposed.contradictoryEvidenceIds !== undefined) {
+    const origSet = new Set(original.contradictoryEvidenceIds || []);
+    const propSet = new Set(proposed.contradictoryEvidenceIds || []);
+    if (origSet.size !== propSet.size || ![...origSet].every((id) => propSet.has(id))) {
+      return true;
+    }
+  }
+  if (
+    proposed.contradictoryEvidence !== undefined &&
+    normalizeComparableText(proposed.contradictoryEvidence) !== normalizeComparableText(original.contradictoryEvidence)
+  ) {
+    return true;
+  }
+  if (
+    proposed.targetStakeholderGroup !== undefined &&
+    normalizeComparableText(proposed.targetStakeholderGroup) !== normalizeComparableText(original.targetStakeholderGroup)
+  ) {
+    return true;
+  }
+  if (
+    proposed.isStakeholderSpecific !== undefined &&
+    proposed.isStakeholderSpecific !== original.isStakeholderSpecific
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function applySubstantiveFindingEdit(
+  original: Finding,
+  updates: Partial<Finding>
+): { updated: Finding; requiredRevalidation: boolean } {
+  const isSubstantive = isSubstantiveFindingChange(original, updates);
+  const now = Date.now();
+
+  if (original.validationStatus === "Validated") {
+    if (isSubstantive) {
+      const currentRevision = original.revision ?? 1;
+      const nextRevision = currentRevision + 1;
+
+      const updated: Finding = {
+        ...original,
+        ...updates,
+        revision: nextRevision,
+        previousValidationStatus: "Validated",
+        validationStatus: "Needs Review",
+        lastValidatedAt: original.lastValidatedAt,
+        lastValidatedBy: original.lastValidatedBy,
+        updatedAt: now,
+      };
+
+      return {
+        updated,
+        requiredRevalidation: true,
+      };
+    }
+
+    return {
+      updated: {
+        ...original,
+        ...updates,
+        updatedAt: now,
+      },
+      requiredRevalidation: false,
+    };
+  }
+
+  const updated: Finding = {
+    ...original,
+    ...updates,
+    updatedAt: now,
+  };
+
+  return {
+    updated,
+    requiredRevalidation: false,
+  };
+}
+
+export function requiresFindingLimitationNote(
+  finding: Finding,
+  profile?: EvidenceSupportProfile,
+  criticalGapsCount: number = 0
+): boolean {
+  if (!profile) return false;
+  if (finding.limitationNote && finding.limitationNote.trim().length > 0) {
+    return false;
+  }
+  const isEmerging = profile.supportTier === "Emerging";
+  const hasContradictions =
+    profile.contradictionState.hasContradictions &&
+    profile.contradictionState.unresolvedCount > 0;
+  const hasCriticalGaps = criticalGapsCount > 0;
+  return isEmerging || hasContradictions || hasCriticalGaps;
+}
+
+// ============================================================================
+// Recommendation Validation Lifecycle Helpers
+// ============================================================================
+
+export function isSubstantiveRecommendationChange(
+  original: Recommendation,
+  proposed: Partial<Recommendation>
+): boolean {
+  if (
+    proposed.recommendation !== undefined &&
+    normalizeComparableText(proposed.recommendation) !== normalizeComparableText(original.recommendation)
+  ) {
+    return true;
+  }
+  if (
+    proposed.responsibleActor !== undefined &&
+    normalizeComparableText(proposed.responsibleActor) !== normalizeComparableText(original.responsibleActor)
+  ) {
+    return true;
+  }
+  if (
+    proposed.priority !== undefined &&
+    proposed.priority !== original.priority
+  ) {
+    return true;
+  }
+  if (
+    proposed.timeframe !== undefined &&
+    normalizeComparableText(proposed.timeframe) !== normalizeComparableText(original.timeframe)
+  ) {
+    return true;
+  }
+  if (
+    proposed.expectedBenefit !== undefined &&
+    normalizeComparableText(proposed.expectedBenefit) !== normalizeComparableText(original.expectedBenefit)
+  ) {
+    return true;
+  }
+  if (
+    proposed.successIndicator !== undefined &&
+    normalizeComparableText(proposed.successIndicator) !== normalizeComparableText(original.successIndicator)
+  ) {
+    return true;
+  }
+  if (
+    proposed.linkedFindingId !== undefined &&
+    proposed.linkedFindingId !== original.linkedFindingId
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function applySubstantiveRecommendationEdit(
+  original: Recommendation,
+  updates: Partial<Recommendation>
+): { updated: Recommendation; requiredRevalidation: boolean } {
+  const isSubstantive = isSubstantiveRecommendationChange(original, updates);
+  const now = Date.now();
+
+  if (original.validationStatus === "Validated") {
+    if (isSubstantive) {
+      const currentRevision = original.revision ?? 1;
+      const nextRevision = currentRevision + 1;
+
+      const updated: Recommendation = {
+        ...original,
+        ...updates,
+        revision: nextRevision,
+        previousValidationStatus: "Validated",
+        validationStatus: "Needs Review",
+        lastValidatedAt: original.lastValidatedAt,
+        lastValidatedBy: original.lastValidatedBy,
+        updatedAt: now,
+      };
+
+      return {
+        updated,
+        requiredRevalidation: true,
+      };
+    }
+
+    return {
+      updated: {
+        ...original,
+        ...updates,
+        updatedAt: now,
+      },
+      requiredRevalidation: false,
+    };
+  }
+
+  const updated: Recommendation = {
+    ...original,
+    ...updates,
+    updatedAt: now,
+  };
+
+  return {
+    updated,
+    requiredRevalidation: false,
+  };
+}
+
+export function isRecommendationExportEligible(
+  recommendation: Recommendation,
+  linkedFinding?: Finding
+): boolean {
+  const isRecValidated = (recommendation.validationStatus ?? "Validated") === "Validated";
+  if (!isRecValidated) return false;
+  if (!linkedFinding) return false;
+  return (linkedFinding.validationStatus ?? "Validated") === "Validated";
+}
+
+export function getRecommendationDependencyWarning(
+  recommendation: Recommendation,
+  linkedFinding?: Finding
+): string | null {
+  if (!linkedFinding) {
+    return "Linked Finding not found";
+  }
+  const findingStatus = linkedFinding.validationStatus ?? "Validated";
+  if (findingStatus !== "Validated") {
+    return "Linked Finding requires re-validation";
+  }
+  return null;
 }

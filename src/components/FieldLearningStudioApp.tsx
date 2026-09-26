@@ -35,11 +35,24 @@ import { FieldIntakeView } from "@/components/intake/FieldIntakeView";
 import { MinimalStudyModal } from "@/components/studies/MinimalStudyModal";
 import { EvidenceReviewWorkspace } from "@/components/evidence";
 import { DailyDebriefView } from "@/components/debrief";
+import { SynthesisWorkbench } from "@/components/synthesis";
+import {
+  submitForReview,
+  validateArtifact,
+  rejectArtifact,
+  reopenRejectedArtifact,
+  getRecommendationDependencyWarning,
+  requiresFindingLimitationNote,
+  applySubstantiveFindingEdit,
+} from "@/lib/validation";
+import { computeSupportProfile } from "@/lib/analytics/supportProfile";
 import {
   bootstrapDemoTemplates,
   listStudies,
   assembleStudy,
   adaptFieldStudyToDemoCase,
+  saveFinding,
+  saveRecommendation,
 } from "@/lib/storage";
 
 interface FieldLearningStudioAppProps {
@@ -59,6 +72,7 @@ type WorkspaceTabId =
   | "intake"
   | "evidence"
   | "debrief"
+  | "synthesis"
   | "findings"
   | "lessons"
   | "recommendations"
@@ -75,6 +89,7 @@ const workspaceTabs: Array<{ id: WorkspaceTabId; label: string }> = [
   { id: "intake", label: "Field Intake" },
   { id: "evidence", label: "Evidence" },
   { id: "debrief", label: "Daily Debrief" },
+  { id: "synthesis", label: "Synthesis" },
   { id: "findings", label: "Findings" },
   { id: "lessons", label: "Lessons" },
   { id: "recommendations", label: "Recommendations" },
@@ -681,6 +696,52 @@ export function FieldLearningStudioApp({
       }
     }
 
+    if (id.startsWith("RQ-")) {
+      const question = currentStudy?.questions?.find((q) => q.id === id);
+      if (question) {
+        itemType = "Study Question";
+        title = question.question;
+        textContent = question.shortLabel ? `Analytical Theme: ${question.shortLabel}` : "";
+        metadata = [
+          { label: "Question ID", value: question.id },
+          { label: "Criterion", value: question.criterion || "General Evaluation Criterion" },
+          { label: "Inquiry Status", value: question.isActive ? "Active Inquiry" : "Inactive" },
+        ];
+        const assignedEvidence = currentStudy?.evidence.filter((e) => e.studyQuestionIds?.includes(question.id)) || [];
+        const assignedFindings = currentStudy?.findings.filter((f) => f.studyQuestionId === question.id) || [];
+        linkedIds = [
+          ...assignedEvidence.map((e) => e.id),
+          ...assignedFindings.map((f) => f.id),
+        ];
+        linkedLabel = "Linked Validated Evidence & Findings";
+        whyThisMatters =
+          "Study questions establish the analytical spine of the evaluation, organizing raw field observations into disciplined comparative sensemaking.";
+        safeguardNote =
+          "Study questions guide lines of inquiry. They do not predetermine conclusions or findings.";
+      }
+    }
+
+    if (id.startsWith("PAT-")) {
+      const pattern = currentStudy?.patternNotes?.find((p) => p.id === id);
+      if (pattern) {
+        itemType = "Working Pattern";
+        title = pattern.statement;
+        textContent = pattern.contradictionNote ? `Contradiction / Exception: ${pattern.contradictionNote}` : "";
+        metadata = [
+          { label: "Pattern ID", value: pattern.id },
+          { label: "Study Question", value: pattern.questionId || "Study-wide" },
+          { label: "Theme", value: pattern.theme || "Uncategorized" },
+          { label: "Linked Evidence Count", value: `${pattern.evidenceIds.length} entries` },
+        ];
+        linkedIds = pattern.evidenceIds || [];
+        linkedLabel = "Underlying Evidence Base";
+        whyThisMatters =
+          "Working patterns allow evaluators to document recurring multi-source phenomena without prematurely committing to a formal finding.";
+        safeguardNote =
+          "Working patterns are intermediate sensemaking instruments and do NOT count as formal donor findings.";
+      }
+    }
+
     if (!itemType) {
       return (
         <div className="fixed inset-y-0 right-0 z-50 w-full max-w-xl bg-[var(--surface)] border-l border-[var(--border-strong)] p-6 flex flex-col justify-between">
@@ -746,7 +807,7 @@ export function FieldLearningStudioApp({
               )}
             </div>
 
-            {!id.startsWith("DBR-") && (
+            {!id.startsWith("DBR-") && !id.startsWith("RQ-") && !id.startsWith("PAT-") && (
               <div className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace-wash)] p-4">
                 <span className="text-[11px] font-semibold text-[var(--trace)] block mb-2">
                   Source-to-brief path
@@ -917,11 +978,27 @@ export function FieldLearningStudioApp({
               </div>
             )
           ) : null}
+          {activeTab === "synthesis" ? (
+            currentStudy ? (
+              <SynthesisWorkbench
+                study={currentStudy}
+                onRefreshStudy={handleRefreshCurrentStudy}
+                onInspectTrace={setDrawerItemId}
+                onOpenTab={(tab) => handleTabChange(tab as WorkspaceTabId)}
+              />
+            ) : (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center text-xs text-[var(--muted)]">
+                Loading study repository...
+              </div>
+            )
+          ) : null}
           {activeTab === "findings" ? (
             <FindingsSection
               findings={activeDemoCase.findings}
               traceHandlers={traceHandlers}
               demoCase={activeDemoCase}
+              currentStudy={currentStudy}
+              onRefreshStudy={handleRefreshCurrentStudy}
             />
           ) : null}
           {activeTab === "lessons" ? (
@@ -936,6 +1013,8 @@ export function FieldLearningStudioApp({
               recommendations={activeDemoCase.recommendations}
               traceHandlers={traceHandlers}
               demoCase={activeDemoCase}
+              currentStudy={currentStudy}
+              onRefreshStudy={handleRefreshCurrentStudy}
             />
           ) : null}
           {activeTab === "qa" ? (
@@ -1412,6 +1491,11 @@ function OverviewTab({
       id: "debrief",
       label: "Daily debrief",
       description: "End-of-day sensemaking and priorities",
+    },
+    {
+      id: "synthesis",
+      label: "Synthesis workbench",
+      description: "Cross-site and cross-stakeholder comparative evidence synthesis",
     },
     {
       id: "findings",
@@ -2110,13 +2194,93 @@ function FindingsSection({
   findings,
   traceHandlers,
   demoCase,
+  currentStudy,
+  onRefreshStudy,
 }: {
   findings: Finding[];
   traceHandlers: TraceHandlers;
   demoCase: DemoCase;
+  currentStudy?: FieldStudy | null;
+  onRefreshStudy?: () => Promise<void>;
 }) {
   const normalFindings = findings.filter((f) => !f.id.includes("SBX"));
   const sandboxFindings = findings.filter((f) => f.id.includes("SBX"));
+  const isEditable = Boolean(currentStudy && !currentStudy.isDemoCase);
+
+  const handleFindingSubmitForReview = async (finding: Finding) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    try {
+      const updated = submitForReview(finding);
+      await saveFinding({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to submit finding for review.");
+    }
+  };
+
+  const handleFindingValidate = async (finding: Finding) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    const reviewerName = window.prompt(
+      "Enter reviewer identity for finding validation:",
+      "Lead Evaluator"
+    );
+    if (!reviewerName?.trim()) return;
+
+    let limitationNote = finding.limitationNote;
+    const profile = computeSupportProfile(
+      finding,
+      currentStudy.scope,
+      currentStudy.evidence,
+      currentStudy.sources
+    );
+    if (requiresFindingLimitationNote(finding, profile) && !limitationNote?.trim()) {
+      const note = window.prompt(
+        "Support tier is Emerging or coverage gaps exist. Document a concise limitation note:",
+        "Conclusion is provisional pending further site data."
+      );
+      if (!note?.trim()) {
+        alert("Validation cancelled: A limitation note is required for Emerging findings or coverage gaps.");
+        return;
+      }
+      limitationNote = note.trim();
+    }
+
+    try {
+      const updated = validateArtifact(finding, reviewerName.trim(), limitationNote);
+      await saveFinding({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to validate finding.");
+    }
+  };
+
+  const handleFindingReject = async (finding: Finding) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    const reason = window.prompt(
+      "Enter rejection rationale:",
+      "Insufficient independent source triangulation."
+    );
+    if (!reason?.trim()) return;
+
+    try {
+      const updated = rejectArtifact(finding, reason.trim());
+      await saveFinding({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to reject finding.");
+    }
+  };
+
+  const handleFindingReopen = async (finding: Finding) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    try {
+      const updated = reopenRejectedArtifact(finding);
+      await saveFinding({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to reopen finding.");
+    }
+  };
 
   return (
     <Section
@@ -2213,39 +2377,141 @@ function FindingsSection({
             id={traceDomId(finding.id)}
             key={finding.id}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <TraceButton
-                id={finding.id}
-                onSelect={traceHandlers.onTraceSelect}
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <TraceButton
+                    id={finding.id}
+                    onSelect={traceHandlers.onTraceSelect}
+                  />
+                  {finding.validationStatus && (
+                    <span
+                      className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        finding.validationStatus === "Validated"
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                          : finding.validationStatus === "Needs Review"
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                          : finding.validationStatus === "Rejected"
+                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                          : "bg-slate-500/20 text-slate-300 border border-slate-500/40"
+                      }`}
+                    >
+                      {finding.validationStatus}
+                    </span>
+                  )}
+                  {finding.revision && finding.revision > 1 && (
+                    <span className="rounded bg-[var(--surface-muted)] border border-[var(--border)] px-1.5 py-0.2 text-[9px] text-[var(--muted)]">
+                      Rev {finding.revision}
+                    </span>
+                  )}
+                </div>
+                <StrengthBadge value={finding.evidenceStrength} />
+              </div>
+
+              <h3 className="mt-4 text-lg font-semibold leading-7">
+                {finding.statement}
+              </h3>
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                {finding.explanation}
+              </p>
+
+              {finding.limitationNote && (
+                <div className="mt-3 rounded-lg border border-amber-900/40 bg-amber-950/20 p-2.5 text-xs text-amber-300">
+                  <span className="font-semibold">Evaluator Limitation Note: </span>
+                  {finding.limitationNote}
+                </div>
+              )}
+
+              <TraceIdList
+                ids={finding.supportingEvidenceIds}
+                label="Supporting evidence"
+                onTraceSelect={traceHandlers.onTraceSelect}
               />
-              <StrengthBadge value={finding.evidenceStrength} />
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+                <span className="font-semibold">Contradictory evidence: </span>
+                {finding.contradictoryEvidence}
+              </div>
+              <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+                <span className="font-semibold text-[var(--foreground)]">
+                  Programme implication:
+                </span>{" "}
+                {finding.programmeImplication}
+              </p>
+              <TraceIdList
+                ids={finding.linkedRecommendationIds}
+                label="Linked recommendations"
+                onTraceSelect={traceHandlers.onTraceSelect}
+              />
             </div>
-            <h3 className="mt-4 text-lg font-semibold leading-7">
-              {finding.statement}
-            </h3>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              {finding.explanation}
-            </p>
-            <TraceIdList
-              ids={finding.supportingEvidenceIds}
-              label="Supporting evidence"
-              onTraceSelect={traceHandlers.onTraceSelect}
-            />
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
-              <span className="font-semibold">Contradictory evidence: </span>
-              {finding.contradictoryEvidence}
-            </div>
-            <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-              <span className="font-semibold text-[var(--foreground)]">
-                Programme implication:
-              </span>{" "}
-              {finding.programmeImplication}
-            </p>
-            <TraceIdList
-              ids={finding.linkedRecommendationIds}
-              label="Linked recommendations"
-              onTraceSelect={traceHandlers.onTraceSelect}
-            />
+
+            {/* Governance Action Bar for Editable Studies */}
+            {isEditable && (
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3 text-xs">
+                {(!finding.validationStatus || finding.validationStatus === "Draft") && (
+                  <button
+                    type="button"
+                    onClick={() => handleFindingSubmitForReview(finding)}
+                    className="rounded bg-amber-600/20 border border-amber-500/40 px-2.5 py-1 text-xs font-semibold text-amber-200 hover:bg-amber-600/40"
+                  >
+                    Submit for Review
+                  </button>
+                )}
+
+                {finding.validationStatus === "Needs Review" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleFindingValidate(finding)}
+                      className="rounded bg-emerald-600/30 border border-emerald-500/40 px-2.5 py-1 text-xs font-semibold text-emerald-200 hover:bg-emerald-600/50"
+                    >
+                      Validate Finding
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleFindingReject(finding)}
+                      className="rounded bg-rose-600/20 border border-rose-500/40 px-2.5 py-1 text-xs font-semibold text-rose-200 hover:bg-rose-600/40"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+
+                {finding.validationStatus === "Validated" && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const newStatement = window.prompt(
+                        "Edit Finding Statement (substantive changes require re-validation):",
+                        finding.statement
+                      );
+                      if (newStatement === null || !newStatement.trim() || newStatement.trim() === finding.statement.trim()) {
+                        return;
+                      }
+                      const { updated } = applySubstantiveFindingEdit(finding, {
+                        statement: newStatement.trim(),
+                      });
+                      if (!currentStudy || !onRefreshStudy) return;
+                      await saveFinding({ ...updated, studyId: currentStudy.id });
+                      await onRefreshStudy();
+                    }}
+                    className="rounded bg-slate-600/20 border border-slate-500/40 px-2.5 py-1 text-xs font-semibold text-slate-200 hover:bg-slate-600/40"
+                  >
+                    Edit Finding
+                  </button>
+                )}
+
+                {finding.validationStatus === "Rejected" && (
+                  <button
+                    type="button"
+                    onClick={() => handleFindingReopen(finding)}
+                    className="rounded bg-slate-600/20 border border-slate-500/40 px-2.5 py-1 text-xs font-semibold text-slate-200 hover:bg-slate-600/40"
+                  >
+                    Reopen to Draft
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="mt-5 pt-4 border-t border-[var(--border)]">
               <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
                 Claim lineage
@@ -2360,13 +2626,72 @@ function RecommendationsSection({
   recommendations,
   traceHandlers,
   demoCase,
+  currentStudy,
+  onRefreshStudy,
 }: {
   recommendations: Recommendation[];
   traceHandlers: TraceHandlers;
   demoCase: DemoCase;
+  currentStudy?: FieldStudy | null;
+  onRefreshStudy?: () => Promise<void>;
 }) {
   const normalRecommendations = recommendations.filter((r) => !r.id.includes("SBX"));
   const sandboxRecommendations = recommendations.filter((r) => r.id.includes("SBX"));
+  const isEditable = Boolean(currentStudy && !currentStudy.isDemoCase);
+
+  const handleRecSubmitForReview = async (rec: Recommendation) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    try {
+      const updated = submitForReview(rec);
+      await saveRecommendation({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to submit recommendation for review.");
+    }
+  };
+
+  const handleRecValidate = async (rec: Recommendation) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    const reviewerName = window.prompt(
+      "Enter reviewer identity for recommendation validation:",
+      "Lead Evaluator"
+    );
+    if (!reviewerName?.trim()) return;
+    try {
+      const updated = validateArtifact(rec, reviewerName.trim());
+      await saveRecommendation({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to validate recommendation.");
+    }
+  };
+
+  const handleRecReject = async (rec: Recommendation) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    const reason = window.prompt(
+      "Enter rejection rationale:",
+      "Feasibility constraints or misaligned actor."
+    );
+    if (!reason?.trim()) return;
+    try {
+      const updated = rejectArtifact(rec, reason.trim());
+      await saveRecommendation({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to reject recommendation.");
+    }
+  };
+
+  const handleRecReopen = async (rec: Recommendation) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    try {
+      const updated = reopenRejectedArtifact(rec);
+      await saveRecommendation({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to reopen recommendation.");
+    }
+  };
 
   return (
     <Section
@@ -2491,74 +2816,159 @@ function RecommendationsSection({
               </div>
 
               <div className="grid gap-3 lg:grid-cols-2">
-                {items.map((recommendation) => (
-                  <article
-                    className={traceCardClass(
-                      recommendation.id,
-                      traceHandlers.highlightedId,
-                      "p-5 min-w-0",
-                    )}
-                    id={traceDomId(recommendation.id)}
-                    key={recommendation.id}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <TraceButton
-                        id={recommendation.id}
-                        onSelect={traceHandlers.onTraceSelect}
-                      />
-                      <LinkedTraceField
-                        className=""
-                        id={recommendation.linkedFindingId}
-                        label="Finding"
-                        onTraceSelect={traceHandlers.onTraceSelect}
-                      />
-                    </div>
-                    <h4 className="mt-4 text-base font-semibold leading-6 text-[var(--foreground)]">
-                      {recommendation.recommendation}
-                    </h4>
-                    <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-                      <span className="font-semibold text-[var(--foreground)]">Expected benefit: </span>
-                      {recommendation.expectedBenefit}
-                    </p>
-                    <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 border-t border-[var(--border)] pt-3 text-xs sm:grid-cols-2">
-                      <CompactField
-                        label="Owner"
-                        value={recommendation.responsibleActor}
-                      />
-                      <CompactField
-                        label="Timeframe"
-                        value={recommendation.timeframe}
-                      />
-                      <CompactField
-                        label="Feasibility"
-                        value={recommendation.feasibility}
-                      />
-                      <CompactField
-                        label="Risk / sensitivity"
-                        value={recommendation.riskSensitivity}
-                      />
-                      <CompactField
-                        label="Success indicator"
-                        value={recommendation.successIndicator}
-                        fullWidth
-                      />
-                    </div>
-                    <div className="mt-4 border-t border-[var(--border)] pt-3">
-                      <TraceIdList
-                        className=""
-                        ids={recommendation.evidenceBase}
-                        label="Evidence base"
-                        onTraceSelect={traceHandlers.onTraceSelect}
-                      />
-                    </div>
-                    <div className="mt-4 border-t border-[var(--border)] pt-4">
-                      <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
-                        Claim lineage
-                      </span>
-                      <TraceChain id={recommendation.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
-                    </div>
-                  </article>
-                ))}
+                {items.map((recommendation) => {
+                  const linkedFinding = demoCase.findings.find(
+                    (f) => f.id === recommendation.linkedFindingId
+                  );
+                  const depWarning = getRecommendationDependencyWarning(
+                    recommendation,
+                    linkedFinding
+                  );
+
+                  return (
+                    <article
+                      className={traceCardClass(
+                        recommendation.id,
+                        traceHandlers.highlightedId,
+                        "p-5 min-w-0 flex flex-col justify-between",
+                      )}
+                      id={traceDomId(recommendation.id)}
+                      key={recommendation.id}
+                    >
+                      <div>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <TraceButton
+                              id={recommendation.id}
+                              onSelect={traceHandlers.onTraceSelect}
+                            />
+                            {recommendation.validationStatus && (
+                              <span
+                                className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                  recommendation.validationStatus === "Validated"
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                                    : recommendation.validationStatus === "Needs Review"
+                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                                    : recommendation.validationStatus === "Rejected"
+                                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                                    : "bg-slate-500/20 text-slate-300 border border-slate-500/40"
+                                }`}
+                              >
+                                {recommendation.validationStatus}
+                              </span>
+                            )}
+                          </div>
+                          <LinkedTraceField
+                            className=""
+                            id={recommendation.linkedFindingId}
+                            label="Finding"
+                            onTraceSelect={traceHandlers.onTraceSelect}
+                          />
+                        </div>
+
+                        {depWarning && (
+                          <div className="mt-2.5 rounded-lg border border-amber-800/40 bg-amber-950/20 p-2 text-xs font-semibold text-amber-300 flex items-center gap-1.5">
+                            <span>⚠️</span>
+                            <span>{depWarning} (temporarily excluded from formal export)</span>
+                          </div>
+                        )}
+
+                        <h4 className="mt-3 text-base font-semibold leading-6 text-[var(--foreground)]">
+                          {recommendation.recommendation}
+                        </h4>
+                        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                          <span className="font-semibold text-[var(--foreground)]">Expected benefit: </span>
+                          {recommendation.expectedBenefit}
+                        </p>
+                        <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 border-t border-[var(--border)] pt-3 text-xs sm:grid-cols-2">
+                          <CompactField
+                            label="Owner"
+                            value={recommendation.responsibleActor}
+                          />
+                          <CompactField
+                            label="Timeframe"
+                            value={recommendation.timeframe}
+                          />
+                          <CompactField
+                            label="Feasibility"
+                            value={recommendation.feasibility}
+                          />
+                          <CompactField
+                            label="Risk / sensitivity"
+                            value={recommendation.riskSensitivity}
+                          />
+                          <CompactField
+                            label="Success indicator"
+                            value={recommendation.successIndicator}
+                            fullWidth
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        {/* Governance Action Bar for Editable Studies */}
+                        {isEditable && (
+                          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3 text-xs">
+                            {(!recommendation.validationStatus ||
+                              recommendation.validationStatus === "Draft") && (
+                              <button
+                                type="button"
+                                onClick={() => handleRecSubmitForReview(recommendation)}
+                                className="rounded bg-amber-600/20 border border-amber-500/40 px-2.5 py-1 text-xs font-semibold text-amber-200 hover:bg-amber-600/40"
+                              >
+                                Submit for Review
+                              </button>
+                            )}
+
+                            {recommendation.validationStatus === "Needs Review" && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRecValidate(recommendation)}
+                                  className="rounded bg-emerald-600/30 border border-emerald-500/40 px-2.5 py-1 text-xs font-semibold text-emerald-200 hover:bg-emerald-600/50"
+                                >
+                                  Validate
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRecReject(recommendation)}
+                                  className="rounded bg-rose-600/20 border border-rose-500/40 px-2.5 py-1 text-xs font-semibold text-rose-200 hover:bg-rose-600/40"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+
+                            {recommendation.validationStatus === "Rejected" && (
+                              <button
+                                type="button"
+                                onClick={() => handleRecReopen(recommendation)}
+                                className="rounded bg-slate-600/20 border border-slate-500/40 px-2.5 py-1 text-xs font-semibold text-slate-200 hover:bg-slate-600/40"
+                              >
+                                Reopen to Draft
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="mt-4 border-t border-[var(--border)] pt-3">
+                          <TraceIdList
+                            className=""
+                            ids={recommendation.evidenceBase}
+                            label="Evidence base"
+                            onTraceSelect={traceHandlers.onTraceSelect}
+                          />
+                        </div>
+                        <div className="mt-4 border-t border-[var(--border)] pt-4">
+                          <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
+                            Claim lineage
+                          </span>
+                          <TraceChain id={recommendation.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </section>
           );
@@ -3770,6 +4180,10 @@ function traceDomId(id: string) {
 function tabForTraceId(id: string): WorkspaceTabId {
   if (id.startsWith("DBR-")) {
     return "debrief";
+  }
+
+  if (id.startsWith("RQ-") || id.startsWith("PAT-")) {
+    return "synthesis";
   }
 
   if (id.startsWith("EV-") || id.startsWith("SRC-")) {

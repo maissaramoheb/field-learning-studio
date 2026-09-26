@@ -75,7 +75,18 @@
   - [x] Document debrief methodology and architecture in `docs/v0.9_daily_debrief_guide.md`.
   - [x] Add unit and storage persistence tests in `tests/dailyDebrief.test.ts` (12 tests, 103 total suite).
   - [x] Conduct full 11-step browser acceptance audit via CDP with 10 verified screenshots.
-- [ ] v0.9 Phase 6: Action Desk & Defensible Claim Synthesis.
+- [x] v0.9 Modified Phase 6: Study Framework + Synthesis Workbench:
+  - [x] Define `StudyQuestion` and `PatternNote` models and zero-migration IndexedDB persistence within `StudyMeta`.
+  - [x] Build `StudyQuestionModal` and `StudyQuestionSelector` for analytical spine navigation.
+  - [x] Build `SynthesisComparisonView` with 5 comparative lenses (Site, Stakeholder, Method, Theme, Matrix).
+  - [x] Build `WorkingPatternsPanel` with one-click promotion to draft finding.
+  - [x] Build `FindingAuthoringModal` with live `computeSupportProfile()` triangulation feedback and limitation note enforcement.
+  - [x] Decouple downstream outputs with `StudyOutputConfig`, `RecommendationAuthoringModal`, and `OptionalOutputsModal`.
+  - [x] Implement pure validation lifecycle: substantive edit detection, revision bumping, invalidation history, and downstream recommendation dependency invalidation.
+  - [x] Enforce validated-only export boundaries in `buildBriefExportModel.ts`.
+  - [x] Add 19 Vitest unit/integration tests in `tests/synthesisWorkbench.test.ts` (122 tests total).
+  - [x] Conduct 18-step browser acceptance audit via CDP in headless Chrome with 14 verified screenshots.
+- [ ] v0.9 Phase 7: Action Desk & Cross-Case Sensemaking.
 
 ## P1
 

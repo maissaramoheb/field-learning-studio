@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.9.0-phase6 - Study Framework + Synthesis Workbench
+
+- Implemented **Study Framework & Analytical Spine**:
+  - Defined `StudyQuestion` model with DAC evaluation criteria (`Relevance`, `Coherence`, `Effectiveness`, `Efficiency`, `Impact`, `Sustainability`, `Cross-Cutting`).
+  - Added interactive `StudyQuestionSelector` with analytical spine pills, unassigned evidence filter counter, and question management modals.
+  - Linked evidence entries to study questions via `studyQuestionIds` in IndexedDB with referential integrity on question deletion.
+- Implemented **Multi-dimensional Synthesis Comparison View** (`SynthesisComparisonView`):
+  - Five comparative grouping modes: **Site**, **Stakeholder**, **Method**, **Theme**, and **Matrix** (cross-tabulation).
+  - Common themes indicator across multiple sites.
+  - Cross-tab matrix with coverage indicators and missing data alerts.
+- Implemented **Working Patterns & Sensemaking Notes** (`WorkingPatternsPanel`):
+  - Defined `PatternNote` model (`PAT-***`) with pattern statement, thematic tagging, counter-evidence/contradictions, and linked evidence items.
+  - One-click promotion to draft finding pre-populating authoring modal.
+- Implemented **Defensible Finding Authoring with Live Support Profiles**:
+  - Integrated `computeSupportProfile()` into `FindingAuthoringModal` displaying real-time confidence tier (`Strongly Supported`, `Moderately Supported`, `Emerging / Needs Triangulation`, `Contradicted / Challenged`) and diagnostic flags.
+  - Mandatory limitation notes enforced for `Emerging` claims and coverage gaps during authoring and human validation.
+- Implemented **Decoupled Downstream Outputs & Recommendations**:
+  - Replaced mandatory four-sequence pipeline (`Finding -> Lesson -> Good Practice -> Recommendation`) with flexible downstream outputs.
+  - Added `RecommendationAuthoringModal` anchored directly in validated findings.
+  - Configurable study output toggles (`enableRecommendations`, `enableLessonsLearned`, `enableGoodPractices`) via `StudyOutputConfig`.
+  - Added `OptionalOutputsModal` for lessons learned and good practices.
+- Implemented **Strict Dependency Invalidation & Re-validation Workflow**:
+  - Substantive edit detector `isSubstantiveFindingChange` detecting changes to statement, explanation, implication, or evidence base.
+  - Substantive edits to validated findings bump revision (`revision += 1`), revert status to `Needs Review`, and record audit history in `invalidationHistory`.
+  - Downstream recommendations linked to unvalidated findings display amber warning banners (`⚠️ Linked Finding requires re-validation`) and are excluded from formal exports (`isRecommendationExportEligible`).
+  - Human re-validation of parent finding automatically restores recommendation export eligibility.
+- Extended **Traceability Drawer**:
+  - Added dedicated inspectors for `RQ-***` and `PAT-***` records with assigned evidence chips and parent links.
+- Updated **Export Boundaries**:
+  - Export engine in `buildBriefExportModel.ts` strictly enforces validated-only export for findings, recommendations, lessons, and good practices in non-demo studies.
+- Added comprehensive documentation in `docs/v0.9_synthesis_workbench_guide.md`.
+- Added 19 Vitest unit and integration tests in `tests/synthesisWorkbench.test.ts`. Total test suite: 122 passing tests across 12 files.
+- Completed 18-step browser acceptance audit via CDP in headless Chrome with 14 screenshots verified.
+
 ## v0.9.0-phase5 - Daily Field Debrief Studio
 
 - Implemented dedicated **Daily Field Debrief Studio** situated between Evidence and Findings in the primary navigation:

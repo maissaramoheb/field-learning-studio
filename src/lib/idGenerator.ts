@@ -74,3 +74,11 @@ export function getNextGoodPracticeId(existingGpIds: string[]): GoodPracticeId {
 export function getNextRecommendationId(existingRecIds: string[]): RecommendationId {
   return getNextHumanReadableId("REC-", existingRecIds) as RecommendationId;
 }
+
+export function getNextQuestionId(existingQuestionIds: string[]): string {
+  return getNextHumanReadableId("RQ-", existingQuestionIds);
+}
+
+export function getNextPatternId(existingPatternIds: string[]): string {
+  return getNextHumanReadableId("PAT-", existingPatternIds);
+}

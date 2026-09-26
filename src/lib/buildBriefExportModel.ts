@@ -102,10 +102,47 @@ export function buildBriefExportModel(demoCase: DemoCase, includeSandbox: boolea
     day: "numeric",
   });
 
-  const filteredFindings = demoCase.findings.filter((f) => !f.id.includes("SBX") && !f.id.includes("TEMP"));
-  const filteredLessons = demoCase.lessons.filter((l) => !l.id.includes("SBX") && !l.id.includes("TEMP"));
-  const filteredGoodPractices = demoCase.goodPractices.filter((g) => !g.id.includes("SBX") && !g.id.includes("TEMP"));
-  const filteredRecs = demoCase.recommendations.filter((r) => !r.id.includes("SBX") && !r.id.includes("TEMP"));
+  const filteredFindings = demoCase.findings.filter((f) => {
+    if (f.id.includes("SBX") || f.id.includes("TEMP")) return false;
+    if (f.validationStatus !== undefined && f.validationStatus !== "Validated") {
+      return false;
+    }
+    return true;
+  });
+
+  const filteredRecs = demoCase.recommendations.filter((r) => {
+    if (r.id.includes("SBX") || r.id.includes("TEMP")) return false;
+    if (r.validationStatus !== undefined && r.validationStatus !== "Validated") {
+      return false;
+    }
+    if (r.linkedFindingId) {
+      const linked = demoCase.findings.find((f) => f.id === r.linkedFindingId);
+      if (
+        linked &&
+        linked.validationStatus !== undefined &&
+        linked.validationStatus !== "Validated"
+      ) {
+        return false;
+      }
+    }
+    return true;
+  });
+
+  const filteredLessons = demoCase.lessons.filter((l) => {
+    if (l.id.includes("SBX") || l.id.includes("TEMP")) return false;
+    if (l.validationStatus !== undefined && l.validationStatus !== "Validated") {
+      return false;
+    }
+    return true;
+  });
+
+  const filteredGoodPractices = demoCase.goodPractices.filter((g) => {
+    if (g.id.includes("SBX") || g.id.includes("TEMP")) return false;
+    if (g.validationStatus !== undefined && g.validationStatus !== "Validated") {
+      return false;
+    }
+    return true;
+  });
 
   const sandboxEvidence: ExportSandboxEvidence[] = [];
   if (includeSandbox) {

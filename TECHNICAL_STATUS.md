@@ -2,7 +2,7 @@
 
 ## Current Status
 
-v0.9 Phase 5 (Daily Field Debrief Studio) is implemented on branch `feature/v0.9-field-sensemaking`. The application provides a dedicated, local-first daily sensemaking workspace situated between Evidence and Findings. Practitioners can record end-of-day debriefs across 7 guided reflection questions, select multiple sites or study-wide scope, manage discrete actionable priorities for tomorrow, and link today's field sources and evidence observations. Crucial architectural boundaries are enforced: debriefs have no `ValidationStatus`, never mutate Evidence validation states or revisions, isolate emerging hypotheses behind explicit non-finding boundary guardrails, decouple divergence reflections from Evidence contradiction linkages, and suppress linear claim trace chains in the Traceability Drawer while enabling linked record inspection. Pristine demo templates are protected with one-click cloning. All 103 Vitest tests pass across 11 test files (27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics + 7 ID generator + 5 Field Intake + 19 Validation Lifecycle + 12 Daily Debrief). Next.js production build and ESLint pass with zero errors and zero warnings. Full 11-step browser acceptance audit completed cleanly with 10 CDP screenshots.
+v0.9 Modified Phase 6 (Study Framework + Synthesis Workbench) is implemented on branch `feature/v0.9-field-sensemaking`. The application provides an integrated, comparative analytical workspace that reduces cognitive load while establishing a defensible evidentiary path from validated field observations to findings. Practitioners can organize their analytical spine around Study Questions (`StudyQuestion`, `RQ-***`) tagged with standard evaluation criteria, filter and cross-compare validated evidence across five comparative lenses (Site, Stakeholder, Method, Theme, Matrix), record lightweight Working Patterns (`PatternNote`, `PAT-***`) with one-click promotion to draft findings, author findings backed by live Support Profiles (`computeSupportProfile`) with triangulation diagnostics and mandatory limitation notes for Emerging claims, anchor downstream Recommendations (`REC-***`) in validated findings, and enforce strict dependency invalidation when validated findings undergo substantive edits (amber warning banner in UI and exclusion from formal export until re-validated). Pristine demo templates remain read-only. All 122 Vitest tests pass across 12 test files. Next.js production build and ESLint pass with zero errors and zero warnings. Complete 18-step browser acceptance audit verified with 14 CDP screenshots.
 
 ## Completed Items
 
@@ -128,9 +128,32 @@ v0.9 Phase 5 (Daily Field Debrief Studio) is implemented on branch `feature/v0.9
   - Added 12 new Vitest unit and storage integration tests in `tests/dailyDebrief.test.ts`. Total test suite: 103 passing tests across 11 files.
   - Conducted complete 11-step browser acceptance audit via CDP in headless Chrome covering study creation, note intake, debrief recording, editing, detail view, traceability drawer suppression, page reload persistence, invariant checks, and demo cloning with 10 screenshots captured.
 
+  - Implemented v0.9 Modified Phase 6 Study Framework + Synthesis Workbench:
+    - Extended domain models in `src/lib/types.ts`: `StudyQuestion` (`RQ-***`), `PatternNote` (`PAT-***`), `StudyOutputConfig`, and extended `StudyMeta`, `EvidenceEntry`, and `Finding`.
+    - Added storage methods in `src/lib/storage/studyStore.ts`: `saveStudyQuestion`, `deleteStudyQuestion` (with automatic unlinking of evidence), `savePatternNote`, `deletePatternNote`, `bulkAssignEvidenceToQuestion`, `bulkAssignEvidenceTheme`.
+    - Implemented pure validation lifecycle in `src/lib/validation/validationLifecycle.ts`:
+      - `isSubstantiveFindingChange` comparing statement, explanation, implication, and evidence linkages.
+      - `applySubstantiveFindingEdit` resetting status to `Needs Review`, incrementing revision, and logging to `invalidationHistory`.
+      - `isRecommendationExportEligible` and `getRecommendationDependencyWarning` enforcing that downstream recommendations require a Validated parent finding.
+      - `requiresFindingLimitationNote` enforcing concise limitation notes for Emerging claims or coverage gaps.
+    - Updated export model builder in `src/lib/buildBriefExportModel.ts` to strictly export only validated findings and validated recommendations with validated parents in editable studies.
+    - Built modular Synthesis Workbench UI in `src/components/synthesis/`:
+      - `StudyQuestionModal`: keyed modal for creating/editing research questions with criteria selection.
+      - `StudyQuestionSelector`: interactive analytical spine pills, unassigned evidence filter, edit/delete actions.
+      - `SynthesisComparisonView`: multi-dimensional comparative lenses (Site, Stakeholder, Method, Theme, Matrix) with common themes across sites indicator and missing coverage warnings.
+      - `WorkingPatternsPanel`: lightweight sensemaking notes with one-click promotion to draft finding.
+      - `FindingAuthoringModal`: live triangulation support profile diagnostics, evidence selection, and limitation note validation.
+      - `RecommendationAuthoringModal`: downstream action proposals linked directly to validated findings.
+      - `OptionalOutputsModal`: optional lessons learned and good practices creation.
+      - `SynthesisWorkbench`: top-level comparative workspace coordinator with toggle controls for downstream outputs.
+    - Integrated Synthesis tab into `FieldLearningStudioApp.tsx`, updated overview pipeline steps, extended Traceability Drawer to inspect `RQ-***` and `PAT-***`, and added dynamic "Edit Finding" action with substantive revision handling in Findings tab.
+    - Added comprehensive documentation in `docs/v0.9_synthesis_workbench_guide.md`.
+    - Added 19 new Vitest unit and integration tests in `tests/synthesisWorkbench.test.ts`. Total test suite: 122 passing tests across 12 files.
+    - Conducted full 18-step browser acceptance audit via CDP in headless Chrome with all 14 screenshots verified.
+
 ## Pending Items
 
-- Implement Phase 6: Action Desk & Defensible Claim Synthesis (gap review, contradiction management, finding synthesis).
+- Implement Action Desk & Defensible Claim Synthesis (cross-case gap review, contradiction resolution board, field mission closure).
 
 ## Known Risks
 
@@ -141,7 +164,7 @@ v0.9 Phase 5 (Daily Field Debrief Studio) is implemented on branch `feature/v0.9
 
 ## Next Recommended Step
 
-Proceed to Phase 6: Action Desk & Defensible Claim Synthesis after product owner review and approval of Phase 5 Daily Field Debrief Studio.
+Review Phase 6 Study Framework + Synthesis Workbench implementation and prepare for strategic product evaluation.
 
 ## Validation Commands
 
@@ -157,12 +180,12 @@ git diff --check
 
 - `npm run lint`: passed (0 errors, 0 warnings).
 - `npm run build`: passed (Next.js production static bundle generated).
-- `npm test`: passed (11 test files, 103 passing tests: 27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics + 7 ID generator + 5 Field Intake + 19 Validation Lifecycle + 12 Daily Debrief).
+- `npm test`: passed (12 test files, 122 passing tests: 27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics + 7 ID generator + 5 Field Intake + 19 Validation Lifecycle + 12 Daily Debrief + 19 Synthesis Workbench).
 - `python3 -m json.tool OPS_UPDATE.json`: passed.
 - `git diff --check`: passed.
-- Local preview/browser smoke: 11-step automated CDP audit passed with 10 screenshots verified.
+- Local preview/browser smoke: 18-step automated CDP audit passed with 14 screenshots verified.
 - Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch; pending merge of feature/v0.9-field-sensemaking).
 
 ## Last Update
 
-2026-09-26: Implemented v0.9 Phase 5 Daily Field Debrief Studio on branch `feature/v0.9-field-sensemaking`. All 103 tests pass. Production build, ESLint, and 11-step browser acceptance audit pass with zero errors.
+2026-09-26: Implemented v0.9 Modified Phase 6 Study Framework + Synthesis Workbench on branch `feature/v0.9-field-sensemaking`. All 122 tests pass. Production build, ESLint, and 18-step browser acceptance audit pass with zero errors.
