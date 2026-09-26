@@ -264,7 +264,7 @@ export function WorkingPatternsPanel({
                       onClick={() => onPromoteToFinding(pat)}
                       className="rounded bg-[var(--accent)] px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-[var(--accent-strong)] transition"
                     >
-                      Promote to Draft Finding
+                      Create Draft Finding from Pattern
                     </button>
                     <button
                       type="button"

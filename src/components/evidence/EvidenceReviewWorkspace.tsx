@@ -324,7 +324,7 @@ export function EvidenceReviewWorkspace({
 
           <div>
             <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
-              Evidence Strength
+              Observation Reliability
             </label>
             <select
               value={filters.evidenceStrength}
@@ -333,7 +333,7 @@ export function EvidenceReviewWorkspace({
               }
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
             >
-              <option value="All">All Strengths</option>
+              <option value="All">All Reliabilities</option>
               {evidenceStrengths
                 .filter((s) => s !== "All")
                 .map((s) => (

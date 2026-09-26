@@ -85,8 +85,14 @@
   - [x] Implement pure validation lifecycle: substantive edit detection, revision bumping, invalidation history, and downstream recommendation dependency invalidation.
   - [x] Enforce validated-only export boundaries in `buildBriefExportModel.ts`.
   - [x] Add 19 Vitest unit/integration tests in `tests/synthesisWorkbench.test.ts` (122 tests total).
-  - [x] Conduct 18-step browser acceptance audit via CDP in headless Chrome with 14 verified screenshots.
-- [ ] v0.9 Phase 7: Action Desk & Cross-Case Sensemaking.
+- [x] v0.9 Phase 7: Bulk Intake & Structured Import:
+  - [x] Implement Route A: Batch Observation Builder with narrative pane, deterministic segmentation (`splitNarrativeIntoSegments`), text highlight capture, compact review table with inline text editing, bulk theme and reliability setters, and atomic Draft save.
+  - [x] Implement Route B: Multi-Source Structured Paste (`BulkSourceModal`) parsing `---` blocks with header extraction, conservative ethics defaults, narrative safety scan, scope mismatch reconciliation, and exact duplicate detection.
+  - [x] Implement Route C: Tabular CSV/TSV Import (`parseCsvOrTsv`) with delimiter auto-detection, smart column mapping suggester, and preview reconciliation.
+  - [x] Preserve provenance hierarchy (`Source -> candidate observations -> reviewed Evidence`), `validationStatus = "Draft"`, `revision = 1`, and triangulation invariance.
+  - [x] Document bulk intake architecture in `docs/v0.9_bulk_intake_guide.md`.
+  - [x] Add 20 Vitest unit/integration tests in `tests/bulkIntake.test.ts` (146 tests total).
+  - [x] Conduct 7-step browser acceptance audit via CDP in headless Chrome with 11 verified screenshots.
 
 ## P1
 

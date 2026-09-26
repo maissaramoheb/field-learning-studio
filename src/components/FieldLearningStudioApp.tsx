@@ -2220,11 +2220,15 @@ function FindingsSection({
 
   const handleFindingValidate = async (finding: Finding) => {
     if (!currentStudy || !onRefreshStudy) return;
+    const cachedReviewer = typeof window !== "undefined" ? localStorage.getItem("fls_reviewer_name") : null;
     const reviewerName = window.prompt(
       "Enter reviewer identity for finding validation:",
-      "Lead Evaluator"
+      cachedReviewer || "Lead Evaluator"
     );
     if (!reviewerName?.trim()) return;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fls_reviewer_name", reviewerName.trim());
+    }
 
     let limitationNote = finding.limitationNote;
     const profile = computeSupportProfile(
@@ -2652,11 +2656,15 @@ function RecommendationsSection({
 
   const handleRecValidate = async (rec: Recommendation) => {
     if (!currentStudy || !onRefreshStudy) return;
+    const cachedReviewer = typeof window !== "undefined" ? localStorage.getItem("fls_reviewer_name") : null;
     const reviewerName = window.prompt(
       "Enter reviewer identity for recommendation validation:",
-      "Lead Evaluator"
+      cachedReviewer || "Lead Evaluator"
     );
     if (!reviewerName?.trim()) return;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fls_reviewer_name", reviewerName.trim());
+    }
     try {
       const updated = validateArtifact(rec, reviewerName.trim());
       await saveRecommendation({ ...updated, studyId: currentStudy.id });

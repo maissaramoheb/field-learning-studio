@@ -236,6 +236,24 @@ export async function saveSource(
   await db.put("sources", source);
 }
 
+export async function saveSourceBatch(
+  sourcesOrStudyId: (SourceRecord & { studyId: StudyId })[] | StudyId,
+  maybeSources?: SourceRecord[]
+): Promise<void> {
+  const sources: (SourceRecord & { studyId: StudyId })[] =
+    typeof sourcesOrStudyId === "string"
+      ? (maybeSources || []).map((s) => ({ ...s, studyId: sourcesOrStudyId }))
+      : sourcesOrStudyId;
+  if (sources.length === 0) return;
+  const db = await getDb();
+  const tx = db.transaction("sources", "readwrite");
+  const store = tx.objectStore("sources");
+  for (const src of sources) {
+    store.put(src);
+  }
+  await tx.done;
+}
+
 export async function getSource(
   studyId: StudyId,
   sourceId: SourceRecordId
@@ -266,6 +284,24 @@ export async function saveEvidence(
 ): Promise<void> {
   const db = await getDb();
   await db.put("evidence", evidence);
+}
+
+export async function saveEvidenceBatch(
+  evidenceOrStudyId: (EvidenceEntry & { studyId: StudyId })[] | StudyId,
+  maybeEvidence?: EvidenceEntry[]
+): Promise<void> {
+  const evidenceList: (EvidenceEntry & { studyId: StudyId })[] =
+    typeof evidenceOrStudyId === "string"
+      ? (maybeEvidence || []).map((e) => ({ ...e, studyId: evidenceOrStudyId }))
+      : evidenceOrStudyId;
+  if (evidenceList.length === 0) return;
+  const db = await getDb();
+  const tx = db.transaction("evidence", "readwrite");
+  const store = tx.objectStore("evidence");
+  for (const ev of evidenceList) {
+    store.put(ev);
+  }
+  await tx.done;
 }
 
 export async function getEvidence(

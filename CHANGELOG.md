@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.9.0-phase7 - Bulk Intake & Structured Import
+
+- Implemented **Route A: Batch Observation Builder**:
+  - Direct narrative-to-observation extraction workspace in `BatchObservationBuilder.tsx` accessible from active source reader in Field Intake.
+  - Deterministic segmentation helper in `src/lib/intake/segmentationHelper.ts` (`splitNarrativeIntoSegments`) supporting paragraphs, bullets (`-`, `*`, `•`, `1.`), and nested combinations.
+  - Text highlight capture directly appending selected phrases into observation rows.
+  - Compact review table with inline text editing of `Raw Observation` and `Analytical Meaning / Interpretation`.
+  - Bulk action toolbar for setting Primary Theme, Observation Reliability (`High`, `Medium`, `Low`), and row deletion.
+  - Atomic batch save via `saveEvidenceBatch` generating sequential non-colliding `EV-***` IDs and setting `validationStatus = "Draft"`, `revision = 1`.
+- Implemented **Route B: Multi-Source Structured Paste**:
+  - `BulkSourceModal.tsx` parsing multi-source notes separated by `---` blocks in `src/lib/intake/structuredTextParser.ts`.
+  - Case-insensitive extraction of standard headers: `Title`, `Date`, `Site`, `Stakeholder`, `Method`, `Consent`, `Anonymization`, `Sensitivity`, and `Notes`.
+  - Conservative ethics defaults: `Restricted / Unclear` consent and `Identifiable / Restricted` anonymization when omitted.
+  - Narrative heuristic safety scanner reporting clean status or flagging sensitive patterns.
+  - Planned study scope mismatch detector alerting on new sites or stakeholder groups with options to formally expand study scope or import as out-of-scope fieldwork.
+  - Deterministic duplicate detector in `src/lib/intake/duplicateDetector.ts` flagging duplicates by Title + Date or $\ge 40$ character normalized narrative match.
+  - Import receipt displaying created, skipped, and warning tallies.
+- Implemented **Route C: Tabular CSV / TSV Import**:
+  - Native, zero-dependency RFC 4180 parser in `src/lib/intake/csvParser.ts` (`parseCsvOrTsv`) with delimiter auto-detection (`,`, `\t`, `;`), quoted strings, multiline cells, and escaped quotes.
+  - Smart column mapping suggester (`suggestColumnMappings`) with interactive dropdown selectors for incoming headers.
+  - Direct file upload or clipboard text paste.
+  - Conversion to candidate sources and reconciliation through preview and scope decision grid.
+- Enforced **Architectural Invariants & Provenance Integrity**:
+  - Strict provenance model: `Source -> candidate observations -> reviewed Evidence`.
+  - Every observation created begins as `Draft` (Rev 1) and never alters validated findings until human review.
+  - Triangulation invariant: multiple observations derived from a single source represent exactly one independent source in analytical support profiles (`computeSupportProfile`).
+- Added comprehensive technical documentation in `docs/v0.9_bulk_intake_guide.md`.
+- Added 20 Vitest unit and integration tests in `tests/bulkIntake.test.ts`. Total test suite: 146 passing tests across 13 test files.
+- Completed 7-step browser acceptance audit via CDP in headless Chrome across 11 screenshots.
+
 ## v0.9.0-phase6 - Study Framework + Synthesis Workbench
 
 - Implemented **Study Framework & Analytical Spine**:

@@ -233,7 +233,7 @@ function EvidenceEditModalContent({
             </div>
             <div>
               <label className="block text-xs font-semibold text-[var(--foreground)]">
-                Evidence Strength
+                Observation Reliability (researcher assessment)
               </label>
               <select
                 value={evidenceStrength}

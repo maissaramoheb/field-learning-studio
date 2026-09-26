@@ -5,6 +5,7 @@ import { SourceCaptureForm } from "./SourceCaptureForm";
 import { ObservationCaptureForm } from "./ObservationCaptureForm";
 import { SourceHistory } from "./SourceHistory";
 import { MinimalStudyModal } from "@/components/studies/MinimalStudyModal";
+import { BulkSourceModal } from "./BulkSourceModal";
 import { cloneDemoStudy } from "@/lib/storage/studyStore";
 import type { FieldStudy, SourceRecord } from "@/lib/types";
 
@@ -19,19 +20,36 @@ export function FieldIntakeView({
   onStudyChange,
   onRefreshStudy,
 }: FieldIntakeViewProps) {
-  const [activeSource, setActiveSource] = useState<SourceRecord | null>(
-    () => (study.sources.length > 0 ? study.sources[0] : null)
-  );
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [isCapturingNewSource, setIsCapturingNewSource] = useState(
     () => study.sources.length === 0
   );
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isBulkSourceModalOpen, setIsBulkSourceModalOpen] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
 
+  // Derive active source from study.sources and selectedSourceId without an effect
+  const activeSource: SourceRecord | null = React.useMemo(() => {
+    if (study.sources.length === 0) return null;
+    if (selectedSourceId) {
+      const found = study.sources.find((s) => s.id === selectedSourceId);
+      if (found) return found;
+    }
+    return study.sources[0];
+  }, [study.sources, selectedSourceId]);
+
   const handleSourceSaved = (newSource: SourceRecord) => {
-    setActiveSource(newSource);
+    setSelectedSourceId(newSource.id);
     setIsCapturingNewSource(false);
     onRefreshStudy();
+  };
+
+  const handleSourcesImported = (importedSources: SourceRecord[]) => {
+    onRefreshStudy();
+    if (importedSources.length > 0) {
+      setSelectedSourceId(importedSources[0].id);
+      setIsCapturingNewSource(false);
+    }
   };
 
   const handleEvidenceCreated = () => {
@@ -84,6 +102,18 @@ export function FieldIntakeView({
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
+            {!study.isDemoCase && (
+              <button
+                type="button"
+                onClick={() => setIsBulkSourceModalOpen(true)}
+                className="rounded border border-indigo-500/40 bg-indigo-950/30 px-3.5 py-2 text-xs font-semibold text-indigo-200 hover:bg-indigo-900/40 hover:border-indigo-400 transition cursor-pointer flex items-center gap-1.5"
+                title="Bulk import multiple sources via structured text or CSV/TSV"
+              >
+                <span>⚡</span>
+                <span>Bulk Source Intake</span>
+              </button>
+            )}
+
             {study.isDemoCase ? (
               <button
                 type="button"
@@ -146,10 +176,11 @@ export function FieldIntakeView({
                 study={study}
                 activeSourceId={activeSource?.id || null}
                 onSelectSource={(src) => {
-                  setActiveSource(src);
+                  setSelectedSourceId(src.id);
                   setIsCapturingNewSource(false);
                 }}
                 onStartNewSource={() => setIsCapturingNewSource(true)}
+                onOpenBulkImport={() => setIsBulkSourceModalOpen(true)}
               />
             )}
           </div>
@@ -192,6 +223,14 @@ export function FieldIntakeView({
           onStudyChange(newId);
           setIsCapturingNewSource(true);
         }}
+      />
+
+      {/* Bulk Source Intake Modal */}
+      <BulkSourceModal
+        isOpen={isBulkSourceModalOpen}
+        study={study}
+        onClose={() => setIsBulkSourceModalOpen(false)}
+        onSourcesImported={handleSourcesImported}
       />
     </div>
   );

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { getNextEvidenceId } from "@/lib/idGenerator";
 import { saveEvidence } from "@/lib/storage/studyStore";
+import { BatchObservationBuilder } from "./BatchObservationBuilder";
 import type {
   SourceRecord,
   EvidenceEntry,
@@ -14,7 +15,8 @@ import type {
 interface ObservationCaptureFormProps {
   study: FieldStudy;
   activeSource: SourceRecord;
-  onEvidenceCreated: (newEvidence: EvidenceEntry) => void;
+  onEvidenceCreated: (newEvidence?: EvidenceEntry) => void;
+  onBatchEvidenceSaved?: (count: number) => void;
 }
 
 const STRENGTH_OPTIONS: EvidenceStrength[] = ["High", "Medium", "Low"];
@@ -24,7 +26,9 @@ export function ObservationCaptureForm({
   study,
   activeSource,
   onEvidenceCreated,
+  onBatchEvidenceSaved,
 }: ObservationCaptureFormProps) {
+  const [isBatchMode, setIsBatchMode] = useState(false);
   const [rawObservation, setRawObservation] = useState("");
   const [interpretation, setInterpretation] = useState("");
   const [primaryTheme, setPrimaryTheme] = useState("Operational Execution");
@@ -97,6 +101,24 @@ export function ObservationCaptureForm({
     }
   };
 
+  if (isBatchMode) {
+    return (
+      <BatchObservationBuilder
+        study={study}
+        activeSource={activeSource}
+        onEvidenceBatchSaved={(count) => {
+          if (onBatchEvidenceSaved) {
+            onBatchEvidenceSaved(count);
+          } else {
+            onEvidenceCreated();
+          }
+          setIsBatchMode(false);
+        }}
+        onClose={() => setIsBatchMode(false)}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Source Reading Pane with Quick-Select capability */}
@@ -121,14 +143,23 @@ export function ObservationCaptureForm({
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleTextSelection}
-            title="Highlight text in the note below and click to copy it into Raw Observation"
-            className="rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs font-semibold text-[var(--trace)] hover:border-[var(--trace)]"
-          >
-            ✂ Extract Selected Text
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsBatchMode(true)}
+              className="rounded bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[var(--accent-strong)] transition cursor-pointer"
+            >
+              ⚡ Extract Multiple Observations
+            </button>
+            <button
+              type="button"
+              onClick={handleTextSelection}
+              title="Highlight text in the note below and click to copy it into Raw Observation"
+              className="rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs font-semibold text-[var(--trace)] hover:border-[var(--trace)]"
+            >
+              ✂ Extract Selected Text
+            </button>
+          </div>
         </div>
 
         {/* Narrative Box */}
@@ -245,7 +276,7 @@ export function ObservationCaptureForm({
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold text-[var(--foreground)]">
-                Evidence Strength <span className="text-rose-400">*</span>
+                Observation Reliability (researcher assessment) <span className="text-rose-400">*</span>
               </label>
               <select
                 value={evidenceStrength}

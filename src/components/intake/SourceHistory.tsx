@@ -8,6 +8,7 @@ interface SourceHistoryProps {
   activeSourceId: string | null;
   onSelectSource: (source: SourceRecord) => void;
   onStartNewSource: () => void;
+  onOpenBulkImport?: () => void;
 }
 
 export function SourceHistory({
@@ -15,6 +16,7 @@ export function SourceHistory({
   activeSourceId,
   onSelectSource,
   onStartNewSource,
+  onOpenBulkImport,
 }: SourceHistoryProps) {
   // Count evidence entries per source
   const evidenceCountBySource = React.useMemo(() => {
@@ -39,13 +41,25 @@ export function SourceHistory({
           </h3>
         </div>
 
-        <button
-          type="button"
-          onClick={onStartNewSource}
-          className="rounded bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition cursor-pointer"
-        >
-          + Capture New Note
-        </button>
+        <div className="flex items-center gap-2">
+          {onOpenBulkImport && (
+            <button
+              type="button"
+              onClick={onOpenBulkImport}
+              className="rounded border border-indigo-500/40 bg-indigo-950/20 px-2.5 py-1.5 text-xs font-semibold text-indigo-300 hover:bg-indigo-900/30 transition cursor-pointer"
+              title="Bulk import multiple sources via structured text or CSV/TSV"
+            >
+              ⚡ Bulk Import
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onStartNewSource}
+            className="rounded bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition cursor-pointer"
+          >
+            + Capture New Note
+          </button>
+        </div>
       </div>
 
       {study.sources.length === 0 ? (
@@ -54,15 +68,26 @@ export function SourceHistory({
             No field notes captured yet
           </p>
           <p className="mt-1 text-xs text-[var(--muted)]">
-            Begin by capturing your first interview, focus group, or observation note in this study.
+            Begin by capturing your first interview, focus group, or observation note in this study, or import a batch.
           </p>
-          <button
-            type="button"
-            onClick={onStartNewSource}
-            className="mt-4 rounded bg-[var(--surface-elevated)] border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--trace)] hover:border-[var(--trace)] transition cursor-pointer"
-          >
-            Start Note Capture
-          </button>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2.5">
+            <button
+              type="button"
+              onClick={onStartNewSource}
+              className="rounded bg-[var(--surface-elevated)] border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--trace)] hover:border-[var(--trace)] transition cursor-pointer"
+            >
+              Start Note Capture
+            </button>
+            {onOpenBulkImport && (
+              <button
+                type="button"
+                onClick={onOpenBulkImport}
+                className="rounded border border-indigo-500/50 bg-indigo-950/30 px-4 py-2 text-xs font-semibold text-indigo-300 hover:bg-indigo-900/40 transition cursor-pointer"
+              >
+                ⚡ Bulk Source Import
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <div className="mt-4 space-y-2.5 max-h-[600px] overflow-y-auto pr-1">

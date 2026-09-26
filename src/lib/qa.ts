@@ -18,10 +18,10 @@ export function generateQAReview(demoCase: DemoCase): QAReviewItem[] {
     (recommendation) => recommendation.evidenceBase.length > 0,
   );
   const contradictionsDisplayed = demoCase.findings.every(
-    (finding) => finding.contradictoryEvidence.trim().length > 0,
+    (finding) => (finding.contradictoryEvidence?.trim() || "").length > 0,
   );
   const sensitivityFlagsPresent = demoCase.evidence.every(
-    (entry) => entry.sensitivityFlag.trim().length > 0,
+    (entry) => (entry.sensitivityFlag?.trim() || "").length > 0,
   );
   const hasSensitiveEvidence = demoCase.evidence.some(
     (entry) =>

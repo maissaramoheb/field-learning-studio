@@ -82,3 +82,50 @@ export function getNextQuestionId(existingQuestionIds: string[]): string {
 export function getNextPatternId(existingPatternIds: string[]): string {
   return getNextHumanReadableId("PAT-", existingPatternIds);
 }
+
+/**
+ * Safely derives a sequence of N non-colliding human-readable IDs.
+ */
+export function getNextSequenceOfIds(
+  prefix: string,
+  existingIds: string[],
+  count: number,
+  padLength: number = 3
+): string[] {
+  if (count <= 0) return [];
+  let maxNum = 0;
+  const regex = new RegExp(`^${prefix}(\\d+)$`, "i");
+
+  for (const id of existingIds) {
+    if (!id || typeof id !== "string") continue;
+    const match = id.trim().match(regex);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num;
+      }
+    }
+  }
+
+  const result: string[] = [];
+  for (let i = 1; i <= count; i++) {
+    const num = maxNum + i;
+    result.push(`${prefix}${num.toString().padStart(padLength, "0")}`);
+  }
+  return result;
+}
+
+export function getNextSequenceOfEvidenceIds(
+  existingEvidenceIds: string[],
+  count: number
+): EvidenceEntryId[] {
+  return getNextSequenceOfIds("EV-", existingEvidenceIds, count) as EvidenceEntryId[];
+}
+
+export function getNextSequenceOfSourceIds(
+  existingSourceIds: string[],
+  count: number
+): SourceRecordId[] {
+  return getNextSequenceOfIds("SRC-", existingSourceIds, count) as SourceRecordId[];
+}
+
