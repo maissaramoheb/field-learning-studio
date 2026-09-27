@@ -203,8 +203,8 @@ export function SynthesisComparisonView({
               onClick={() => setDimension("site")}
               className={`rounded px-2.5 py-1 font-semibold transition ${
                 dimension === "site"
-                  ? "bg-[var(--accent)] text-white shadow-sm"
-                  : "text-[var(--foreground)] hover:text-white"
+                  ? "bg-[var(--surface-elevated)] text-[var(--foreground)] border border-[var(--border-strong)] shadow-xs"
+                  : "text-[var(--muted-soft)] hover:text-[var(--foreground)] border border-transparent"
               }`}
             >
               Site
@@ -214,8 +214,8 @@ export function SynthesisComparisonView({
               onClick={() => setDimension("stakeholder")}
               className={`rounded px-2.5 py-1 font-semibold transition ${
                 dimension === "stakeholder"
-                  ? "bg-[var(--accent)] text-white shadow-sm"
-                  : "text-[var(--foreground)] hover:text-white"
+                  ? "bg-[var(--surface-elevated)] text-[var(--foreground)] border border-[var(--border-strong)] shadow-xs"
+                  : "text-[var(--muted-soft)] hover:text-[var(--foreground)] border border-transparent"
               }`}
             >
               Stakeholder
@@ -225,8 +225,8 @@ export function SynthesisComparisonView({
               onClick={() => setDimension("method")}
               className={`rounded px-2.5 py-1 font-semibold transition ${
                 dimension === "method"
-                  ? "bg-[var(--accent)] text-white shadow-sm"
-                  : "text-[var(--foreground)] hover:text-white"
+                  ? "bg-[var(--surface-elevated)] text-[var(--foreground)] border border-[var(--border-strong)] shadow-xs"
+                  : "text-[var(--muted-soft)] hover:text-[var(--foreground)] border border-transparent"
               }`}
             >
               Method
@@ -236,8 +236,8 @@ export function SynthesisComparisonView({
               onClick={() => setDimension("theme")}
               className={`rounded px-2.5 py-1 font-semibold transition ${
                 dimension === "theme"
-                  ? "bg-[var(--accent)] text-white shadow-sm"
-                  : "text-[var(--foreground)] hover:text-white"
+                  ? "bg-[var(--surface-elevated)] text-[var(--foreground)] border border-[var(--border-strong)] shadow-xs"
+                  : "text-[var(--muted-soft)] hover:text-[var(--foreground)] border border-transparent"
               }`}
             >
               Theme
@@ -247,8 +247,8 @@ export function SynthesisComparisonView({
               onClick={() => setDimension("matrix")}
               className={`rounded px-2.5 py-1 font-semibold transition ${
                 dimension === "matrix"
-                  ? "bg-[var(--accent)] text-white shadow-sm"
-                  : "text-[var(--foreground)] hover:text-white"
+                  ? "bg-[var(--surface-elevated)] text-[var(--foreground)] border border-[var(--border-strong)] shadow-xs"
+                  : "text-[var(--muted-soft)] hover:text-[var(--foreground)] border border-transparent"
               }`}
             >
               Matrix

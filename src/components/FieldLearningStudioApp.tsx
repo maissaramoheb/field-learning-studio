@@ -3657,31 +3657,33 @@ function LearningBriefSection({
               {exportStatus === "docx-loading" ? "Generating Word..." : "Download Word draft (.docx)"}
             </button>
 
-            <button
-              className="fls-button fls-button-quiet"
-              disabled={exportStatus !== "idle"}
-              onClick={handleDownloadPdf}
-              type="button"
-            >
-              {exportStatus === "pdf-loading" ? "Preparing PDF..." : "Download PDF draft"}
-            </button>
+            <div className="inline-flex items-center rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-0.5 text-xs">
+              <button
+                className="rounded px-3 py-1 font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-elevated)] transition disabled:opacity-50 cursor-pointer"
+                disabled={exportStatus !== "idle"}
+                onClick={handleDownloadPdf}
+                type="button"
+              >
+                {exportStatus === "pdf-loading" ? "Preparing PDF..." : "PDF"}
+              </button>
 
-            <button
-              className="fls-button fls-button-quiet"
-              disabled={exportStatus !== "idle"}
-              onClick={handleDownloadMarkdown}
-              type="button"
-            >
-              {exportStatus === "md-loading" ? "Generating..." : "Download Markdown draft"}
-            </button>
+              <button
+                className="rounded px-3 py-1 font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-elevated)] transition disabled:opacity-50 cursor-pointer"
+                disabled={exportStatus !== "idle"}
+                onClick={handleDownloadMarkdown}
+                type="button"
+              >
+                {exportStatus === "md-loading" ? "Generating..." : "Markdown"}
+              </button>
 
-            <button
-              className="fls-button fls-button-quiet"
-              onClick={onCopy}
-              type="button"
-            >
-              {copyStatus === "copied" ? "✓ Copied Markdown draft" : "Copy Markdown draft"}
-            </button>
+              <button
+                className="rounded px-3 py-1 font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-elevated)] transition cursor-pointer"
+                onClick={onCopy}
+                type="button"
+              >
+                {copyStatus === "copied" ? "✓ Copied" : "Copy MD"}
+              </button>
+            </div>
           </div>
           <p className="fls-export-note">Internal workspace draft · Review and clearance required before external distribution. Exports are generated locally.</p>
         </div>
