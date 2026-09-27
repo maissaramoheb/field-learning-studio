@@ -175,9 +175,9 @@ export function LandingPage() {
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-2 text-xs font-mono text-[var(--muted-soft)]">
-              <span>✓ 100% Local Storage</span>
+              <span>✓ Study data stored locally in browser</span>
               <span className="hidden sm:inline">·</span>
-              <span>✓ Zero Cloud Telemetry</span>
+              <span>✓ 100% Client-Side Processing</span>
               <span className="hidden sm:inline">·</span>
               <span>✓ No Account Required</span>
             </div>
@@ -420,7 +420,7 @@ export function LandingPage() {
                 Every claim connected to the ground.
               </h2>
               <p className="max-w-2xl text-sm text-[var(--muted)] leading-relaxed">
-                Traceability does not prove truth — it keeps the reasoning visible. From raw transcript notes to executive recommendations, follow the exact path of evidence without black-box leaps.
+                Keep the reasoning path inspectable. Follow the path from source material to recommendation without black-box leaps, keeping human review visible at every step.
               </p>
             </div>
 
@@ -594,34 +594,34 @@ export function LandingPage() {
               <div className="space-y-2">
                 <span className="fls-eyebrow">FIELDWORK INTAKE ENGINE</span>
                 <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[var(--foreground)]">
-                  Bring field notes straight from Word.
+                  Bring Word field notes into the workspace.
                 </h2>
               </div>
               <span className="rounded-full bg-[var(--surface-elevated)] border border-[var(--border-strong)] px-3 py-1 font-mono text-[11px] text-[var(--accent-strong)] self-start sm:self-auto">
-                Client-Side Engine · In Validation
+                Client-Side Engine · Production Ready
               </span>
             </div>
 
             <p className="max-w-2xl text-sm text-[var(--muted)] leading-relaxed">
-              No need to manually retype interview notes. Drop single or multiple Microsoft Word (.docx) files into FLS. The deterministic parser segments text into candidate observations, extracts table rows, and keeps you in full editorial control.
+              Review candidate observations before they enter the analysis. Word documents are parsed locally in the browser with zero server transmission, extracting paragraphs, tables, and notes into reviewable items while keeping missing metadata recorded honestly.
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-2">
                 <strong className="block text-xs font-semibold text-[var(--foreground)]">
-                  100% Local-First Extraction
+                  Parsed Locally in Browser
                 </strong>
                 <p className="text-xs text-[var(--muted)] leading-relaxed">
-                  Word files are parsed entirely in your browser using pure JavaScript. No document content is ever transmitted to cloud servers.
+                  Word (.docx) files are processed entirely in your browser using pure JavaScript. Study data is stored locally in the browser and never transmitted to external servers.
                 </p>
               </div>
 
               <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-2">
                 <strong className="block text-xs font-semibold text-[var(--foreground)]">
-                  Candidate Segmentation
+                  Candidate Observation Review
                 </strong>
                 <p className="text-xs text-[var(--muted)] leading-relaxed">
-                  Headings, meaningful paragraphs, bullet points, and tables become scannable candidate cards with Accept, Edit, and Skip controls.
+                  Review candidate observations before they enter the analysis. Accept, edit, or skip raw excerpts with complete practitioner control over what enters the inquiry.
                 </p>
               </div>
 
@@ -630,7 +630,7 @@ export function LandingPage() {
                   Methodological Honesty
                 </strong>
                 <p className="text-xs text-[var(--muted)] leading-relaxed">
-                  Unknown dates, unspecified methods, or unverified consent remain explicitly recorded as Unknown. FLS never fabricates reassuring defaults.
+                  Unknown dates, unverified consent, or unspecified methods remain explicitly recorded as Unknown. FLS never fabricates reassuring defaults or autonomous conclusions.
                 </p>
               </div>
             </div>
@@ -868,7 +868,7 @@ export function LandingPage() {
               </Link>
             </div>
             <p className="text-xs font-mono text-[var(--muted-soft)]">
-              Local-first · No credit card · No server data transfer
+              Study data stored locally in browser · No account required · Free &amp; Open
             </p>
           </div>
         </section>
