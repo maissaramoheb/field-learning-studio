@@ -169,6 +169,7 @@ export interface SourceRecord {
   anonymizationStatus?: AnonymizationStatus;
   summary: string;
   rawText?: string;
+  notes?: string;
   sensitivityFlag: SensitivityFlag;
   createdAt?: number;
   updatedAt?: number;

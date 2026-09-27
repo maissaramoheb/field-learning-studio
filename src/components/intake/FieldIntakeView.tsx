@@ -12,12 +12,14 @@ interface FieldIntakeViewProps {
   study: FieldStudy;
   onStudyChange: (newStudyId: string) => void;
   onRefreshStudy: () => void;
+  onOpenDocxModal?: () => void;
 }
 
 export function FieldIntakeView({
   study,
   onStudyChange,
   onRefreshStudy,
+  onOpenDocxModal,
 }: FieldIntakeViewProps) {
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [isCapturingNewSource, setIsCapturingNewSource] = useState(
@@ -90,6 +92,17 @@ export function FieldIntakeView({
           <p>Capture source notes and extract observations for review.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
+          {!study.isDemoCase && onOpenDocxModal && (
+            <button
+              type="button"
+              onClick={onOpenDocxModal}
+              className="fls-button fls-button-quiet"
+              title="Import field notes from Word (.docx) documents"
+            >
+              <span>📄 Word (.docx) Intake</span>
+            </button>
+          )}
+
           {!study.isDemoCase && (
             <button
               type="button"
