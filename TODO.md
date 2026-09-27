@@ -2,6 +2,12 @@
 
 ## P0
 
+- [x] Unified Production Release v1.0 (`v1.0-public-pilot`):
+  - [x] Merge `feature/docx-field-intake` and `feature/public-landing-page` onto `main`.
+  - [x] Production deployment to `https://field-learning-studio.vercel.app` (Next.js 16 Turbopack).
+  - [x] Live automated CDP smoke tests: 0 console errors, 0 network failures, mobile 390px zero overflow.
+  - [x] All 204 unit & integration tests passing across 19 files.
+  - [x] Tag release `v1.0-public-pilot`.
 - [x] Premium Public Landing Page & Studio Routing (`feature/public-landing-page`):
   - [x] High-authority public landing page (`src/components/landing/LandingPage.tsx`) communicating value to evaluators, MEL teams, and NGOs.
   - [x] 11 structured narrative sections with interactive 4-space workflow stepper, traceability lineage chain, and human judgment matrix.

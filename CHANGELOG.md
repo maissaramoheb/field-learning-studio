@@ -1,5 +1,28 @@
 # Changelog
 
+## v1.0.0 - Unified Production Release: Public Landing Page + DOCX Field Intake + Studio Workspace
+
+- **Production Integration**:
+  - Merged `feature/docx-field-intake` and `feature/public-landing-page` onto `main` (commit `c145dad`).
+  - Released live to permanent production URL: `https://field-learning-studio.vercel.app`.
+  - Tagged production release: `v1.0-public-pilot`.
+- **Public-Facing Landing Page (`/` and `/welcome`)**:
+  - Methodology-first public narrative communicating value to evaluators, MEL teams, consultancies, and NGOs.
+  - Interactive 4-space workflow stepper, unbroken traceability lineage demonstration (`SRC-001` → Draft), human judgment comparison matrix, trust & privacy principles ("Study data stored locally in browser · 100% Client-Side Processing · No Account Required").
+- **Client-Side DOCX Field Intake Engine**:
+  - Integrated `mammoth.js` for zero-server, 100% client-side Word `.docx` parsing.
+  - Automatic extraction of source metadata and candidate observation segments.
+  - Candidate Review Table (`CandidateReviewTable.tsx`) with Accept / Edit / Skip controls.
+  - Atomic batch commit to IndexedDB generating sequential `SRC-***` and `EV-***` IDs in Draft status.
+  - Seamless continuation into the existing 4-space analytical workflow (Field Material → Analysis → Deliverables).
+- **Studio Analytical Workspace (`/studio`)**:
+  - Full IndexedDB-backed workspace mounted at `/studio` with zero state leakage or session degradation.
+  - Complete MEP-01 claim boundary protection and MEP-02 storage safety invariants preserved.
+- **Verification & Quality Gates**:
+  - **204/204** Vitest unit & integration tests passing across 19 test files.
+  - TypeScript clean (`tsc --noEmit` exits 0), ESLint clean (0 errors, 0 warnings), Next.js Turbopack build clean.
+  - Headless Chrome CDP production smoke test passing on live production URL: 0 console errors, 0 network failures, mobile 390px zero overflow.
+
 ## v0.9.3 - Premium Public Landing Page & Studio Routing
 
 - **Public-Facing Landing Page (`src/components/landing/LandingPage.tsx`)**:

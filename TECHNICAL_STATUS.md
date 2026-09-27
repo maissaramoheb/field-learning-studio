@@ -2,46 +2,33 @@
 
 ## Current Status
 
-**Public Landing Page Implementation** is complete and verified on branch `feature/public-landing-page`:
-1. **Public-Facing Landing Page (`src/components/landing/LandingPage.tsx`)**:
-   - Built a premium, methodology-first landing page communicating value to evaluators, MEL teams, consultancies, and NGOs (Partage, F3E, Annick, donor-facing teams).
-   - Core positioning: "From field material to a defensible professional draft."
-   - Structured into 11 narrative sections: Navigation with logo & direct Studio CTA, Hero with framed active workspace viewport, The Real Problem (Fragmentation, Buried Contradictions, Broken Traceability), 4-Space Sequential Stepper with synchronized descriptions & real screenshots, Traceability Diagram (unbroken lineage from SRC-001 to Brief Draft), Human Judgment vs FLS Matrix, Field Material Word/DOCX Intake, Analytical Workbench Comparative Matrix, Editorial Deliverables & Export, Trust & Methodological Principles, Who It Is For, and Final Clearance CTA & Footer.
-2. **Routing Architecture**:
-   - `/` renders `LandingPage` for public visitors.
-   - `/studio` mounts `FieldLearningStudioApp` with `communityBridgesCase` and full IndexedDB workspace.
-   - `/welcome` provides an explicit landing page alias.
-   - Zero modifications to core workspace logic, MEP safeguards, or local storage keys.
-3. **Responsive & Quality Verification**:
-   - Verified on 1440×900, 1280×800, 1024×768, and 390×844 with zero horizontal overflow (`bodyScrollWidth` === `vw`).
-   - All 191 Vitest tests pass across 17 test files.
-   - TypeScript is clean (`tsc --noEmit` exits 0).
-   - ESLint is clean (0 errors, 0 warnings).
-   - Next.js Turbopack production build succeeds.
-2. **Space 1 — Study Overview Redesign**:
-   - Replaced oversized Continue Work card and KPI tiles with an integrated horizontal action band (`.fls-action-band`, ~46px) and an inline tabular status rail (`.fls-status-rail`).
-   - Implemented a 60/40 asymmetrical editorial grid (`.fls-editorial-grid`) with left-side Purpose & Scope parameter chips and right-side amber-tinted Methodological Boundaries & Limitations panel and Governance panel.
-   - Introduced an interactive sequential practitioner workflow stepper (`.fls-pipeline-band`) providing visual rhythm across the lower viewport.
-3. **Space 2 — Field Material (Mobbin Master/Detail Split)**:
-   - Converted the 20-card grid in `EvidenceReviewWorkspace.tsx` into a Master/Detail workstation (`.fls-evidence-master-detail`).
-   - Left master list (`.fls-evidence-master-list`): Compact scannable observation cards with monospace IDs (`EV-001`), themes, status badges (`Validated`), 2-line clean excerpts, source & stakeholder tags, and active cyan focus ring.
-   - Right detail inspector (`.fls-evidence-detail-pane`): Sticky selected item view displaying complete observation text, interpretation, linked source note provenance card, synthesized finding, and contextual review actions (Approve/Validate, Needs Review, Reject, Reopen, Edit, Inspect Chain).
-   - Added view mode switcher (`[Split View | Grid View]`) preserving classic 2-col card layout as a secondary option.
-4. **Space 3 — Analysis (Analytical Desk)**:
-   - Refined `SynthesisWorkbench.tsx` with study questions analytical framework toolbar across the top.
-   - Balanced comparative evidence matrix with site/stakeholder grouping and persistent finding synthesizer rail with live support profiles.
-5. **Space 4 — Deliverables (Document-First Sheet)**:
-   - Centered document sheet (`.brief-document`) with crisp typography, balanced margins, elegant section dividers, and a compact export toolbar above.
-6. **Responsive & Quality Verification**:
-   - Verified on 1440×900, 1280×800, and 1024×768 with zero horizontal overflow.
-   - All 191 Vitest tests pass across 17 test files.
-   - TypeScript is clean (`tsc --noEmit` exits 0).
-   - ESLint is clean (0 errors, 0 warnings).
-   - Next.js Turbopack production build succeeds.
+**Production Release v1.0 (Public Pilot)** is fully integrated, deployed, and verified live on permanent production URL:
+**`https://field-learning-studio.vercel.app`**
 
-All 191 Vitest tests pass across 17 test files. Next.js production build compiles cleanly with zero errors (Turbopack), and ESLint passes with zero errors and zero warnings.
+1. **Unified Production Architecture**:
+   - Merged `feature/docx-field-intake` and `feature/public-landing-page` onto `main` (commit `c145dad`).
+   - Permanent production URL serves:
+     - `/` → High-authority, methodology-first public landing page (`LandingPage.tsx`).
+     - `/studio` → Full analytical studio workspace (`FieldLearningStudioApp.tsx`) with client-side IndexedDB persistence.
+     - `/welcome` → Direct alias to public landing page.
+2. **Client-Side DOCX Field Intake**:
+   - Complete Word document intake engine (`mammoth.js`) running 100% client-side in the browser.
+   - Extracts structured Source provenance and candidate Observations (`CandidateReviewTable`).
+   - Complete Accept / Edit / Skip workflow with atomic batch import into IndexedDB.
+   - Full backward compatibility and export parity across DOCX, PDF, and Markdown deliverables.
+3. **Automated Live Production Verification**:
+   - Automated headless Chrome CDP smoke test run directly against `https://field-learning-studio.vercel.app`:
+     - 0 console errors, 0 network failures.
+     - Navigation from `/` to `/studio` verified.
+     - Word Document Intake modal (`DocxIntakeModal`) verified in Field Material space.
+     - Analysis and Deliverables workspaces verified.
+     - Mobile 390×844 responsive layout verified with zero horizontal scroll overflow.
+4. **Quality Gates Passed**:
+   - **204/204** Vitest unit and integration tests passing across 19 test files (191 core tests + 13 DOCX intake tests).
+   - TypeScript compilation clean (`tsc --noEmit --incremental false` exits 0).
+   - ESLint clean (0 errors, 0 warnings).
+   - Next.js Turbopack production build succeeds with static prerendered routes.
 
-## Completed Items
 
 - **MEP-01 — Close the Formal Claim Boundary**:
   - Implemented canonical export eligibility predicates in `src/lib/exportPolicy.ts` (`isFindingExportEligible`, `isRecommendationExportEligible`, `isLessonExportEligible`, `isGoodPracticeExportEligible`) with full referential context support.
@@ -237,7 +224,7 @@ All 191 Vitest tests pass across 17 test files. Next.js production build compile
 
 ## Next Recommended Step
 
-Review Phase 6 Study Framework + Synthesis Workbench implementation and prepare for strategic product evaluation.
+Begin structured partner demonstration sessions and field pilot engagements with evaluators, MEL teams, and NGOs using the production release at `https://field-learning-studio.vercel.app`.
 
 ## Validation Commands
 
@@ -251,15 +238,15 @@ git diff --check
 
 ## Validation Results
 
-- `npx tsc --noEmit --incremental false`: passed (0 errors across `src/` and `tests/`).
+- `npx tsc --noEmit --incremental false`: passed (0 errors across whole repository).
 - `npm run lint`: passed (0 errors, 0 warnings).
-- `npm run build`: passed (Next.js production static bundle generated).
-- `npm test`: passed (14 test files, 156 passing tests: 27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics + 7 ID generator + 5 Field Intake + 19 Validation Lifecycle + 12 Daily Debrief + 20 Synthesis Workbench + 20 Bulk Intake + 3 QA Baseline + 10 Codex Audit Integrity Suite).
+- `npm run build`: passed (Next.js 16 Turbopack production bundle cleanly compiled).
+- `npm test`: passed (19 test files, 204 passing tests: 191 core tests + 13 DOCX intake tests).
 - `python3 -m json.tool OPS_UPDATE.json`: passed.
 - `git diff --check`: passed (0 whitespace errors).
-- Local HTTP dev server smoke: passed (HTTP 200 OK).
-- Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch; pending merge of feature/v0.9-field-sensemaking).
+- Automated live production CDP smoke test: passed (0 console errors, 0 network failures, mobile 390px 0 overflow).
+- Permanent Vercel Production deployment: https://field-learning-studio.vercel.app/ (Live, HTTP/2 200 OK).
 
 ## Last Update
 
-2026-09-27: Implemented Codex Audit Resolution & Evidence Integrity Stabilization on branch `feature/v0.9-field-sensemaking`. All 156 tests pass across 14 test files. Zero TypeScript errors, zero ESLint warnings, and production build cleanly verified. Authored UX Simplification Blueprint in `docs/ux_simplification_blueprint.md`.
+2026-09-27: v1.0 Public Pilot released to production. Merged `feature/docx-field-intake` and `feature/public-landing-page` onto `main` (commit `c145dad`). Live deployment verified on `https://field-learning-studio.vercel.app` with 0 console errors and 0 network failures. Tagged release: `v1.0-public-pilot`.

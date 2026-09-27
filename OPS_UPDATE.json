@@ -1,14 +1,14 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "landing_page_verified",
+  "status": "production_v1.0_deployed",
   "priority": "high",
-  "current_phase": "Public Landing Page Verified",
-  "next_action": "Deploy feature/public-landing-page to Vercel Preview (preview only).",
+  "current_phase": "v1.0 Public Pilot Released to Production",
+  "next_action": "Conduct partner demonstrations and collect pilot feedback.",
   "blocker": null,
   "decision_needed": null,
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
-  "preview_url": "Pending preview deployment",
+  "preview_url": "https://field-learning-studio-l7n1j16er-delta4ce20-5830s-projects.vercel.app",
   "production_url": "https://field-learning-studio.vercel.app",
   "validation_results": {
     "primary": "passed",
@@ -18,12 +18,12 @@
     "json": "passed",
     "diff_check": "passed",
     "local_http": "passed",
-    "tests": "191_passed_17_files",
-    "responsive_screenshots": "passed_1440_1280_1024_390"
+    "tests": "204_passed_19_files",
+    "prod_smoke_cdp": "passed_0_errors_0_failures_390_clean"
   },
   "remaining_risks": [
     "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported."
   ],
-  "recommended_next_step": "Deploy feature/public-landing-page as protected Vercel Preview (never --prod) and deliver final summary.",
-  "notion_page_update": "Public Landing Page Implementation complete on branch feature/public-landing-page: root route / renders high-authority, methodology-first landing page with 11 narrative sections, real screenshots, and interactive 4-space workflow stepper. Studio workspace routed cleanly to /studio without touching core app logic, IndexedDB, or MEP boundaries. Fully responsive across 1440x900, 1280x800, 1024x768, and 390x844 viewports with 0 horizontal overflow. 191/191 unit tests passing, tsc clean, ESLint clean, Next.js build clean."
+  "recommended_next_step": "Ready for stakeholder demonstrations and field pilot validation.",
+  "notion_page_update": "Field Learning Studio v1.0 Public Pilot is deployed live to production at https://field-learning-studio.vercel.app. Merged public landing page (/ and /welcome) with client-side DOCX field intake engine and full analytical studio (/studio). All 204 unit & integration tests pass across 19 test files. Automated live production CDP smoke tests passed with zero console errors and zero network failures. Release tagged: v1.0-public-pilot."
 }
