@@ -1537,50 +1537,197 @@ function OverviewTab({
 
   return (
     <div className="fls-study-overview">
-      <header className="fls-page-heading">
-        <div>
-          <p className="fls-eyebrow">Study overview</p>
-          <h1>{currentStudy?.title ?? demoCase.project}</h1>
-          <p>{currentStudy?.subtitle ?? demoCase.subtitle}</p>
+      {/* 1. Study Identity Header */}
+      <header className="fls-study-header">
+        <div className="fls-study-meta-line">
+          <span className="fls-tag-primary">Study 01</span>
+          <span className="fls-study-status-badge">{currentStudy?.status ?? demoCase.status}</span>
+          <span className="fls-bullet-divider">·</span>
+          <span className="fls-study-period">{currentStudy?.isDemoCase ?? true ? "Curated Reference" : "Local Workspace"}</span>
         </div>
-        <span className="fls-status-label">{currentStudy?.status ?? demoCase.status}</span>
+        <h1 className="fls-study-heading">{currentStudy?.title ?? demoCase.project}</h1>
+        <p className="fls-study-subtitle">{currentStudy?.subtitle ?? demoCase.subtitle}</p>
       </header>
-      <section className="fls-resume-row" aria-label="Continue work">
-        <div>
-          <p className="fls-eyebrow">Continue work</p>
-          <h2>{nextAction.title}</h2>
-          <p>{nextAction.description}</p>
+
+      {/* 2. Action Band (Mobbin pattern): Compact horizontal continuity strip */}
+      <section className="fls-action-band" aria-label="Continue work">
+        <div className="fls-action-content">
+          <span className="fls-action-lead">Next Milestone:</span>
+          <span className="fls-action-title">{nextAction.title}</span>
+          <span className="fls-action-desc">— {nextAction.description}</span>
         </div>
-        <button type="button" onClick={() => onTabChange(nextAction.targetTab)} className="fls-button fls-button-primary">{nextAction.buttonText}</button>
+        <button
+          type="button"
+          onClick={() => onTabChange(nextAction.targetTab)}
+          className="fls-action-button"
+        >
+          <span>{nextAction.buttonText}</span>
+        </button>
       </section>
-      <dl className="fls-inventory-strip" aria-label="Study inventory">
-        <div><dt>Sources</dt><dd>{sources.length}</dd></div>
-        <div><dt>Observations</dt><dd>{evidence.length}<span>{evidence.filter((item) => item.validationStatus === "Validated").length} approved</span></dd></div>
-        <div><dt>Findings</dt><dd>{findings.length}<span>{findings.filter((item) => item.validationStatus === "Validated").length} validated</span></dd></div>
-        <div><dt>Recommendations</dt><dd>{recommendations.length}</dd></div>
-      </dl>
-      <div className="fls-study-context">
-        <section className="fls-context-section">
-          <h2>Purpose &amp; scope</h2>
-          <p>{currentStudy?.context || demoCase.context}</p>
-          <details className="fls-details">
-            <summary>Scope &amp; study questions <span>{sites.length} sites · {stakeholders.length} stakeholder groups</span></summary>
-            <dl className="fls-scope-details">
-              <div><dt>Target sites</dt><dd>{sites.join(", ") || "Target Project Sites"}</dd></div>
-              <div><dt>Target stakeholders</dt><dd>{stakeholders.join(", ") || "Key Stakeholders"}</dd></div>
-            </dl>
-            {(currentStudy?.questions?.length ?? 0) > 0 && <ul className="fls-question-list">{currentStudy!.questions!.map((question) => <li key={question.id}><span>{question.id}</span> {question.question}</li>)}</ul>}
-          </details>
-          {onOpenBackupRestore && <button type="button" className="fls-text-action" onClick={onOpenBackupRestore}>Manage study backup &amp; recovery →</button>}
-        </section>
-        <section className="fls-context-section fls-limitations">
-          <h2>Limitations to keep in view</h2>
-          {limitations.length > 0 ? <ul>{limitations.map((limitation, index) => <li key={index}>{limitation}</li>)}</ul> : <p>No study limitations recorded.</p>}
-        </section>
+
+      {/* 3. Refined Information Rail (shadcn pattern): Horizontal tabular metric strip */}
+      <div className="fls-status-rail" aria-label="Study progress inventory">
+        <div className="fls-rail-item">
+          <span className="fls-rail-count">{sources.length}</span>
+          <div className="fls-rail-meta">
+            <span className="fls-rail-label">Sources</span>
+            <span className="fls-rail-sub">Field records</span>
+          </div>
+        </div>
+        <span className="fls-rail-sep">/</span>
+        <div className="fls-rail-item">
+          <span className="fls-rail-count">{evidence.length}</span>
+          <div className="fls-rail-meta">
+            <span className="fls-rail-label">Observations</span>
+            <span className="fls-rail-sub text-emerald-400">
+              {evidence.filter((item) => item.validationStatus === "Validated").length} approved
+            </span>
+          </div>
+        </div>
+        <span className="fls-rail-sep">/</span>
+        <div className="fls-rail-item">
+          <span className="fls-rail-count">{findings.length}</span>
+          <div className="fls-rail-meta">
+            <span className="fls-rail-label">Findings</span>
+            <span className="fls-rail-sub text-emerald-400">
+              {findings.filter((item) => item.validationStatus === "Validated").length} validated
+            </span>
+          </div>
+        </div>
+        <span className="fls-rail-sep">/</span>
+        <div className="fls-rail-item">
+          <span className="fls-rail-count">{recommendations.length}</span>
+          <div className="fls-rail-meta">
+            <span className="fls-rail-label">Recommendations</span>
+            <span className="fls-rail-sub">Actionable draft</span>
+          </div>
+        </div>
       </div>
-      <details className="fls-details fls-demo-guide">
-        <summary>Demo guide &amp; local sandbox <span>Walkthrough, example field notes and traceability</span></summary>
-        <div className="space-y-5 pt-4">
+
+      {/* 4. Purpose, Scope, and Limitations (Layers.to / Godly asymmetrical editorial grid) */}
+      <div className="fls-editorial-grid">
+        <div className="fls-editorial-main">
+          {/* Purpose */}
+          <div className="fls-purpose-block">
+            <h2>Evaluation Purpose &amp; Context</h2>
+            <p className="fls-purpose-text">{currentStudy?.context || demoCase.context}</p>
+          </div>
+
+          {/* Scope metadata chips */}
+          <div className="fls-scope-chips-block">
+            <h3 className="fls-chips-label">Scope Parameters</h3>
+            <div className="fls-chips-list">
+              <div className="fls-chip">
+                <span className="fls-chip-key">Target Sites:</span>
+                <span className="fls-chip-val">{sites.join(", ") || "Target Project Sites"}</span>
+              </div>
+              <div className="fls-chip">
+                <span className="fls-chip-key">Stakeholders:</span>
+                <span className="fls-chip-val">{stakeholders.join(", ") || "Key Stakeholders"}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Core Analytical Questions */}
+          {(currentStudy?.questions?.length ?? 0) > 0 && (
+            <div className="fls-questions-block">
+              <h3 className="fls-questions-heading">
+                Analytical Study Questions ({currentStudy!.questions!.length})
+              </h3>
+              <ul className="fls-questions-flow">
+                {currentStudy!.questions!.map((q) => (
+                  <li key={q.id} className="fls-question-card">
+                    <span className="fls-question-tag">{q.id}</span>
+                    <span className="fls-question-body">{q.question}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Right column: Methodological Boundaries & Limitations */}
+        <aside className="fls-editorial-aside">
+          <div className="fls-limitations-panel">
+            <div className="fls-limitations-header">
+              <svg className="fls-limitations-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path fillRule="evenodd" d="M8.22 1.754a.75.75 0 0 0-1.44 0L1.68 13.5A.75.75 0 0 0 2.36 14.5h11.28a.75.75 0 0 0 .68-1l-5.1-11.746ZM8 5.5a.75.75 0 0 1 .75.75v3a.75.75 0 0 1-1.5 0v-3A.75.75 0 0 1 8 5.5Zm0 6.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+              </svg>
+              <h3>Methodological Boundaries &amp; Limitations</h3>
+            </div>
+            {limitations.length > 0 ? (
+              <ul className="fls-limitations-list">
+                {limitations.map((lim, index) => (
+                  <li key={index}>
+                    <span>{lim}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="fls-limitations-empty">No specific methodological limitations recorded.</p>
+            )}
+          </div>
+
+          {onOpenBackupRestore && (
+            <div className="fls-governance-panel">
+              <h4>Study Governance</h4>
+              <p>All data persists locally in browser IndexedDB. Regular JSON recovery archives preserve analytical state.</p>
+              <button type="button" className="fls-text-button" onClick={onOpenBackupRestore}>
+                Manage Backup &amp; Recovery Archives →
+              </button>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      {/* 5. Structured Learning Workflow Band */}
+      <section className="fls-pipeline-band" aria-label="Evidence-to-learning pipeline">
+        <div className="fls-pipeline-header">
+          <span className="fls-eyebrow">PRACTITIONER SPACES</span>
+          <span className="text-xs text-[var(--muted-soft)]">Sequential sensemaking workflow</span>
+        </div>
+        <div className="fls-pipeline-steps">
+          <button type="button" onClick={() => onTabChange("overview")} className="fls-pipeline-node fls-node-active">
+            <span className="fls-node-num">01</span>
+            <div className="fls-node-info">
+              <strong>Study Setup</strong>
+              <span>Scope &amp; governance</span>
+            </div>
+          </button>
+          <span className="fls-node-arrow">→</span>
+          <button type="button" onClick={() => onTabChange("evidence")} className="fls-pipeline-node">
+            <span className="fls-node-num">02</span>
+            <div className="fls-node-info">
+              <strong>Field Material</strong>
+              <span>Intake &amp; observations</span>
+            </div>
+          </button>
+          <span className="fls-node-arrow">→</span>
+          <button type="button" onClick={() => onTabChange("synthesis")} className="fls-pipeline-node">
+            <span className="fls-node-num">03</span>
+            <div className="fls-node-info">
+              <strong>Analysis</strong>
+              <span>Comparative synthesis</span>
+            </div>
+          </button>
+          <span className="fls-node-arrow">→</span>
+          <button type="button" onClick={() => onTabChange("brief")} className="fls-pipeline-node">
+            <span className="fls-node-num">04</span>
+            <div className="fls-node-info">
+              <strong>Deliverables</strong>
+              <span>Learning Brief draft</span>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      {/* 6. Expandable Demo Tools & Sandbox Note Intake */}
+      <details className="fls-demo-drawer">
+        <summary>
+          <span className="fls-drawer-title">Demo Tools &amp; Local Sandbox Note Intake</span>
+          <span className="fls-drawer-sub">Walkthrough, sample field notes and signature traceability</span>
+        </summary>
+        <div className="space-y-5 pt-4 px-4 pb-4">
       <section className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] p-6 sm:p-8">
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div>

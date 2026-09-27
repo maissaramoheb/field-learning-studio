@@ -2,23 +2,30 @@
 
 ## Current Status
 
-**Final UI/UX Integration Pass** is complete and verified on branch `feature/v0.9-field-sensemaking`:
-1. **Master Execution Plan (MEP) Alignment & Scope**:
-   - **MEP-01 — Formal Claim Boundary** (Complete & Verified): Closes the formal claim boundary. Verified with real browser CDP acceptance tests against hosted preview. Structured trace from evidence to findings to draft recommendations with deterministic export eligibility predicates, immediate invalidation cascade on substantive edits, wrong-order approval block, deliberate human re-review restoration, and parent source deletion protection.
-   - **MEP-02 — Recovery / Intake Write Safety** (Complete & Verified): Defined integrity and recovery scenarios passed. Enforces storage and write safety invariants across `studyStore.ts` and `studyBackup.ts` (duplicate ID rejection, cross-study ownership rejection, broken parent relationship rejection, atomic restore rollback, and collision detection guards). 15 tests in `tests/mep02SafetyBoundary.test.ts`.
-   - **MEP-03 — Understandable Core Professional Journey** (Complete & Verified): Replaced multi-tab navigation with **4 Practitioner Spaces**: **1. Study**, **2. Field Material**, **3. Analysis**, **4. Deliverables**. Single clear finding path via Synthesis Workbench, factual Evidence Coverage & Limitations ("distinct source records"), simplified Recommendation model (Action, Linked Finding, Intended Actor or explicit "Responsibility to be agreed"), and Resume Work / Next Action hero card.
-   - **MEP-04 — Qualified Professional Draft / Reporting** (Active baseline): Clean professional draft preview and multi-format exports (Word .docx, PDF .pdf, Markdown .md) with deterministic safeguards against unanchored claims and actionable pre-draft review verification.
-   - **MEP-05 — Shadow Pilot** (Planned): Controlled practitioner evaluation with real field notes under evaluator supervision.
-   - **Strictly Deferred Scope**: All cross-study synthesis, advanced visual canvas, external AI APIs, cloud backend, authentication, and client portal features remain strictly deferred.
-2. **UI/UX Experience & Integration Pass**:
-   - **Compact Header & Above-the-Fold Elevation**: Tightened app bar to 48px, demo notice to 24px, and space navigation tabs to 42px (total header stack ~93px). Working content is elevated to ~260–300px from top on 1440×900 screens, completely eliminating visual spatial bloat.
-   - **Study Overview & Inventory Strip**: Compact Resume Work row (`.fls-resume-row`) with accurate next action and primary CTA, 4-item horizontal inventory strip (`.fls-inventory-strip`), 2-column purpose & scope / limitations section (`.fls-study-context`), and collapsible demo guide `<details className="fls-details fls-demo-guide">`.
-   - **Visible Demo Issue Resolved**: Fixed `computeNextAction` logic (`validationStatus === "Draft" || validationStatus === "Needs Review"`). When all evidence is approved, the study displays "Review Professional Draft →" matching the inventory strip ("20 approved"), removing the prior "3 awaiting review" conflict.
-   - **Native Accessible Dialogs (`WorkspaceDialog.tsx`)**: Standards-compliant `<dialog>` element with backdrop, focus trap, Escape key handling, and focus restoration to trigger element, integrated across `MinimalStudyModal` and `FindingAuthoringModal`.
-   - **Docked Field Material & Intake**: 2-column intake layout (`.fls-intake-grid`) with docked reading pane, source history (`aria-pressed`), observation extraction form, and compact evidence card grid.
-   - **Analysis Grid & Synthesis**: Structured two-column workbench (`.fls-analysis-grid`) with study question selector toolbar, comparative synthesis matrix, coverage summary for missing sites/stakeholders, and draft finding authoring.
-   - **Quiet Deliverables Canvas**: Centered document preview canvas (`.fls-draft-canvas`) and export toolbar (`.fls-export-toolbar`).
-   - **Responsive Verification**: Verified on 1440×900, 1280×800, and 1024×768 with clean typography, no horizontal scroll, and zero layout overflow.
+**Coherent Visual Product Redesign Pass** is complete and verified on branch `feature/v0.9-field-sensemaking`:
+1. **Design System & Intentional Aesthetic Language**:
+   - Replaced generic SaaS/admin dashboard styling (dark monochrome, repetitive bordered boxes, unused space) with a calm, precise, editorial research tool aesthetic inspired by **Mobbin**, **Layers.to**, **Godly**, and **shadcn/ui**.
+   - Established deep analytical slate canvas (`#050b14` / `#07111f`), restrained surface depth over heavy borders (`#101b2c` / `#162338`), hairline translucent borders (`rgba(148, 163, 184, 0.22)`), purposeful blue accent (`#2563eb` / `#3b82f6`), and editorial monospace metadata accents (`font-mono text-[11px]`).
+2. **Space 1 — Study Overview Redesign**:
+   - Replaced oversized Continue Work card and KPI tiles with an integrated horizontal action band (`.fls-action-band`, ~46px) and an inline tabular status rail (`.fls-status-rail`).
+   - Implemented a 60/40 asymmetrical editorial grid (`.fls-editorial-grid`) with left-side Purpose & Scope parameter chips and right-side amber-tinted Methodological Boundaries & Limitations panel and Governance panel.
+   - Introduced an interactive sequential practitioner workflow stepper (`.fls-pipeline-band`) providing visual rhythm across the lower viewport.
+3. **Space 2 — Field Material (Mobbin Master/Detail Split)**:
+   - Converted the 20-card grid in `EvidenceReviewWorkspace.tsx` into a Master/Detail workstation (`.fls-evidence-master-detail`).
+   - Left master list (`.fls-evidence-master-list`): Compact scannable observation cards with monospace IDs (`EV-001`), themes, status badges (`Validated`), 2-line clean excerpts, source & stakeholder tags, and active cyan focus ring.
+   - Right detail inspector (`.fls-evidence-detail-pane`): Sticky selected item view displaying complete observation text, interpretation, linked source note provenance card, synthesized finding, and contextual review actions (Approve/Validate, Needs Review, Reject, Reopen, Edit, Inspect Chain).
+   - Added view mode switcher (`[Split View | Grid View]`) preserving classic 2-col card layout as a secondary option.
+4. **Space 3 — Analysis (Analytical Desk)**:
+   - Refined `SynthesisWorkbench.tsx` with study questions analytical framework toolbar across the top.
+   - Balanced comparative evidence matrix with site/stakeholder grouping and persistent finding synthesizer rail with live support profiles.
+5. **Space 4 — Deliverables (Document-First Sheet)**:
+   - Centered document sheet (`.brief-document`) with crisp typography, balanced margins, elegant section dividers, and a compact export toolbar above.
+6. **Responsive & Quality Verification**:
+   - Verified on 1440×900, 1280×800, and 1024×768 with zero horizontal overflow.
+   - All 191 Vitest tests pass across 17 test files.
+   - TypeScript is clean (`tsc --noEmit` exits 0).
+   - ESLint is clean (0 errors, 0 warnings).
+   - Next.js Turbopack production build succeeds.
 
 All 191 Vitest tests pass across 17 test files. Next.js production build compiles cleanly with zero errors (Turbopack), and ESLint passes with zero errors and zero warnings.
 

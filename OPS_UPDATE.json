@@ -1,10 +1,10 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "final_ui_ux_integration_complete",
+  "status": "coherent_visual_redesign_complete",
   "priority": "high",
-  "current_phase": "Final UI/UX Integration Pass",
-  "next_action": "Review deployed preview URL and visual acceptance screenshots.",
+  "current_phase": "Coherent Visual Product Redesign Pass",
+  "next_action": "Deploy preview and present coherent visual product redesign across all 4 practitioner spaces.",
   "blocker": null,
   "decision_needed": null,
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
@@ -23,6 +23,6 @@
   "remaining_risks": [
     "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported."
   ],
-  "recommended_next_step": "Present compact, accessible 4-space workflow for user sign-off.",
-  "notion_page_update": "Completed Final UI/UX Integration Pass on feature/v0.9-field-sensemaking: (1) Reduced header stack to ~93px (app bar 48px, tabs 42px), bringing working content into ~260–300px from top on 1440×900 screens; (2) Replaced legacy hero cards with compact Continue Work row and 4-metric horizontal inventory strip; (3) Resolved visible demo issue where Resume Work CTA showed '3 awaiting review' despite 20 approved observations; (4) Authored native accessible WorkspaceDialog (<dialog>) with focus trapping and escape handling; (5) Docked Field Material intake and tightened synthesis/analysis grids; (6) Verified full responsiveness on 1440×900, 1280×800, and 1024×768. All 191 tests pass, TS clean, lint clean, Turbopack build passing."
+  "recommended_next_step": "Review and verify preview deployment of coherent visual product redesign.",
+  "notion_page_update": "Completed Coherent Visual Product Redesign on feature/v0.9-field-sensemaking: (1) Replaced dark monochrome SaaS/admin dashboard aesthetic with an intentional analytical research tool visual language inspired by Mobbin, Layers.to, Godly, and shadcn/ui; (2) Study space redesigned with editorial metadata header, integrated horizontal action band (46px), inline tabular metric rail, and 60/40 asymmetrical content grid; (3) Field Material space transformed into a Mobbin-inspired Master/Detail workstation with compact scannable observation cards on the left, sticky rich detail inspector on the right, and split/grid view toggle; (4) Analysis space refined into a coherent analytical desk with study question selector toolbar, comparative matrix, and persistent finding synthesizer; (5) Deliverables space unified around a centered document-first sheet with crisp export toolbar; (6) Verified 191/191 tests pass, TS clean, ESLint clean (0 errors, 0 warnings), and Turbopack production build passing."
 }

@@ -19,6 +19,7 @@ import { EvidenceEditModal } from "./EvidenceEditModal";
 import { EvidenceRejectModal } from "./EvidenceRejectModal";
 import { ReviewerIdentityBar } from "./ReviewerIdentityBar";
 import { StatusFilterPills, type StatusCounts } from "./StatusFilterPills";
+import { ValidationStatusBadge } from "./ValidationStatusBadge";
 
 export type EvidenceFilters = {
   theme: string;
@@ -78,6 +79,26 @@ export function EvidenceReviewWorkspace({
   const [editingEntry, setEditingEntry] = useState<EvidenceEntry | null>(null);
   const [rejectingEntry, setRejectingEntry] = useState<EvidenceEntry | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Master/Detail view state
+  const [userSelectedId, setUserSelectedId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<"split" | "grid">("split");
+
+  // Derive active selected entry cleanly without effects:
+  // If highlightedId matches an entry, prioritize it.
+  // Otherwise use user-clicked selection if valid in current list.
+  // Otherwise default to first available evidence entry.
+  const activeSelectedEntry = useMemo(() => {
+    if (traceHandlers.highlightedId) {
+      const found = evidence.find((e) => e.id === traceHandlers.highlightedId);
+      if (found) return found;
+    }
+    if (userSelectedId) {
+      const found = evidence.find((e) => e.id === userSelectedId);
+      if (found) return found;
+    }
+    return evidence[0] || null;
+  }, [traceHandlers.highlightedId, userSelectedId, evidence]);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -354,36 +375,39 @@ export function EvidenceReviewWorkspace({
         </div>
       </div>
 
-      {/* Evidence Cards Grid */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {evidence.map((entry) => {
-          const isHighlighted = traceHandlers.highlightedId === entry.id;
-          const source = sources.find((s) => s.id === entry.sourceId);
-          const linkedFinding = findings.find((f) =>
-            f.supportingEvidenceIds.includes(entry.id)
-          );
-
-          return (
-            <EvidenceCard
-              key={entry.id}
-              entry={entry}
-              source={source}
-              linkedFinding={linkedFinding}
-              isHighlighted={isHighlighted}
-              isDemoCase={isDemoCase}
-              onTraceSelect={traceHandlers.onTraceSelect}
-              onEdit={(e) => setEditingEntry(e)}
-              onSubmitForReview={handleSubmitForReview}
-              onValidate={handleValidate}
-              onReject={(e) => setRejectingEntry(e)}
-              onReopen={handleReopen}
-            />
-          );
-        })}
+      {/* View Toolbar: Count & View Switcher */}
+      <div className="flex items-center justify-between text-xs text-[var(--muted)] px-1">
+        <span className="font-mono text-[11px] text-[var(--muted-soft)]">
+          Showing <strong className="text-[var(--foreground)]">{evidence.length}</strong> of {rawEvidenceList.length} observations
+        </span>
+        <div className="inline-flex rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-0.5 text-xs">
+          <button
+            type="button"
+            onClick={() => setViewMode("split")}
+            className={`rounded px-2.5 py-1 font-medium transition cursor-pointer ${
+              viewMode === "split"
+                ? "bg-[var(--surface-elevated)] text-[var(--foreground)] shadow-xs"
+                : "text-[var(--muted-soft)] hover:text-[var(--foreground)]"
+            }`}
+          >
+            Split View
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode("grid")}
+            className={`rounded px-2.5 py-1 font-medium transition cursor-pointer ${
+              viewMode === "grid"
+                ? "bg-[var(--surface-elevated)] text-[var(--foreground)] shadow-xs"
+                : "text-[var(--muted-soft)] hover:text-[var(--foreground)]"
+            }`}
+          >
+            Grid View
+          </button>
+        </div>
       </div>
 
       {/* Empty State */}
-      {evidence.length === 0 && (
+      {evidence.length === 0 ? (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center">
           <p className="text-sm font-semibold text-[var(--foreground)]">
             No evidence entries match the active filters.
@@ -391,6 +415,119 @@ export function EvidenceReviewWorkspace({
           <p className="mt-1 text-xs text-[var(--muted)]">
             Try adjusting the validation state or dimension filters above.
           </p>
+        </div>
+      ) : viewMode === "split" ? (
+        /* Master/Detail Split */
+        <div className="fls-evidence-master-detail">
+          {/* Left Column: Master List */}
+          <div className="fls-evidence-master-list">
+            <div className="max-h-[calc(100vh-230px)] min-h-[460px] overflow-y-auto space-y-2 pe-1.5 fls-custom-scrollbar">
+              {evidence.map((entry) => {
+                const isSelected = activeSelectedEntry?.id === entry.id;
+                const isHighlighted = traceHandlers.highlightedId === entry.id;
+                return (
+                  <button
+                    key={entry.id}
+                    id={`trace-${entry.id}`}
+                    type="button"
+                    onClick={() => setUserSelectedId(entry.id)}
+                    aria-pressed={isSelected}
+                    data-selected={isSelected}
+                    className={`fls-evidence-row ${
+                      isHighlighted ? "ring-2 ring-[var(--trace)]" : ""
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2 w-full">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs font-bold text-[var(--trace-text)] bg-[var(--trace-wash)] border border-[var(--trace-border)] rounded px-1.5 py-0.5">
+                          {entry.id}
+                        </span>
+                        {entry.revision && entry.revision > 1 && (
+                          <span className="rounded border border-sky-800/40 bg-sky-950/30 px-1 py-0.2 text-[9px] font-semibold text-sky-400">
+                            Rev {entry.revision}
+                          </span>
+                        )}
+                      </div>
+                      <ValidationStatusBadge
+                        status={entry.validationStatus}
+                        revision={entry.revision}
+                      />
+                    </div>
+
+                    <h4 className="text-xs font-semibold text-[var(--foreground)] line-clamp-1">
+                      {entry.primaryTheme}
+                    </h4>
+
+                    <p className="text-[11.5px] leading-relaxed text-[var(--muted)] line-clamp-2">
+                      {entry.rawObservation || entry.rawEvidence}
+                    </p>
+
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-[var(--muted-soft)] pt-1 border-t border-[var(--border)]">
+                      <span className="font-mono font-medium">{entry.sourceId}</span>
+                      <span>•</span>
+                      <span>{entry.stakeholderType}</span>
+                      <span>•</span>
+                      <span>{entry.evidenceStrength}</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right Column: Selected Detail Inspector */}
+          <div className="fls-evidence-detail-pane">
+            {activeSelectedEntry ? (
+              <EvidenceCard
+                key={activeSelectedEntry.id}
+                entry={activeSelectedEntry}
+                source={sources.find((s) => s.id === activeSelectedEntry.sourceId)}
+                linkedFinding={findings.find((f) =>
+                  f.supportingEvidenceIds.includes(activeSelectedEntry.id)
+                )}
+                isHighlighted={traceHandlers.highlightedId === activeSelectedEntry.id}
+                isDemoCase={isDemoCase}
+                onTraceSelect={traceHandlers.onTraceSelect}
+                onEdit={(e) => setEditingEntry(e)}
+                onSubmitForReview={handleSubmitForReview}
+                onValidate={handleValidate}
+                onReject={(e) => setRejectingEntry(e)}
+                onReopen={handleReopen}
+              />
+            ) : (
+              <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-xs text-[var(--muted)]">
+                Select an observation to inspect details.
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* Grid View */
+        <div className="grid gap-4 md:grid-cols-2">
+          {evidence.map((entry) => {
+            const isHighlighted = traceHandlers.highlightedId === entry.id;
+            const source = sources.find((s) => s.id === entry.sourceId);
+            const linkedFinding = findings.find((f) =>
+              f.supportingEvidenceIds.includes(entry.id)
+            );
+
+            return (
+              <EvidenceCard
+                key={entry.id}
+                entry={entry}
+                source={source}
+                linkedFinding={linkedFinding}
+                isHighlighted={isHighlighted}
+                isDemoCase={isDemoCase}
+                onTraceSelect={traceHandlers.onTraceSelect}
+                onEdit={(e) => setEditingEntry(e)}
+                onSubmitForReview={handleSubmitForReview}
+                onValidate={handleValidate}
+                onReject={(e) => setRejectingEntry(e)}
+                onReopen={handleReopen}
+              />
+            );
+          })}
         </div>
       )}
 
