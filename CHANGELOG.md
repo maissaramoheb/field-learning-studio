@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.9.3 - Premium Public Landing Page & Studio Routing
+
+- **Public-Facing Landing Page (`src/components/landing/LandingPage.tsx`)**:
+  - Implemented high-authority, methodology-first landing page communicating value to evaluators, MEL teams, consultancies, and NGOs (Partage, F3E, Annick, donor-facing teams).
+  - Headline transformation: "From field material to a defensible professional draft."
+  - 11 structured narrative sections: Navigation with logo & direct Studio CTA, Hero with framed active workspace viewport, The Real Problem, 4-Space Sequential Stepper with synchronized descriptions & real screenshots, Traceability Diagram (unbroken lineage from SRC-001 to Brief Draft), Human Judgment vs FLS Matrix, Field Material Word/DOCX Intake, Analytical Workbench Comparative Matrix, Editorial Deliverables & Export, Trust & Methodological Principles, Who It Is For, and Final Clearance CTA & Footer.
+- **Routing Architecture**:
+  - Root route `/` renders public `LandingPage`.
+  - `/studio` mounts `FieldLearningStudioApp` with `communityBridgesCase` and full IndexedDB workspace.
+  - `/welcome` provides an explicit landing page alias.
+  - Core workspace logic, storage keys, and MEP-01/02 boundaries remain 100% untouched.
+- **Responsive & Visual Verification**:
+  - Verified across 1440×900, 1280×800, 1024×768, and 390×844 viewports with zero horizontal overflow.
+  - All 191 Vitest tests pass across 17 test files.
+  - TypeScript clean, ESLint clean, Next.js Turbopack build clean.
+
 ## v0.9.2 - Final UI/UX Integration Pass
 
 - **Compact Workspace Architecture & Above-the-Fold Elevation**:
