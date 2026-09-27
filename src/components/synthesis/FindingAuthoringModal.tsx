@@ -322,17 +322,17 @@ function FindingAuthoringModalContent({
                 </div>
               </div>
 
-              {/* Requirement 15: Emerging Findings Validation Note / Limitation */}
+              {/* Evidence Coverage Limitations & Contextual Boundaries */}
               {isEmergingOrHasGaps && (
                 <div className="rounded-xl border border-amber-900/50 bg-amber-950/20 p-4">
                   <div className="flex items-center gap-2 text-amber-300">
                     <span className="text-sm">⚠️</span>
                     <label className="text-xs font-bold uppercase tracking-wider">
-                      Validation Note / Limitation (Required for Emerging Tier or Coverage Gaps)
+                      Coverage Limitations & Contextual Boundaries
                     </label>
                   </div>
                   <p className="mt-1 text-[11px] text-amber-200/80">
-                    Because this claim has an Emerging support tier, missing sites, or unconsulted stakeholders, evaluators must document a concise limitation note before validation.
+                    Document any evidentiary gaps, unconsulted stakeholder perspectives, or geographic limitations for this finding before validation.
                   </p>
                   <textarea
                     rows={2}
@@ -345,25 +345,17 @@ function FindingAuthoringModalContent({
               )}
             </div>
 
-            {/* Right Column: Live Support Profile & Supporting Evidence Selection (5 cols) */}
+            {/* Right Column: Live Evidence Coverage & Supporting Evidence Selection (5 cols) */}
             <div className="space-y-4 lg:col-span-5">
-              {/* Live Support Profile Card */}
+              {/* Live Evidence Coverage Card */}
               <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-4">
                 <div className="flex items-center justify-between border-b border-[var(--border)] pb-2.5">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--trace)]">
-                    Evidence Support Profile (Live)
+                    Evidence Coverage & Limitations
                   </h4>
                   {supportProfile && (
-                    <span
-                      className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
-                        supportProfile.supportTier === "Strongly Supported"
-                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                          : supportProfile.supportTier === "Partially Supported"
-                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                          : "bg-purple-500/20 text-purple-300 border border-purple-500/40"
-                      }`}
-                    >
-                      {supportProfile.supportTier}
+                    <span className="rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-2 py-0.5 text-[10px] font-medium text-[var(--foreground)]">
+                      {supportProfile.independentSourceCount} source{supportProfile.independentSourceCount !== 1 ? "s" : ""} · {supportProfile.methodDiversity.methodsFound.length} method{supportProfile.methodDiversity.methodsFound.length !== 1 ? "s" : ""}
                     </span>
                   )}
                 </div>
@@ -408,11 +400,14 @@ function FindingAuthoringModalContent({
                       </span>
                     </div>
 
-                    {supportProfile.stakeholderCoverage.missingTargetStakeholders.length > 0 && (
-                      <div className="rounded bg-amber-950/30 p-1.5 text-[11px] text-amber-300">
-                        Missing stakeholders: {supportProfile.stakeholderCoverage.missingTargetStakeholders.join(", ")}
-                      </div>
-                    )}
+                    <div className="flex justify-between text-[var(--foreground)]">
+                      <span className="text-[var(--muted)]">Challenging Evidence:</span>
+                      <span className={`font-semibold ${supportProfile.contradictionState.hasContradictions ? "text-amber-400" : "text-emerald-400"}`}>
+                        {supportProfile.contradictionState.hasContradictions
+                          ? `${supportProfile.contradictionState.unresolvedCount} noted / unresolved`
+                          : "None flagged"}
+                      </span>
+                    </div>
 
                     {supportProfile.transparencyFlags.length > 0 && (
                       <div className="mt-2 border-t border-[var(--border)] pt-2">

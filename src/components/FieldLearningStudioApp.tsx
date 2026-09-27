@@ -80,23 +80,188 @@ type WorkspaceTabId =
   | "qa"
   | "brief";
 
+export type PractitionerSpaceId = "study" | "field-material" | "analysis" | "deliverables";
+
+export interface PractitionerSpaceTab {
+  id: WorkspaceTabId;
+  label: string;
+  shortLabel: string;
+}
+
+export interface PractitionerSpace {
+  id: PractitionerSpaceId;
+  stepNumber: string;
+  label: string;
+  description: string;
+  icon: string;
+  defaultTab: WorkspaceTabId;
+  tabs: PractitionerSpaceTab[];
+}
+
+export const PRACTITIONER_SPACES: PractitionerSpace[] = [
+  {
+    id: "study",
+    stepNumber: "1",
+    label: "Study",
+    description: "Scope, Governance & Next Action",
+    icon: "🧭",
+    defaultTab: "overview",
+    tabs: [
+      { id: "overview", label: "Study Overview", shortLabel: "Study Home" },
+    ],
+  },
+  {
+    id: "field-material",
+    stepNumber: "2",
+    label: "Field Material",
+    description: "Sources, Observations & Review",
+    icon: "📋",
+    defaultTab: "evidence",
+    tabs: [
+      { id: "evidence", label: "Evidence", shortLabel: "Evidence" },
+      { id: "intake", label: "Field Intake", shortLabel: "Field Intake" },
+    ],
+  },
+  {
+    id: "analysis",
+    stepNumber: "3",
+    label: "Analysis",
+    description: "Coverage, Synthesis & Findings",
+    icon: "🔬",
+    defaultTab: "findings",
+    tabs: [
+      { id: "findings", label: "Findings", shortLabel: "Findings" },
+      { id: "synthesis", label: "Synthesis", shortLabel: "Synthesis" },
+      { id: "debrief", label: "Daily Debrief", shortLabel: "Debrief" },
+      { id: "lessons", label: "Lessons", shortLabel: "Lessons" },
+    ],
+  },
+  {
+    id: "deliverables",
+    stepNumber: "4",
+    label: "Deliverables",
+    description: "Brief, Recommendations & QA",
+    icon: "📄",
+    defaultTab: "brief",
+    tabs: [
+      { id: "brief", label: "Brief", shortLabel: "Brief" },
+      { id: "recommendations", label: "Recommendations", shortLabel: "Recommendations" },
+      { id: "qa", label: "QA Review", shortLabel: "QA Review" },
+    ],
+  },
+];
+
+export function getSpaceForTab(tab: WorkspaceTabId): PractitionerSpaceId {
+  for (const space of PRACTITIONER_SPACES) {
+    if (space.tabs.some((t) => t.id === tab)) {
+      return space.id;
+    }
+  }
+  return "study";
+}
+
+export function computeNextAction(study: FieldStudy | null, demoCase: DemoCase) {
+  const sources = study?.sources ?? demoCase.sources ?? [];
+  const evidence = study?.evidence ?? demoCase.evidence ?? [];
+  const findings = study?.findings ?? demoCase.findings ?? [];
+  const recommendations = study?.recommendations ?? demoCase.recommendations ?? [];
+
+  if (sources.length === 0) {
+    return {
+      stage: "1. Field Material",
+      badge: "Step 1: Capture",
+      title: "Add your first field source",
+      description: "Begin by registering field interviews, focus groups, or observation notes in Field Intake.",
+      buttonText: "Open Field Intake →",
+      targetTab: "intake" as WorkspaceTabId,
+      badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+    };
+  }
+
+  const unreviewedEvidence = evidence.filter(
+    (e) => e.validationStatus === "Draft" || e.qaStatus === "Needs Review"
+  );
+  if (unreviewedEvidence.length > 0) {
+    return {
+      stage: "2. Field Material",
+      badge: "Action Required: Review Observations",
+      title: `${unreviewedEvidence.length} field observation${unreviewedEvidence.length !== 1 ? "s" : ""} awaiting review`,
+      description: "Verify observational rigor, check sensitivity flags, and approve draft evidence before synthesizing claims.",
+      buttonText: "Resume Evidence Review →",
+      targetTab: "evidence" as WorkspaceTabId,
+      badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+    };
+  }
+
+  if (findings.length === 0) {
+    return {
+      stage: "3. Analysis",
+      badge: "Next Step: Synthesis",
+      title: "Synthesize findings from validated evidence",
+      description: "All current field observations have been reviewed. Synthesize evidence into grounded, validated findings.",
+      buttonText: "Open Synthesis Workbench →",
+      targetTab: "synthesis" as WorkspaceTabId,
+      badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+    };
+  }
+
+  const unreviewedFindings = findings.filter(
+    (f) => f.validationStatus !== "Validated"
+  );
+  if (unreviewedFindings.length > 0) {
+    return {
+      stage: "3. Analysis",
+      badge: "Action Required: Validate Claims",
+      title: `${unreviewedFindings.length} finding${unreviewedFindings.length !== 1 ? "s" : ""} require validation or re-review`,
+      description: "Inspect evidentiary support profiles, verify triangulated sources, and validate claims for the brief.",
+      buttonText: "Review Findings Ledger →",
+      targetTab: "findings" as WorkspaceTabId,
+      badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+    };
+  }
+
+  if (recommendations.length === 0) {
+    return {
+      stage: "4. Deliverables",
+      badge: "Next Step: Recommendations",
+      title: "Formulate programmatic recommendations",
+      description: "Your findings are validated. Draft actionable, grounded recommendations linked directly to approved findings.",
+      buttonText: "Add Recommendations →",
+      targetTab: "recommendations" as WorkspaceTabId,
+      badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+    };
+  }
+
+  const unreviewedRecs = recommendations.filter(
+    (r) => r.validationStatus !== "Validated"
+  );
+  if (unreviewedRecs.length > 0) {
+    return {
+      stage: "4. Deliverables",
+      badge: "Action Required: Review Deliverables",
+      title: `${unreviewedRecs.length} recommendation${unreviewedRecs.length !== 1 ? "s" : ""} require review`,
+      description: "Ensure each recommendation links to a validated parent finding and specifies an intended actor.",
+      buttonText: "Review Recommendations →",
+      targetTab: "recommendations" as WorkspaceTabId,
+      badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+    };
+  }
+
+  return {
+    stage: "4. Deliverables",
+    badge: "Ready for Publication",
+    title: "Field Learning Brief ready for export",
+    description: "All evidence, findings, and recommendations satisfy formal claim integrity rules. Ready for donor review and export.",
+    buttonText: "Export Learning Brief →",
+    targetTab: "brief" as WorkspaceTabId,
+    badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+  };
+}
+
 type TraceHandlers = {
   highlightedId: string | null;
   onTraceSelect: (id: string) => void;
 };
-
-const workspaceTabs: Array<{ id: WorkspaceTabId; label: string }> = [
-  { id: "overview", label: "Overview" },
-  { id: "intake", label: "Field Intake" },
-  { id: "evidence", label: "Evidence" },
-  { id: "debrief", label: "Daily Debrief" },
-  { id: "synthesis", label: "Synthesis" },
-  { id: "findings", label: "Findings" },
-  { id: "lessons", label: "Lessons" },
-  { id: "recommendations", label: "Recommendations" },
-  { id: "qa", label: "QA Review" },
-  { id: "brief", label: "Brief" },
-];
 
 const priorityOrder: RecommendationPriority[] = ["High", "Medium", "Low"];
 
@@ -908,11 +1073,16 @@ export function FieldLearningStudioApp({
         <WorkspaceTabs
           activeTab={activeTab}
           onTabChange={handleTabChange}
+          evidenceCount={currentStudy?.evidence.length ?? activeDemoCase.evidence.length}
+          findingsCount={currentStudy?.findings.length ?? activeDemoCase.findings.length}
+          recommendationsCount={currentStudy?.recommendations.length ?? activeDemoCase.recommendations.length}
         />
 
         <div className="mt-5" id="workspace-panel">
           {activeTab === "overview" ? (
             <OverviewTab 
+              currentStudy={currentStudy}
+              onOpenBackupRestore={() => setIsBackupRestoreModalOpen(true)}
               demoCase={activeDemoCase} 
               onTabChange={handleTabChange}
               sandboxText={sandboxText}
@@ -1404,43 +1574,117 @@ function AppHeader({ demoCase }: { demoCase: DemoCase }) {
 function WorkspaceTabs({
   activeTab,
   onTabChange,
+  evidenceCount,
+  findingsCount,
+  recommendationsCount,
 }: {
   activeTab: WorkspaceTabId;
   onTabChange: (tabId: WorkspaceTabId) => void;
+  evidenceCount?: number;
+  findingsCount?: number;
+  recommendationsCount?: number;
 }) {
+  const activeSpaceId = getSpaceForTab(activeTab);
+  const activeSpace = PRACTITIONER_SPACES.find((s) => s.id === activeSpaceId) || PRACTITIONER_SPACES[0];
+
   return (
     <nav
-      aria-label="Field Learning Studio workspace"
-      className="sticky top-0 z-20 rounded-lg border border-[var(--border)] bg-[rgba(11,22,37,0.94)] px-3 backdrop-blur"
+      aria-label="Field Learning Studio practitioner spaces"
+      className="sticky top-0 z-20 rounded-xl border border-[var(--border)] bg-[rgba(11,22,37,0.96)] p-2.5 shadow-lg backdrop-blur"
     >
-      <div className="flex gap-1 overflow-x-auto py-2" role="tablist">
-        {workspaceTabs.map((tab) => {
-          const isActive = activeTab === tab.id;
+      {/* Primary Row: 4 Practitioner Spaces */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="tablist" aria-label="Practitioner spaces">
+        {PRACTITIONER_SPACES.map((space) => {
+          const isActive = space.id === activeSpaceId;
+          let countBadge: string | null = null;
+          if (space.id === "field-material" && evidenceCount !== undefined) {
+            countBadge = `${evidenceCount} obs`;
+          } else if (space.id === "analysis" && findingsCount !== undefined) {
+            countBadge = `${findingsCount} claims`;
+          } else if (space.id === "deliverables" && recommendationsCount !== undefined) {
+            countBadge = `${recommendationsCount} recs`;
+          }
 
           return (
             <button
-              aria-selected={isActive}
-              className={`min-h-10 min-w-fit rounded px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer ${
-                isActive
-                  ? "bg-[var(--accent)] text-white"
-                  : "text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
-              }`}
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
+              key={space.id}
               role="tab"
+              aria-selected={isActive}
+              data-space-id={space.id}
               type="button"
+              onClick={() => {
+                if (!isActive) {
+                  onTabChange(space.defaultTab);
+                }
+              }}
+              className={`group flex flex-col justify-between rounded-lg p-2.5 text-left transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer border ${
+                isActive
+                  ? "border-[var(--accent)] bg-[var(--surface-elevated)] text-white shadow-sm ring-1 ring-[var(--accent)]/50"
+                  : "border-transparent bg-transparent text-[var(--muted)] hover:border-[var(--border)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+              }`}
             >
-              {tab.label}
+              <div className="flex items-center justify-between w-full">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                  isActive ? "text-[var(--trace)]" : "text-[var(--muted)]"
+                }`}>
+                  Space {space.stepNumber}
+                </span>
+                {countBadge && (
+                  <span className="rounded bg-slate-800/80 px-1.5 py-0.5 text-[9px] font-medium text-[var(--muted)] border border-[var(--border)]">
+                    {countBadge}
+                  </span>
+                )}
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span className="text-base select-none">{space.icon}</span>
+                <span className={`text-sm font-bold ${isActive ? "text-white" : "text-[var(--foreground)]"}`}>
+                  {space.label}
+                </span>
+              </div>
+              <span className="mt-0.5 text-[10px] text-[var(--muted)] line-clamp-1">
+                {space.description}
+              </span>
             </button>
           );
         })}
       </div>
+
+      {/* Secondary Row: Sub-views for the Active Space */}
+      {activeSpace.tabs.length > 1 && (
+        <div className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--border)] pt-2 overflow-x-auto" role="tablist" aria-label={`${activeSpace.label} views`}>
+          <span className="mr-1 text-[11px] font-semibold text-[var(--muted)] uppercase tracking-wider pl-1 select-none">
+            {activeSpace.label} Views:
+          </span>
+          {activeSpace.tabs.map((tab) => {
+            const isTabActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                role="tab"
+                aria-selected={isTabActive}
+                data-tab-id={tab.id}
+                type="button"
+                onClick={() => onTabChange(tab.id)}
+                className={`min-h-8 rounded-md px-3 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer ${
+                  isTabActive
+                    ? "bg-[var(--accent)] text-white shadow-sm"
+                    : "text-[var(--muted)] hover:bg-[var(--surface-elevated)] hover:text-[var(--foreground)] border border-transparent hover:border-[var(--border)]"
+                }`}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </nav>
   );
 }
 
 function OverviewTab({
   demoCase,
+  currentStudy,
+  onOpenBackupRestore,
   onTabChange,
   sandboxText,
   setSandboxText,
@@ -1464,6 +1708,8 @@ function OverviewTab({
   traceHandlers,
 }: {
   demoCase: DemoCase;
+  currentStudy?: FieldStudy | null;
+  onOpenBackupRestore?: () => void;
   onTabChange: (tabId: WorkspaceTabId) => void;
   sandboxText: string;
   setSandboxText: (text: string) => void;
@@ -1555,6 +1801,173 @@ function OverviewTab({
 
   return (
     <div className="flex flex-col gap-6">
+      {/* 1. Resume Work / Next Action Hero Card */}
+      {(() => {
+        const nextAction = computeNextAction(currentStudy ?? null, demoCase);
+        const sources = currentStudy?.sources ?? demoCase.sources ?? [];
+        const evidence = currentStudy?.evidence ?? demoCase.evidence ?? [];
+        const findings = currentStudy?.findings ?? demoCase.findings ?? [];
+        const recommendations = currentStudy?.recommendations ?? demoCase.recommendations ?? [];
+
+        const reviewedEvidenceCount = evidence.filter(e => e.validationStatus === "Validated").length;
+        const validatedFindingsCount = findings.filter(f => f.validationStatus === "Validated").length;
+
+        return (
+          <section className="relative overflow-hidden rounded-xl border-2 border-[var(--trace)] bg-gradient-to-r from-[var(--surface-elevated)] via-[var(--surface)] to-[var(--surface-muted)] p-6 shadow-md">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1.5 max-w-2xl">
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider border ${nextAction.badgeColor}`}>
+                    {nextAction.badge}
+                  </span>
+                  <span className="text-xs font-semibold text-[var(--muted)]">
+                    Active Study: {currentStudy?.title ?? demoCase.project}
+                  </span>
+                </div>
+                <h2 className="text-xl font-bold tracking-tight text-[var(--foreground)] sm:text-2xl">
+                  {nextAction.title}
+                </h2>
+                <p className="text-sm leading-relaxed text-[var(--muted)]">
+                  {nextAction.description}
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:items-end gap-2 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onTabChange(nextAction.targetTab)}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-6 py-2.5 text-sm font-bold text-white shadow transition hover:bg-[var(--accent-strong)] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer"
+                >
+                  <span>{nextAction.buttonText}</span>
+                </button>
+                {onOpenBackupRestore && (
+                  <button
+                    type="button"
+                    onClick={onOpenBackupRestore}
+                    className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] underline decoration-dotted cursor-pointer"
+                  >
+                    📦 Backup & Recovery Archives
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Quick Metrics Bar */}
+            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[var(--border)] pt-4 sm:grid-cols-4">
+              <div className="rounded-lg bg-[var(--surface)]/70 p-2.5 border border-[var(--border)]">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Sources</span>
+                <p className="text-lg font-bold text-[var(--foreground)]">{sources.length}</p>
+                <span className="text-[10px] text-[var(--muted)]">Field inventory</span>
+              </div>
+              <div className="rounded-lg bg-[var(--surface)]/70 p-2.5 border border-[var(--border)]">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Observations</span>
+                <p className="text-lg font-bold text-[var(--foreground)]">
+                  {reviewedEvidenceCount} <span className="text-xs font-normal text-[var(--muted)]">/ {evidence.length} approved</span>
+                </p>
+                <span className="text-[10px] text-[var(--muted)]">Evidence items</span>
+              </div>
+              <div className="rounded-lg bg-[var(--surface)]/70 p-2.5 border border-[var(--border)]">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Findings</span>
+                <p className="text-lg font-bold text-[var(--foreground)]">
+                  {validatedFindingsCount} <span className="text-xs font-normal text-[var(--muted)]">/ {findings.length} validated</span>
+                </p>
+                <span className="text-[10px] text-[var(--muted)]">Synthesized claims</span>
+              </div>
+              <div className="rounded-lg bg-[var(--surface)]/70 p-2.5 border border-[var(--border)]">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Recommendations</span>
+                <p className="text-lg font-bold text-[var(--foreground)]">{recommendations.length}</p>
+                <span className="text-[10px] text-[var(--muted)]">Programmatic actions</span>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* 2. Study Scope, Governance & Limitations */}
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
+        <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--trace)]">
+              Study Space 1 · Scope & Governance
+            </span>
+            <h3 className="text-lg font-bold text-[var(--foreground)]">
+              {currentStudy?.title ?? demoCase.project}
+            </h3>
+          </div>
+          <span className="rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1 text-xs font-semibold text-[var(--foreground)]">
+            {currentStudy?.status ?? demoCase.status}
+          </span>
+        </div>
+
+        <div className="mt-4 grid gap-6 md:grid-cols-2">
+          {/* Left Column: Purpose & Questions */}
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
+                Evaluation Purpose & Context
+              </h4>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--foreground)]">
+                {currentStudy?.context || demoCase.context}
+              </p>
+            </div>
+
+            {currentStudy?.questions && currentStudy.questions.length > 0 && (
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
+                  Analytical Study Questions ({currentStudy.questions.length})
+                </h4>
+                <ul className="mt-2 space-y-1.5">
+                  {currentStudy.questions.map((q) => (
+                    <li key={q.id} className="flex items-start gap-2 text-xs text-[var(--foreground)]">
+                      <span className="font-mono text-[10px] font-bold text-[var(--trace)] shrink-0">
+                        {q.id}
+                      </span>
+                      <span>{q.question}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column: Intended Scope & Limitations */}
+          <div className="space-y-4">
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
+                Intended Scope Configuration
+              </h4>
+              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded border border-[var(--border)] bg-[var(--surface-muted)] p-2">
+                  <span className="text-[10px] text-[var(--muted)] block">Target Sites</span>
+                  <span className="font-medium text-[var(--foreground)]">
+                    {currentStudy?.scope?.targetSites?.join(", ") || "Target Project Sites"}
+                  </span>
+                </div>
+                <div className="rounded border border-[var(--border)] bg-[var(--surface-muted)] p-2">
+                  <span className="text-[10px] text-[var(--muted)] block">Target Stakeholders</span>
+                  <span className="font-medium text-[var(--foreground)]">
+                    {currentStudy?.scope?.targetStakeholderGroups?.join(", ") || "Key Stakeholders"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
+                Contextual Limitations & Boundaries
+              </h4>
+              <ul className="mt-2 space-y-1 text-xs text-[var(--muted)]">
+                {(currentStudy?.limitations ?? demoCase.limitations ?? []).map((lim, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="text-amber-400 shrink-0">⚠️</span>
+                    <span>{lim}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
       <section className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] p-6 sm:p-8">
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div>

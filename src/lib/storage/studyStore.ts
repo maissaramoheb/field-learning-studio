@@ -276,9 +276,21 @@ export async function deleteStudy(studyId: StudyId): Promise<void> {
 // ============================================================================
 
 export async function saveSource(
-  source: SourceRecord & { studyId: StudyId }
+  source: SourceRecord & { studyId: StudyId },
+  options?: { isCreate?: boolean }
 ): Promise<void> {
+  if (!source.studyId || !source.studyId.trim()) {
+    throw new Error("Source is missing required studyId.");
+  }
   const db = await getDb();
+  if (options?.isCreate) {
+    const existing = await db.get("sources", [source.studyId, source.id]);
+    if (existing) {
+      throw new Error(
+        `ID collision: A Source with ID "${source.id}" already exists in Study "${source.studyId}". Creation cannot overwrite existing records.`
+      );
+    }
+  }
   await db.put("sources", source);
 }
 
@@ -291,6 +303,24 @@ export async function saveSourceBatch(
       ? (maybeSources || []).map((s) => ({ ...s, studyId: sourcesOrStudyId }))
       : sourcesOrStudyId;
   if (sources.length === 0) return;
+
+  const seenSourceIds = new Set<string>();
+  const dupSourceIds: string[] = [];
+  for (const src of sources) {
+    if (!src.studyId || !src.studyId.trim()) {
+      throw new Error("Source is missing required studyId.");
+    }
+    if (seenSourceIds.has(src.id)) {
+      dupSourceIds.push(src.id);
+    }
+    seenSourceIds.add(src.id);
+  }
+  if (dupSourceIds.length > 0) {
+    throw new Error(
+      `Batch mutation rejected: Duplicate Source IDs found in batch: ${dupSourceIds.join(", ")}`
+    );
+  }
+
   const db = await getDb();
   const tx = db.transaction("sources", "readwrite");
   const store = tx.objectStore("sources");
@@ -333,9 +363,21 @@ export async function deleteSource(
 // ============================================================================
 
 export async function saveEvidence(
-  evidence: EvidenceEntry & { studyId: StudyId }
+  evidence: EvidenceEntry & { studyId: StudyId },
+  options?: { isCreate?: boolean }
 ): Promise<void> {
+  if (!evidence.studyId || !evidence.studyId.trim()) {
+    throw new Error("Evidence is missing required studyId.");
+  }
   const db = await getDb();
+  if (options?.isCreate) {
+    const existing = await db.get("evidence", [evidence.studyId, evidence.id]);
+    if (existing) {
+      throw new Error(
+        `ID collision: An Evidence entry with ID "${evidence.id}" already exists in Study "${evidence.studyId}". Creation cannot overwrite existing records.`
+      );
+    }
+  }
   await assertEvidenceSourceIntegrity(db, evidence.studyId, evidence);
 
   // If this evidence was previously validated and is now being downgraded or substantively edited
@@ -364,6 +406,24 @@ export async function saveEvidenceBatch(
       ? (maybeEvidence || []).map((e) => ({ ...e, studyId: evidenceOrStudyId }))
       : evidenceOrStudyId;
   if (evidenceList.length === 0) return;
+
+  const seenEvidenceIds = new Set<string>();
+  const dupEvidenceIds: string[] = [];
+  for (const ev of evidenceList) {
+    if (!ev.studyId || !ev.studyId.trim()) {
+      throw new Error("Evidence is missing required studyId.");
+    }
+    if (seenEvidenceIds.has(ev.id)) {
+      dupEvidenceIds.push(ev.id);
+    }
+    seenEvidenceIds.add(ev.id);
+  }
+  if (dupEvidenceIds.length > 0) {
+    throw new Error(
+      `Batch mutation rejected: Duplicate Evidence IDs found in batch: ${dupEvidenceIds.join(", ")}`
+    );
+  }
+
   const db = await getDb();
 
   for (const ev of evidenceList) {
@@ -461,9 +521,21 @@ export async function deleteDebrief(
 // ============================================================================
 
 export async function saveFinding(
-  finding: Finding & { studyId: StudyId }
+  finding: Finding & { studyId: StudyId },
+  options?: { isCreate?: boolean }
 ): Promise<void> {
+  if (!finding.studyId || !finding.studyId.trim()) {
+    throw new Error("Finding is missing required studyId.");
+  }
   const db = await getDb();
+  if (options?.isCreate) {
+    const existing = await db.get("findings", [finding.studyId, finding.id]);
+    if (existing) {
+      throw new Error(
+        `ID collision: A Finding with ID "${finding.id}" already exists in Study "${finding.studyId}". Creation cannot overwrite existing records.`
+      );
+    }
+  }
   await assertFindingEvidenceIntegrity(db, finding.studyId, finding);
   await db.put("findings", finding);
 }
@@ -494,9 +566,21 @@ export async function deleteFinding(
 // ============================================================================
 
 export async function saveLesson(
-  lesson: LessonLearned & { studyId: StudyId }
+  lesson: LessonLearned & { studyId: StudyId },
+  options?: { isCreate?: boolean }
 ): Promise<void> {
+  if (!lesson.studyId || !lesson.studyId.trim()) {
+    throw new Error("Lesson is missing required studyId.");
+  }
   const db = await getDb();
+  if (options?.isCreate) {
+    const existing = await db.get("lessons", [lesson.studyId, lesson.id]);
+    if (existing) {
+      throw new Error(
+        `ID collision: A Lesson with ID "${lesson.id}" already exists in Study "${lesson.studyId}". Creation cannot overwrite existing records.`
+      );
+    }
+  }
   await assertLessonEvidenceIntegrity(db, lesson.studyId, lesson);
   await db.put("lessons", lesson);
 }
@@ -527,9 +611,21 @@ export async function deleteLesson(
 // ============================================================================
 
 export async function saveGoodPractice(
-  practice: GoodPractice & { studyId: StudyId }
+  practice: GoodPractice & { studyId: StudyId },
+  options?: { isCreate?: boolean }
 ): Promise<void> {
+  if (!practice.studyId || !practice.studyId.trim()) {
+    throw new Error("Good Practice is missing required studyId.");
+  }
   const db = await getDb();
+  if (options?.isCreate) {
+    const existing = await db.get("goodPractices", [practice.studyId, practice.id]);
+    if (existing) {
+      throw new Error(
+        `ID collision: A Good Practice with ID "${practice.id}" already exists in Study "${practice.studyId}". Creation cannot overwrite existing records.`
+      );
+    }
+  }
   await assertGoodPracticeEvidenceIntegrity(db, practice.studyId, practice);
   await db.put("goodPractices", practice);
 }
@@ -560,9 +656,21 @@ export async function deleteGoodPractice(
 // ============================================================================
 
 export async function saveRecommendation(
-  recommendation: Recommendation & { studyId: StudyId }
+  recommendation: Recommendation & { studyId: StudyId },
+  options?: { isCreate?: boolean }
 ): Promise<void> {
+  if (!recommendation.studyId || !recommendation.studyId.trim()) {
+    throw new Error("Recommendation is missing required studyId.");
+  }
   const db = await getDb();
+  if (options?.isCreate) {
+    const existing = await db.get("recommendations", [recommendation.studyId, recommendation.id]);
+    if (existing) {
+      throw new Error(
+        `ID collision: A Recommendation with ID "${recommendation.id}" already exists in Study "${recommendation.studyId}". Creation cannot overwrite existing records.`
+      );
+    }
+  }
   await assertRecommendationFindingIntegrity(db, recommendation.studyId, recommendation);
   await db.put("recommendations", recommendation);
 }

@@ -1,14 +1,14 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "mep01_formal_claim_boundary_closed",
+  "status": "presentation_ready_sprint_complete",
   "priority": "high",
-  "current_phase": "MEP-01: Close the Formal Claim Boundary",
-  "next_action": "Perform required manual browser acceptance checklist and submit MEP-01 for independent verification.",
+  "current_phase": "Presentation-Ready Execution Sprint",
+  "next_action": "Review deployed preview URL and presentation screenshots.",
   "blocker": null,
-  "decision_needed": "Independent verification of MEP-01 before authorizing MEP-02.",
+  "decision_needed": null,
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
-  "preview_url": "https://field-learning-studio-pleg1fc7s-delta4ce20-5830s-projects.vercel.app",
+  "preview_url": "https://field-learning-studio-1gmzuycd4-delta4ce20-5830s-projects.vercel.app",
   "production_url": "https://field-learning-studio.vercel.app/",
   "validation_results": {
     "primary": "passed",
@@ -18,12 +18,11 @@
     "json": "passed",
     "diff_check": "passed",
     "local_http": "not_run",
-    "tests": "176_passed_16_files"
+    "tests": "191_passed_17_files"
   },
   "remaining_risks": [
-    "PDF/Word client-side downloads rely on browser-level file generation APIs (Blob, URL.createObjectURL, and react-pdf iframe/blob streams). Browser-specific download policies may apply.",
-    "Manual download file inspection required to verify that browser download pipeline produces binary files matching canonical BriefExportModel."
+    "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported."
   ],
-  "recommended_next_step": "Submit MEP-01 for independent review; do not proceed to MEP-02 until authorized.",
-  "notion_page_update": "Completed MEP-01 (Close the Formal Claim Boundary) on branch feature/v0.9-field-sensemaking. Enforced unified canonical export eligibility contract across Styled Brief Preview, Copy Markdown, Download Markdown, DOCX, and PDF. Hardened validateArtifact to block wrong-order approvals when supporting evidence is unreviewed or stale. Extended bi-directional invalidation cascades to both supporting and challenging evidence edits. Enforced parent deletion guard blocking removal of sources with active dependent evidence. Harmonized batch mutation routes (batch updates, theme assignment, question linkage) to cascade invalidations. Preserved deliberate review semantics where re-reviewing evidence leaves findings in Needs Review pending explicit human approval. 176 Vitest tests passing across 16 files (including 6 defect reproduction tests and 14 regression tests). Zero TypeScript errors, zero ESLint warnings, Next.js production build clean."
+  "recommended_next_step": "Conduct walkthrough review using the 4-space workflow and verify stakeholder readiness.",
+  "notion_page_update": "Completed Presentation-Ready Execution Sprint on feature/v0.9-field-sensemaking: (1) Stage 1: Closed MEP-01 with live CDP browser acceptance audit across all claim boundary invariants; (2) Stage 2: Closed Minimum MEP-02 safety boundary (15 tests in tests/mep02SafetyBoundary.test.ts); (3) Stage 3: Implemented 4 Practitioner Spaces (Study, Field Material, Analysis, Deliverables), Resume Work / Next Action hero card, frictionless intake, factual Evidence Coverage & Limitations in findings, and simplified recommendations. 191 Vitest tests passing across 17 files, 0 TS errors, 0 lint warnings, clean Turbopack build."
 }

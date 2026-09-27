@@ -114,6 +114,16 @@
   - [x] Maintain strict isolation between legacy demo compatibility adapter and editable live-study artifacts.
   - [x] Add reproduction suite (`tests/mep01ClaimBoundaryReproduction.test.ts`, 6 tests) and regression suite (`tests/claimBoundary.test.ts`, 14 tests) covering all 11 required invariant areas. All 176 tests passing across 16 files.
   - [x] Author technical architecture document in `docs/mep01_formal_claim_boundary.md`.
+- [x] Presentation-Ready Execution Sprint:
+  - [x] Stage 1 — Close MEP-01 with live browser acceptance on hosted preview verifying full claim chain, substantive edits, wrong-order blocks, deliberate re-review, and export parity.
+  - [x] Stage 2 — Close Minimum MEP-02 Safety Boundary: duplicate ID rejections, cross-study contamination guards, broken relationship validation, atomic backup rollback, and collision detection (15 tests in `tests/mep02SafetyBoundary.test.ts`).
+  - [x] Stage 3 — Presentation-Critical UX:
+    - [x] 4 Practitioner Spaces (`Study`, `Field Material`, `Analysis`, `Deliverables`) replacing 10-tab bar.
+    - [x] Prominent "Resume Work / Next Action" hero card on Study Home with direct navigation.
+    - [x] Study Scope, Governance, and Data Recovery card on Study Home.
+    - [x] Frictionless observation capture: optional primary theme (defaults to `Uncategorized`) and blank interpretations allowed.
+    - [x] Live Evidence Coverage & Limitations in Finding modal (factual source, method, site, stakeholder counts; retired arbitrary tier badge).
+    - [x] Simplified Recommendation authoring with progressive disclosure for implementation parameters.
 
 ## P1
 

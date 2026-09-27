@@ -111,6 +111,17 @@ export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResu
   if (typeof study.title !== "string" || !study.title.trim()) {
     errors.push("Study metadata is missing a valid string title.");
   }
+  if (!study.scope || typeof study.scope !== "object") {
+    errors.push("Study metadata is missing required scope configuration.");
+  } else {
+    const scope = study.scope as Record<string, unknown>;
+    if (scope.targetSites !== undefined && !Array.isArray(scope.targetSites)) {
+      errors.push("Study scope targetSites must be an array if provided.");
+    }
+    if (scope.geographicAreas !== undefined && !Array.isArray(scope.geographicAreas)) {
+      errors.push("Study scope geographicAreas must be an array if provided.");
+    }
+  }
 
   // Check array sections
   const arrayFields = [
@@ -152,6 +163,10 @@ export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResu
       errors.push(`Source at index ${idx} has missing or invalid ID.`);
       return;
     }
+    if (sourceIdSet.has(s.id)) {
+      errors.push(`Duplicate Source ID "${s.id}" detected in backup archive.`);
+      return;
+    }
     if (!s.title || typeof s.title !== "string" || !s.title.trim()) {
       errors.push(`Source "${s.id}" is missing required title.`);
     }
@@ -167,6 +182,10 @@ export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResu
     }
     if (!e.id || typeof e.id !== "string" || !e.id.trim()) {
       errors.push(`Evidence at index ${idx} has missing or invalid ID.`);
+      return;
+    }
+    if (evidenceIdSet.has(e.id)) {
+      errors.push(`Duplicate Evidence ID "${e.id}" detected in backup archive.`);
       return;
     }
     const obsText = e.rawEvidence || e.rawObservation;
@@ -197,6 +216,10 @@ export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResu
       errors.push(`Finding at index ${idx} has missing or invalid ID.`);
       return;
     }
+    if (findingIdSet.has(f.id)) {
+      errors.push(`Duplicate Finding ID "${f.id}" detected in backup archive.`);
+      return;
+    }
     if (!f.statement || typeof f.statement !== "string" || !f.statement.trim()) {
       errors.push(`Finding "${f.id}" is missing required statement.`);
     }
@@ -223,6 +246,7 @@ export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResu
   });
 
   // 4. Validate Recommendations
+  const recommendationIdSet = new Set<string>();
   recommendations.forEach((r, idx) => {
     if (!r || typeof r !== "object") {
       errors.push(`Recommendation at index ${idx} is not an object.`);
@@ -230,6 +254,10 @@ export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResu
     }
     if (!r.id || typeof r.id !== "string" || !r.id.trim()) {
       errors.push(`Recommendation at index ${idx} has missing or invalid ID.`);
+      return;
+    }
+    if (recommendationIdSet.has(r.id)) {
+      errors.push(`Duplicate Recommendation ID "${r.id}" detected in backup archive.`);
       return;
     }
     if (!r.recommendation || typeof r.recommendation !== "string" || !r.recommendation.trim()) {
@@ -245,26 +273,60 @@ export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResu
         `Recommendation "${r.id}" has invalid validationStatus "${String(r.validationStatus)}".`
       );
     }
+    recommendationIdSet.add(r.id);
   });
 
   // 5. Validate Lessons & Good Practices
-  lessons.forEach((l) => {
+  const lessonIdSet = new Set<string>();
+  lessons.forEach((l, idx) => {
+    if (!l || typeof l !== "object") {
+      errors.push(`Lesson at index ${idx} is not an object.`);
+      return;
+    }
+    if (!l.id || typeof l.id !== "string" || !l.id.trim()) {
+      errors.push(`Lesson at index ${idx} has missing or invalid ID.`);
+      return;
+    }
+    if (lessonIdSet.has(l.id)) {
+      errors.push(`Duplicate Lesson ID "${l.id}" detected in backup archive.`);
+      return;
+    }
     for (const evId of l.evidenceBase || []) {
       if (!evidenceIdSet.has(evId)) {
-        warnings.push(`Lesson "${l.id}" references evidence "${evId}" not found in backup.`);
+        errors.push(
+          `Relationship violation: Lesson "${l.id}" references missing Evidence "${evId}".`
+        );
       }
     }
+    lessonIdSet.add(l.id);
   });
 
-  goodPractices.forEach((gp) => {
+  const goodPracticeIdSet = new Set<string>();
+  goodPractices.forEach((gp, idx) => {
+    if (!gp || typeof gp !== "object") {
+      errors.push(`Good Practice at index ${idx} is not an object.`);
+      return;
+    }
+    if (!gp.id || typeof gp.id !== "string" || !gp.id.trim()) {
+      errors.push(`Good Practice at index ${idx} has missing or invalid ID.`);
+      return;
+    }
+    if (goodPracticeIdSet.has(gp.id)) {
+      errors.push(`Duplicate Good Practice ID "${gp.id}" detected in backup archive.`);
+      return;
+    }
     for (const evId of gp.evidenceBase || []) {
       if (!evidenceIdSet.has(evId)) {
-        warnings.push(`Good Practice "${gp.id}" references evidence "${evId}" not found in backup.`);
+        errors.push(
+          `Relationship violation: Good Practice "${gp.id}" references missing Evidence "${evId}".`
+        );
       }
     }
+    goodPracticeIdSet.add(gp.id);
   });
 
   // 6. Validate Debriefs
+  const debriefIdSet = new Set<string>();
   debriefs.forEach((d, idx) => {
     if (!d || typeof d !== "object") {
       errors.push(`Debrief at index ${idx} is not an object.`);
@@ -274,6 +336,11 @@ export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResu
       errors.push(`Debrief at index ${idx} has missing or invalid ID.`);
       return;
     }
+    if (debriefIdSet.has(d.id)) {
+      errors.push(`Duplicate Debrief ID "${d.id}" detected in backup archive.`);
+      return;
+    }
+    debriefIdSet.add(d.id);
   });
 
   const envelope = obj as unknown as StudyBackupEnvelope;

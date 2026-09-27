@@ -2,18 +2,18 @@
 
 ## Current Status
 
-**MEP-01 — Close the Formal Claim Boundary** is fully implemented and verified on branch `feature/v0.9-field-sensemaking`. The core invariant is strictly enforced: *"A formal Finding must depend on complete, current, deliberately reviewed material, and every formal output path must apply the same eligibility rules."*
+**Presentation-Ready Execution Sprint** is complete and verified on branch `feature/v0.9-field-sensemaking`:
+1. **Stage 1 (Close MEP-01)**: Real browser acceptance audit completed against hosted Vercel preview via CDP. Formal claim boundary strictly verified: initial chain export eligibility, immediate invalidation cascade on substantive edits, wrong-order approval block, deliberate human re-review restoration, and parent source deletion protection.
+2. **Stage 2 (Close Minimum MEP-02 Safety Boundary)**: Enforced storage invariants across `studyStore.ts` and `studyBackup.ts` (duplicate ID rejection, cross-study ownership rejection, broken parent relationship rejection, atomic restore rollback, and collision detection guards). 15 new tests added in `tests/mep02SafetyBoundary.test.ts`. Total test suite: 191 tests passing (100% pass rate).
+3. **Stage 3 (Presentation-Critical UX)**:
+   - Migrated 10-tab navigation to **4 Practitioner Spaces**: **1. Study**, **2. Field Material**, **3. Analysis**, **4. Deliverables** with clean sub-navigation.
+   - Added prominent **Resume Work / Next Action** hero card on Study Home with dynamic lifecycle calculation and direct one-click navigation.
+   - Added **Study Scope & Governance** card on Study Home with analytical questions, target sites/stakeholders, and data recovery quick launcher.
+   - Reduced decisions during intake: optional primary theme (defaults to `Uncategorized`) and blank interpretations allowed.
+   - Retired arbitrary headline tier badges in Finding authoring in favor of factual **Evidence Coverage & Limitations** (sources, methods, sites, stakeholders, challenging evidence).
+   - Streamlined Recommendation authoring with progressive disclosure for implementation parameters.
 
-Integrity and parity are guaranteed through:
-1. **Canonical Formal Eligibility Contract**: Unified in `src/lib/exportPolicy.ts` and consumed identically by `buildBriefExportModel`, `StyledBriefPreview`, Copy Markdown, Download Markdown, DOCX, and PDF. Ineligible, unreviewed, stale, orphan, or cross-study claims are strictly excluded from all formal deliverable projections.
-2. **Approval Action Guard**: `validateArtifact` in `src/lib/validation/validationLifecycle.ts` enforces prerequisites before allowing approval. Wrong-order approval is blocked with clear, plain-language feedback if supporting evidence is unreviewed or stale.
-3. **Bi-directional Invalidation Cascading**: `src/lib/storage/integrity.ts` cascades invalidations on substantive edits to supporting evidence as well as challenging/contradictory evidence, marking dependent findings `Needs Review` with plain-language guidance.
-4. **Source Deletion Guard**: `deleteSource` in `src/lib/storage/studyStore.ts` explicitly blocks deleting parent sources while active dependent evidence records exist, preventing orphan claim chains.
-5. **Batch Mutation Integrity**: `saveEvidenceBatch`, `bulkAssignEvidenceTheme`, and `bulkAssignEvidenceToQuestion` route through the same substantive update detection and invalidation cascades as individual edits.
-6. **Deliberate Review Restoration**: Re-validating evidence does not automatically restore finding or recommendation approvals; analytical ownership requires explicit, deliberate human re-review.
-7. **Legacy Demo Isolation**: The legacy demo compatibility adapter is strictly isolated from live editable studies.
-
-All 176 Vitest tests pass across 16 test files (including `tests/claimBoundary.test.ts` and `tests/mep01ClaimBoundaryReproduction.test.ts`). Next.js production build compiles with zero errors, and ESLint passes with zero errors and zero warnings.
+All 191 Vitest tests pass across 17 test files. Next.js production build compiles cleanly with zero errors (Turbopack), and ESLint passes with zero errors and zero warnings.
 
 ## Completed Items
 

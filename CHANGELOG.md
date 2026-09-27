@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.9.1 - Presentation-Ready Execution Sprint
+
+- **Stage 1 — Real Browser MEP-01 Acceptance**:
+  - Successfully verified complete claim boundary against live preview via headless Chrome CDP: initial chain eligibility, substantive invalidation cascade, wrong-order approval block, deliberate re-review restoration, and source deletion block.
+- **Stage 2 — Minimum MEP-02 Storage Safety Boundary**:
+  - Enforced duplicate ID rejection across batch operations and backup imports.
+  - Enforced strict referential checks rejecting broken parent relations and cross-study contamination.
+  - Added collision detection in `studyStore.ts` preventing silent overwrite of existing records on creation.
+  - Added 15 new automated regression tests in `tests/mep02SafetyBoundary.test.ts`. Total test suite: 191 tests passing across 17 test files.
+- **Stage 3 — Presentation-Critical UX**:
+  - Replaced 10-tab navigation with **4 Practitioner Spaces**: **1. Study**, **2. Field Material**, **3. Analysis**, **4. Deliverables** with clean sub-navigation.
+  - Prominent "Resume Work / Next Action" hero card on Study Home with direct one-click navigation to where the user left off.
+  - Study Scope, Context, Governance, and Data Recovery card on Study Home.
+  - Frictionless observation capture: optional primary theme (defaults to `Uncategorized`) and blank interpretations allowed.
+  - Retired arbitrary headline tier badges in Finding authoring in favor of factual **Evidence Coverage & Limitations** (sources, methods, sites, stakeholders, challenging evidence).
+  - Streamlined Recommendation authoring with progressive disclosure for implementation parameters.
+
 ## v0.9.0-mep01 - Formal Claim Boundary & Export Parity Closure
 
 - **Formal Claim Eligibility & Export Parity**:

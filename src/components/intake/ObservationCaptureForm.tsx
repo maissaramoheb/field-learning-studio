@@ -31,7 +31,7 @@ export function ObservationCaptureForm({
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [rawObservation, setRawObservation] = useState("");
   const [interpretation, setInterpretation] = useState("");
-  const [primaryTheme, setPrimaryTheme] = useState("Operational Execution");
+  const [primaryTheme, setPrimaryTheme] = useState("");
   const [secondaryTheme, setSecondaryTheme] = useState("");
   const [evidenceStrength, setEvidenceStrength] = useState<EvidenceStrength>("Medium");
   const [sensitivityFlag, setSensitivityFlag] = useState<SensitivityFlag>(
@@ -48,6 +48,7 @@ export function ObservationCaptureForm({
       prevContextRef.current = currentContext;
       setRawObservation("");
       setInterpretation("");
+      setPrimaryTheme("");
       setSecondaryTheme("");
       setSuccessMsg(null);
       setIsBatchMode(false);
@@ -68,7 +69,7 @@ export function ObservationCaptureForm({
 
   const handleSaveObservation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rawObservation.trim() || !primaryTheme.trim()) {
+    if (!rawObservation.trim()) {
       return;
     }
 
@@ -95,7 +96,7 @@ export function ObservationCaptureForm({
         rawEvidence: rawObservation.trim(),
         rawObservation: rawObservation.trim(),
         interpretation: interpretation.trim() || "",
-        primaryTheme: primaryTheme.trim(),
+        primaryTheme: primaryTheme.trim() || "Uncategorized",
         secondaryTheme: secondaryTheme.trim() || "General",
         evidenceStrength,
         sensitivityFlag,
@@ -266,14 +267,13 @@ export function ObservationCaptureForm({
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold text-[var(--foreground)]">
-                Primary Theme <span className="text-rose-400">*</span>
+                Primary Theme (Optional / Uncategorized)
               </label>
               <input
                 type="text"
-                required
                 value={primaryTheme}
                 onChange={(e) => setPrimaryTheme(e.target.value)}
-                placeholder="e.g. Targeting, Safety, Transport"
+                placeholder="e.g. Targeting, Safety, or leave blank for Uncategorized"
                 className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
               />
             </div>
