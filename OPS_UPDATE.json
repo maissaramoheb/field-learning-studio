@@ -1,14 +1,14 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "production_released",
+  "status": "landing_page_verified",
   "priority": "high",
-  "current_phase": "Production Release Verified",
-  "next_action": "Begin Task 2: Implement DOCX Field-Visit Intake on dedicated feature branch feature/docx-field-intake.",
+  "current_phase": "Public Landing Page Verified",
+  "next_action": "Deploy feature/public-landing-page to Vercel Preview (preview only).",
   "blocker": null,
   "decision_needed": null,
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
-  "preview_url": "https://field-learning-studio-p1qul6dfs-delta4ce20-5830s-projects.vercel.app",
+  "preview_url": "Pending preview deployment",
   "production_url": "https://field-learning-studio.vercel.app",
   "validation_results": {
     "primary": "passed",
@@ -19,11 +19,11 @@
     "diff_check": "passed",
     "local_http": "passed",
     "tests": "191_passed_17_files",
-    "production_smoke_test": "passed"
+    "responsive_screenshots": "passed_1440_1280_1024_390"
   },
   "remaining_risks": [
     "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported."
   ],
-  "recommended_next_step": "Implement feature/docx-field-intake with transactional parsing and candidate observation segmentation.",
-  "notion_page_update": "Production Release Verified: Merged feature/v0.9-field-sensemaking (commit 542ba56) into main (commit e2fd012) with pre-merge rollback tag pre-production-ui-release-2026-09-27. Deployed to permanent production domain https://field-learning-studio.vercel.app and passed automated CDP browser smoke tests across all 4 spaces with zero console errors and zero broken network assets. Quality gates: 191/191 tests pass, tsc clean, ESLint clean, Next.js build clean."
+  "recommended_next_step": "Deploy feature/public-landing-page as protected Vercel Preview (never --prod) and deliver final summary.",
+  "notion_page_update": "Public Landing Page Implementation complete on branch feature/public-landing-page: root route / renders high-authority, methodology-first landing page with 11 narrative sections, real screenshots, and interactive 4-space workflow stepper. Studio workspace routed cleanly to /studio without touching core app logic, IndexedDB, or MEP boundaries. Fully responsive across 1440x900, 1280x800, 1024x768, and 390x844 viewports with 0 horizontal overflow. 191/191 unit tests passing, tsc clean, ESLint clean, Next.js build clean."
 }

@@ -2,6 +2,12 @@
 
 ## P0
 
+- [x] Premium Public Landing Page & Studio Routing (`feature/public-landing-page`):
+  - [x] High-authority public landing page (`src/components/landing/LandingPage.tsx`) communicating value to evaluators, MEL teams, and NGOs.
+  - [x] 11 structured narrative sections with interactive 4-space workflow stepper, traceability lineage chain, and human judgment matrix.
+  - [x] Clean routing: `/` for public visitors, `/studio` for full workspace, `/welcome` alias.
+  - [x] Quality gates verified: 191/191 unit tests passing, tsc clean, ESLint clean, Next.js build clean.
+  - [x] Responsive verified on 1440×900, 1280×800, 1024×768, and 390×844 with zero horizontal overflow.
 - [x] Initialize app.
 - [x] Create foundation docs.
 - [x] Build demo data model.
