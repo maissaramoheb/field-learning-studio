@@ -1,14 +1,14 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "final_presentation_hardening_complete",
+  "status": "final_ui_ux_integration_complete",
   "priority": "high",
-  "current_phase": "Final Presentation Hardening Pass",
-  "next_action": "Review deployed preview URL and presentation screenshots.",
+  "current_phase": "Final UI/UX Integration Pass",
+  "next_action": "Review deployed preview URL and visual acceptance screenshots.",
   "blocker": null,
   "decision_needed": null,
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
-  "preview_url": "https://field-learning-studio-gi9cvfyra-delta4ce20-5830s-projects.vercel.app",
+  "preview_url": "https://field-learning-studio-qiqb520s7-delta4ce20-5830s-projects.vercel.app",
   "production_url": "https://field-learning-studio.vercel.app/",
   "validation_results": {
     "primary": "passed",
@@ -17,12 +17,12 @@
     "build": "passed_turbopack",
     "json": "passed",
     "diff_check": "passed",
-    "local_http": "not_run",
+    "local_http": "passed",
     "tests": "191_passed_17_files"
   },
   "remaining_risks": [
     "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported."
   ],
-  "recommended_next_step": "Present hardened 4-space workflow for professional review.",
-  "notion_page_update": "Completed Final Presentation Hardening Pass on feature/v0.9-field-sensemaking: (1) Replaced all 'donor-ready' language with 'Professional Draft' and 'Draft for Professional Review'; (2) Corrected source terminology to 'distinct source records' in Evidence Coverage & Limitations; (3) Hardened Recommendation model requiring Action, Linked Finding, and Intended Actor or explicit 'Responsibility to be agreed' with progressive disclosure; (4) Clarified primary analysis pathway via Synthesis Workbench; (5) Turned QA review into Final Review with 7 actionable pre-draft verification checks; (6) Enforced honest, bounded framing across all UI copy and documentation. All 191 tests pass, TS clean, lint clean, Turbopack build passing."
+  "recommended_next_step": "Present compact, accessible 4-space workflow for user sign-off.",
+  "notion_page_update": "Completed Final UI/UX Integration Pass on feature/v0.9-field-sensemaking: (1) Reduced header stack to ~93px (app bar 48px, tabs 42px), bringing working content into ~260–300px from top on 1440×900 screens; (2) Replaced legacy hero cards with compact Continue Work row and 4-metric horizontal inventory strip; (3) Resolved visible demo issue where Resume Work CTA showed '3 awaiting review' despite 20 approved observations; (4) Authored native accessible WorkspaceDialog (<dialog>) with focus trapping and escape handling; (5) Docked Field Material intake and tightened synthesis/analysis grids; (6) Verified full responsiveness on 1440×900, 1280×800, and 1024×768. All 191 tests pass, TS clean, lint clean, Turbopack build passing."
 }
