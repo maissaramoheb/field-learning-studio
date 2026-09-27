@@ -20,6 +20,8 @@ import type {
   SensitivityFlag,
   SourceRecord,
   SourceRecordId,
+  FieldStudy,
+  StudyMeta,
 } from "@/lib/types";
 import { generateQAReview } from "@/lib/qa";
 import { generateLearningBriefMarkdown } from "@/lib/generateBrief";
@@ -28,6 +30,31 @@ import { buildBriefExportModel } from "@/lib/buildBriefExportModel";
 import { downloadBriefDocx } from "@/lib/exportDocx";
 import { downloadBriefPdf } from "@/lib/exportPdf";
 import { downloadBriefMarkdown } from "@/lib/exportMarkdown";
+import { runSandboxSafetyCheck, parseSandboxInput } from "@/lib/sandboxParser";
+import { FieldIntakeView } from "@/components/intake/FieldIntakeView";
+import { MinimalStudyModal } from "@/components/studies/MinimalStudyModal";
+import { BackupRestoreModal } from "@/components/studies/BackupRestoreModal";
+import { EvidenceReviewWorkspace } from "@/components/evidence";
+import { DailyDebriefView } from "@/components/debrief";
+import { SynthesisWorkbench } from "@/components/synthesis";
+import {
+  submitForReview,
+  validateArtifact,
+  rejectArtifact,
+  reopenRejectedArtifact,
+  getRecommendationDependencyWarning,
+  requiresFindingLimitationNote,
+  applySubstantiveFindingEdit,
+} from "@/lib/validation";
+import { computeSupportProfile } from "@/lib/analytics/supportProfile";
+import {
+  bootstrapDemoTemplates,
+  listStudies,
+  assembleStudy,
+  adaptFieldStudyToDemoCase,
+  saveFinding,
+  saveRecommendation,
+} from "@/lib/storage";
 
 interface FieldLearningStudioAppProps {
   demoCase: DemoCase;
@@ -38,33 +65,209 @@ type EvidenceFilters = {
   stakeholderType: string;
   evidenceStrength: string;
   sensitivityFlag: string;
+  validationStatus?: string;
 };
 
 type WorkspaceTabId =
   | "overview"
+  | "intake"
   | "evidence"
+  | "debrief"
+  | "synthesis"
   | "findings"
   | "lessons"
   | "recommendations"
   | "qa"
   | "brief";
 
+export type PractitionerSpaceId = "study" | "field-material" | "analysis" | "deliverables";
+
+export interface PractitionerSpaceTab {
+  id: WorkspaceTabId;
+  label: string;
+  shortLabel: string;
+}
+
+export interface PractitionerSpace {
+  id: PractitionerSpaceId;
+  stepNumber: string;
+  label: string;
+  description: string;
+  icon: string;
+  defaultTab: WorkspaceTabId;
+  tabs: PractitionerSpaceTab[];
+}
+
+export const PRACTITIONER_SPACES: PractitionerSpace[] = [
+  {
+    id: "study",
+    stepNumber: "1",
+    label: "Study",
+    description: "Scope, Governance & Next Action",
+    icon: "🧭",
+    defaultTab: "overview",
+    tabs: [
+      { id: "overview", label: "Study Overview", shortLabel: "Study Home" },
+    ],
+  },
+  {
+    id: "field-material",
+    stepNumber: "2",
+    label: "Field Material",
+    description: "Sources, Observations & Review",
+    icon: "📋",
+    defaultTab: "evidence",
+    tabs: [
+      { id: "evidence", label: "Evidence", shortLabel: "Evidence" },
+      { id: "intake", label: "Field Intake", shortLabel: "Field Intake" },
+    ],
+  },
+  {
+    id: "analysis",
+    stepNumber: "3",
+    label: "Analysis",
+    description: "Synthesis, Coverage & Findings",
+    icon: "🔬",
+    defaultTab: "synthesis",
+    tabs: [
+      { id: "synthesis", label: "Synthesis Workbench", shortLabel: "Synthesis" },
+      { id: "findings", label: "Findings Ledger", shortLabel: "Findings" },
+      { id: "debrief", label: "Daily Debrief", shortLabel: "Debrief" },
+      { id: "lessons", label: "Lessons", shortLabel: "Lessons" },
+    ],
+  },
+  {
+    id: "deliverables",
+    stepNumber: "4",
+    label: "Deliverables",
+    description: "Professional Draft, Recommendations & Final Review",
+    icon: "📄",
+    defaultTab: "brief",
+    tabs: [
+      { id: "brief", label: "Professional Draft", shortLabel: "Draft" },
+      { id: "recommendations", label: "Recommendations", shortLabel: "Recommendations" },
+      { id: "qa", label: "Final Review", shortLabel: "Final Review" },
+    ],
+  },
+];
+
+export function getSpaceForTab(tab: WorkspaceTabId): PractitionerSpaceId {
+  for (const space of PRACTITIONER_SPACES) {
+    if (space.tabs.some((t) => t.id === tab)) {
+      return space.id;
+    }
+  }
+  return "study";
+}
+
+export function computeNextAction(study: FieldStudy | null, demoCase: DemoCase) {
+  const sources = study?.sources ?? demoCase.sources ?? [];
+  const evidence = study?.evidence ?? demoCase.evidence ?? [];
+  const findings = study?.findings ?? demoCase.findings ?? [];
+  const recommendations = study?.recommendations ?? demoCase.recommendations ?? [];
+
+  if (sources.length === 0) {
+    return {
+      stage: "1. Field Material",
+      badge: "Step 1: Capture",
+      title: "Add your first field source",
+      description: "Begin by registering field interviews, focus groups, or observation notes in Field Intake.",
+      buttonText: "Open Field Intake →",
+      targetTab: "intake" as WorkspaceTabId,
+      badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+    };
+  }
+
+  const unreviewedEvidence = evidence.filter(
+    (e) => e.validationStatus === "Draft" || e.validationStatus === "Needs Review"
+  );
+  if (unreviewedEvidence.length > 0) {
+    return {
+      stage: "2. Field Material",
+      badge: "Action Required: Review Observations",
+      title: `${unreviewedEvidence.length} field observation${unreviewedEvidence.length !== 1 ? "s" : ""} awaiting review`,
+      description: "Verify observational rigor, check sensitivity flags, and approve draft evidence before synthesizing claims.",
+      buttonText: "Resume Evidence Review →",
+      targetTab: "evidence" as WorkspaceTabId,
+      badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+    };
+  }
+
+  if (findings.length === 0) {
+    return {
+      stage: "3. Analysis",
+      badge: "Next Step: Synthesis",
+      title: "Synthesize findings from validated evidence",
+      description: "All current field observations have been reviewed. Synthesize evidence into grounded, validated findings.",
+      buttonText: "Open Synthesis Workbench →",
+      targetTab: "synthesis" as WorkspaceTabId,
+      badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+    };
+  }
+
+  const unreviewedFindings = findings.filter(
+    (f) => f.validationStatus !== "Validated"
+  );
+  if (unreviewedFindings.length > 0) {
+    return {
+      stage: "3. Analysis",
+      badge: "Action Required: Validate Claims",
+      title: `${unreviewedFindings.length} finding${unreviewedFindings.length !== 1 ? "s" : ""} require validation or re-review`,
+      description: "Inspect evidentiary support profiles, verify triangulated sources, and validate claims for the brief.",
+      buttonText: "Review Findings Ledger →",
+      targetTab: "findings" as WorkspaceTabId,
+      badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+    };
+  }
+
+  if (recommendations.length === 0) {
+    return {
+      stage: "4. Deliverables",
+      badge: "Next Step: Recommendations",
+      title: "Formulate programmatic recommendations",
+      description: "Your findings are validated. Draft actionable, grounded recommendations linked directly to approved findings.",
+      buttonText: "Add Recommendations →",
+      targetTab: "recommendations" as WorkspaceTabId,
+      badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/40",
+    };
+  }
+
+  const unreviewedRecs = recommendations.filter(
+    (r) => r.validationStatus !== "Validated"
+  );
+  if (unreviewedRecs.length > 0) {
+    return {
+      stage: "4. Deliverables",
+      badge: "Action Required: Review Deliverables",
+      title: `${unreviewedRecs.length} recommendation${unreviewedRecs.length !== 1 ? "s" : ""} require review`,
+      description: "Ensure each recommendation links to a validated parent finding and specifies an intended actor.",
+      buttonText: "Review Recommendations →",
+      targetTab: "recommendations" as WorkspaceTabId,
+      badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+    };
+  }
+
+  return {
+    stage: "4. Deliverables",
+    badge: "Draft Ready for Review",
+    title: "Professional Learning Brief draft ready for review",
+    description: "All evidence, findings, and recommendations satisfy defined formal claim integrity rules. Ready for professional review and export.",
+    buttonText: "Review Professional Draft →",
+    targetTab: "brief" as WorkspaceTabId,
+    badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+  };
+}
+
 type TraceHandlers = {
   highlightedId: string | null;
   onTraceSelect: (id: string) => void;
 };
 
-const workspaceTabs: Array<{ id: WorkspaceTabId; label: string }> = [
-  { id: "overview", label: "Overview" },
-  { id: "evidence", label: "Evidence" },
-  { id: "findings", label: "Findings" },
-  { id: "lessons", label: "Lessons" },
-  { id: "recommendations", label: "Recommendations" },
-  { id: "qa", label: "QA Review" },
-  { id: "brief", label: "Brief" },
-];
-
 const priorityOrder: RecommendationPriority[] = ["High", "Medium", "Low"];
+
+function isSandboxRecordId(id: string): boolean {
+  return id.includes("SBX") || id.includes("TEMP");
+}
 
 export function FieldLearningStudioApp({
   demoCase,
@@ -77,6 +280,7 @@ export function FieldLearningStudioApp({
     stakeholderType: "All",
     evidenceStrength: "All",
     sensitivityFlag: "All",
+    validationStatus: "All",
   });
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
     "idle",
@@ -84,14 +288,91 @@ export function FieldLearningStudioApp({
 
   // Multi-case architecture states
   const [selectedCaseId, setSelectedCaseId] = useState<string>(demoCase.id);
+  const [allStudies, setAllStudies] = useState<StudyMeta[]>([]);
+  const [currentStudy, setCurrentStudy] = useState<FieldStudy | null>(null);
+  const [isNewStudyModalOpen, setIsNewStudyModalOpen] = useState(false);
+  const [isBackupRestoreModalOpen, setIsBackupRestoreModalOpen] = useState(false);
+
+  const refreshStudiesList = async (targetId?: string) => {
+    try {
+      await bootstrapDemoTemplates();
+      const studies = await listStudies();
+      setAllStudies(studies);
+
+      const idToLoad = targetId || selectedCaseId || studies[0]?.id;
+      if (idToLoad) {
+        if (targetId && targetId !== selectedCaseId) {
+          setSelectedCaseId(targetId);
+        }
+        if (typeof window !== "undefined") {
+          localStorage.setItem("fls_active_study_id", idToLoad);
+        }
+        const assembled = await assembleStudy(idToLoad);
+        if (assembled) {
+          setCurrentStudy(assembled);
+        }
+      }
+    } catch (err) {
+      console.error("Storage error:", err);
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    async function initStudies() {
+      try {
+        await bootstrapDemoTemplates();
+        const studies = await listStudies();
+        if (!isMounted) return;
+        setAllStudies(studies);
+
+        const savedStudyId =
+          typeof window !== "undefined"
+            ? localStorage.getItem("fls_active_study_id")
+            : null;
+        const targetId =
+          savedStudyId && studies.some((s) => s.id === savedStudyId)
+            ? savedStudyId
+            : demoCase.id || studies[0]?.id;
+
+        setSelectedCaseId(targetId);
+        if (targetId) {
+          const assembled = await assembleStudy(targetId);
+          if (isMounted && assembled) {
+            setCurrentStudy(assembled);
+          }
+        }
+      } catch (err) {
+        console.error("Storage initialization error:", err);
+      }
+    }
+    initStudies();
+    return () => {
+      isMounted = false;
+    };
+  }, [demoCase.id]);
 
   const currentBaseCase = useMemo(() => {
+    if (currentStudy) {
+      return adaptFieldStudyToDemoCase(currentStudy);
+    }
     return demoCases.find((c) => c.id === selectedCaseId) || demoCases[0];
-  }, [selectedCaseId]);
+  }, [currentStudy, selectedCaseId]);
 
-  // v0.2 local session sandbox additions
+  // v0.2/v0.8 local session sandbox additions
   const [sandboxEvidence, setSandboxEvidence] = useState<EvidenceEntry[]>([]);
   const [sandboxSources, setSandboxSources] = useState<SourceRecord[]>([]);
+  const [sandboxFindings, setSandboxFindings] = useState<Finding[]>([]);
+  const [sandboxRecommendations, setSandboxRecommendations] = useState<Recommendation[]>([]);
+
+  const [sandboxStakeholder, setSandboxStakeholder] = useState("Children / youth");
+  const [sandboxDataType, setSandboxDataType] = useState("Interview");
+  const [sandboxTheme, setSandboxTheme] = useState("Access");
+  const [sandboxSensitivity, setSandboxSensitivity] = useState<"Low" | "Medium" | "High">("Low");
+  const [sandboxSiteLabel, setSandboxSiteLabel] = useState("");
+
+  const [anonymizationConfirmed, setAnonymizationConfirmed] = useState(false);
+  const [includeSandboxInBrief, setIncludeSandboxInBrief] = useState(false);
 
   const [drawerItemId, setDrawerItemId] = useState<string | null>(null);
   const [sandboxText, setSandboxText] = useState("");
@@ -99,6 +380,15 @@ export function FieldLearningStudioApp({
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditRun, setAuditRun] = useState(false);
   const [auditMessage, setAuditMessage] = useState("");
+
+  const scannerTriggered = useMemo(() => {
+    return runSandboxSafetyCheck(sandboxText);
+  }, [sandboxText]);
+
+  const updateSandboxText = (text: string) => {
+    setSandboxText(text);
+    setAnonymizationConfirmed(false);
+  };
 
   // v0.2 walkthrough path progress (subtle & professional Suggested Walkthrough)
   const [demoProgress, setDemoProgress] = useState({
@@ -110,12 +400,28 @@ export function FieldLearningStudioApp({
   });
 
   // Clear session sandbox and progress on case change
-  function handleSelectCase(caseId: string) {
+  async function handleSelectCase(caseId: string) {
+    if (sandboxEvidence.length > 0) {
+      const proceed = window.confirm("Changing cases will clear all your local sandbox drafts. Do you want to proceed?");
+      if (!proceed) return;
+    }
     setSelectedCaseId(caseId);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fls_active_study_id", caseId);
+    }
     setSandboxEvidence([]);
     setSandboxSources([]);
+    setSandboxFindings([]);
+    setSandboxRecommendations([]);
     setSandboxText("");
     setSandboxCount(1);
+    setSandboxStakeholder("Children / youth");
+    setSandboxDataType("Interview");
+    setSandboxTheme("Access");
+    setSandboxSensitivity("Low");
+    setSandboxSiteLabel("");
+    setAnonymizationConfirmed(false);
+    setIncludeSandboxInBrief(false);
     setAuditRun(false);
     setDrawerItemId(null);
     setDemoProgress({
@@ -125,7 +431,31 @@ export function FieldLearningStudioApp({
       step4: false,
       step5: false,
     });
+
+    try {
+      const assembled = await assembleStudy(caseId);
+      if (assembled) {
+        setCurrentStudy(assembled);
+      }
+    } catch (err) {
+      console.error("Failed to load study:", err);
+    }
   }
+
+  const handleRefreshCurrentStudy = async () => {
+    if (selectedCaseId) {
+      try {
+        const assembled = await assembleStudy(selectedCaseId);
+        if (assembled) {
+          setCurrentStudy(assembled);
+        }
+        const studies = await listStudies();
+        setAllStudies(studies);
+      } catch (err) {
+        console.error("Failed to refresh study:", err);
+      }
+    }
+  };
 
   // Derived dynamic active case data mapping
   const activeDemoCase = useMemo(() => {
@@ -133,8 +463,10 @@ export function FieldLearningStudioApp({
       ...currentBaseCase,
       evidence: [...sandboxEvidence, ...currentBaseCase.evidence],
       sources: [...sandboxSources, ...currentBaseCase.sources],
+      findings: [...sandboxFindings, ...currentBaseCase.findings],
+      recommendations: [...sandboxRecommendations, ...currentBaseCase.recommendations],
     };
-  }, [sandboxEvidence, sandboxSources, currentBaseCase]);
+  }, [sandboxEvidence, sandboxSources, sandboxFindings, sandboxRecommendations, currentBaseCase]);
 
   const themes = useMemo(
     () => uniqueValues(activeDemoCase.evidence.map((entry) => entry.primaryTheme)),
@@ -156,6 +488,8 @@ export function FieldLearningStudioApp({
   const filteredEvidence = useMemo(
     () =>
       activeDemoCase.evidence.filter((entry) => {
+        const itemStatus =
+          entry.validationStatus || (currentStudy?.isDemoCase ? "Validated" : "Draft");
         return (
           (filters.theme === "All" || entry.primaryTheme === filters.theme) &&
           (filters.stakeholderType === "All" ||
@@ -163,10 +497,13 @@ export function FieldLearningStudioApp({
           (filters.evidenceStrength === "All" ||
             entry.evidenceStrength === filters.evidenceStrength) &&
           (filters.sensitivityFlag === "All" ||
-            entry.sensitivityFlag === filters.sensitivityFlag)
+            entry.sensitivityFlag === filters.sensitivityFlag) &&
+          (!filters.validationStatus ||
+            filters.validationStatus === "All" ||
+            itemStatus === filters.validationStatus)
         );
       }),
-    [activeDemoCase.evidence, filters],
+    [activeDemoCase.evidence, filters, currentStudy?.isDemoCase],
   );
 
   const currentQaItems = useMemo(() => {
@@ -174,8 +511,8 @@ export function FieldLearningStudioApp({
   }, [activeDemoCase]);
 
   const currentBriefMarkdown = useMemo(() => {
-    return generateLearningBriefMarkdown(activeDemoCase);
-  }, [activeDemoCase]);
+    return generateLearningBriefMarkdown(activeDemoCase, includeSandboxInBrief);
+  }, [activeDemoCase, includeSandboxInBrief]);
 
   useEffect(() => {
     if (!pendingTraceId) {
@@ -203,6 +540,7 @@ export function FieldLearningStudioApp({
   }, [highlightedId]);
 
   function handleTabChange(tabId: WorkspaceTabId) {
+    window.scrollTo({ top: 0, behavior: "instant" });
     setActiveTab(tabId);
     setPendingTraceId(null);
     setHighlightedId(null);
@@ -248,95 +586,52 @@ export function FieldLearningStudioApp({
 
   function handleParseSandbox() {
     if (!sandboxText.trim()) return;
+    if (scannerTriggered && !anonymizationConfirmed) return;
 
-    const text = sandboxText.trim().toLowerCase();
-    let inferredTheme = "General programme learning";
-    let sensitivity: SensitivityFlag = "Low";
+    const { source, evidence, finding, recommendation } = parseSandboxInput({
+      text: sandboxText.trim(),
+      stakeholderGroup: sandboxStakeholder,
+      dataType: sandboxDataType,
+      theme: sandboxTheme,
+      sensitivity: sandboxSensitivity,
+      siteLabel: sandboxSiteLabel.trim() || undefined,
+      counter: sandboxCount,
+    });
 
-    if (selectedCaseId === "school-nutrition") {
-      if (text.includes("water") || text.includes("spoilage") || text.includes("cheese") || text.includes("dairy")) {
-        inferredTheme = "Food acceptability and water safety";
-        sensitivity = "High";
-      } else if (text.includes("father") || text.includes("mother") || text.includes("caregiver") || text.includes("gender")) {
-        inferredTheme = "Gendered household caregiver roles";
-        sensitivity = "Low";
-      } else if (text.includes("teacher") || text.includes("training") || text.includes("volunteer")) {
-        inferredTheme = "Volunteer capacity and training";
-        sensitivity = "Low";
-      } else if (text.includes("child") || text.includes("children") || text.includes("peer") || text.includes("committee")) {
-        inferredTheme = "Child participation mechanisms";
-        sensitivity = "Medium";
-      } else if (text.includes("clinic") || text.includes("screening") || text.includes("health") || text.includes("malnutrition")) {
-        inferredTheme = "Targeting and vulnerability assessment";
-        sensitivity = "Medium";
-      } else if (text.includes("storage") || text.includes("electricity") || text.includes("ventilation") || text.includes("canteen")) {
-        inferredTheme = "School infrastructure and storage constraints";
-        sensitivity = "Medium";
-      }
-    } else {
-      if (text.includes("women") || text.includes("girls") || text.includes("safety") || text.includes("evening") || text.includes("transport") || text.includes("lighting")) {
-        inferredTheme = "Women's safe participation";
-        sensitivity = "Medium";
-      } else if (text.includes("youth") || text.includes("young people") || text.includes("attendance") || text.includes("engagement")) {
-        inferredTheme = "Youth participation";
-        sensitivity = "Low";
-      } else if (text.includes("training") || text.includes("materials") || text.includes("language") || text.includes("translation")) {
-        inferredTheme = "Training accessibility";
-        sensitivity = "Low";
-      } else if (text.includes("reporting") || text.includes("partner") || text.includes("ngo") || text.includes("burden")) {
-        inferredTheme = "Partner coordination";
-        sensitivity = "Low";
-      } else if (text.includes("procurement") || text.includes("budget") || text.includes("delay") || text.includes("supplies")) {
-        inferredTheme = "Operational constraints";
-        sensitivity = "Low";
-      }
-    }
+    setSandboxSources((prev) => [source, ...prev]);
+    setSandboxEvidence((prev) => [evidence, ...prev]);
+    setSandboxFindings((prev) => [finding, ...prev]);
+    setSandboxRecommendations((prev) => [recommendation, ...prev]);
 
-    const tempId = `EV-TEMP-0${sandboxCount}` as `EV-${string}`;
-    const tempSourceId = `SRC-TEMP-0${sandboxCount}` as `SRC-${string}`;
-
-    const newEvidenceEntry: EvidenceEntry = {
-      id: tempId,
-      sourceId: tempSourceId,
-      stakeholderType: "Community member",
-      rawEvidence: sandboxText.trim(),
-      primaryTheme: inferredTheme,
-      secondaryTheme: "General learning",
-      evidenceStrength: "Low",
-      sensitivityFlag: sensitivity,
-      potentialFinding: `Initial evidence suggests critical factors regarding ${inferredTheme.toLowerCase()}.`,
-      qaStatus: "Needs Review",
-    };
-
-    setSandboxEvidence((prev) => [newEvidenceEntry, ...prev]);
     setSandboxCount((prev) => prev + 1);
-    setSandboxText("");
 
-    const newSourceEntry: SourceRecord = {
-      id: tempSourceId,
-      title: `Sandbox Field Note Log - ${tempId}`,
-      sourceType: "Field Note",
-      stakeholderType: "Community member",
-      location: "Fictional Sandbox Environment",
-      date: new Date().toLocaleDateString(),
-      sensitivityFlag: sensitivity,
-      summary: `User sandbox input: "${sandboxText.trim()}"`,
-    };
-    setSandboxSources((prev) => [newSourceEntry, ...prev]);
+    // Clear input text, but keep metadata selects for convenience
+    setSandboxText("");
+    setAnonymizationConfirmed(false);
 
     // Walkthrough step mapping
     setDemoProgress((prev) => ({ ...prev, step1: true, step2: true }));
 
     setActiveTab("evidence");
-    setHighlightedId(tempId);
-    setPendingTraceId(tempId);
+    setHighlightedId(evidence.id);
+    setPendingTraceId(evidence.id);
   }
 
   function handleResetSandbox() {
     setSandboxEvidence([]);
     setSandboxSources([]);
+    setSandboxFindings([]);
+    setSandboxRecommendations([]);
     setSandboxCount(1);
     setSandboxText("");
+    setSandboxStakeholder("Children / youth");
+    setSandboxDataType("Interview");
+    setSandboxTheme("Access");
+    setSandboxSensitivity("Low");
+    setSandboxSiteLabel("");
+    setAnonymizationConfirmed(false);
+    setIncludeSandboxInBrief(false);
+
     setHighlightedId(null);
     setPendingTraceId(null);
     setDrawerItemId(null);
@@ -502,7 +797,116 @@ export function FieldLearningStudioApp({
         ];
         whyThisMatters =
           "QA checks protect the brief from unsupported claims, weak triangulation, and unsafe use of sensitive field evidence.";
-        safeguardNote = `Status: ${qa.status}. Human review is still required before donor-facing use.`;
+        safeguardNote = `Status: ${qa.status}. Human review is still required before professional draft use.`;
+      }
+    } else if (id.startsWith("DBR-")) {
+      itemType = "Daily Field Debrief";
+      const debrief = currentStudy?.debriefs?.find((d) => d.id === id);
+      if (debrief) {
+        title = `Daily Debrief: ${debrief.date} (${debrief.id})`;
+        textContent = debrief.whatSurprisedUs
+          ? `Surprises & Patterns: ${debrief.whatSurprisedUs}`
+          : debrief.emergingHypotheses
+          ? `Working Theory: ${debrief.emergingHypotheses}`
+          : "Field team sensemaking session";
+        metadata = [
+          { label: "Date", value: debrief.date },
+          {
+            label: "Sites Covered",
+            value:
+              debrief.siteIds && debrief.siteIds.length > 0
+                ? debrief.siteIds.join(", ")
+                : "Study-wide / Not specified",
+          },
+          {
+            label: "Attendees",
+            value:
+              debrief.attendees && debrief.attendees.length > 0
+                ? debrief.attendees.join(", ")
+                : "Not recorded",
+          },
+          {
+            label: "Tomorrow Priorities",
+            value:
+              debrief.tomorrowPriorities && debrief.tomorrowPriorities.length > 0
+                ? debrief.tomorrowPriorities.join("; ")
+                : "None recorded",
+          },
+          { label: "Surprises Noted", value: debrief.whatSurprisedUs || "None" },
+          { label: "Patterns Repeated", value: debrief.whatRepeated || "None" },
+          {
+            label: "Contradictions Observed",
+            value: debrief.contradictionsObserved || "None",
+          },
+          {
+            label: "Assumptions Shaken",
+            value: debrief.shakenAssumptions || "None",
+          },
+          { label: "Potential Biases", value: debrief.potentialBiases || "None" },
+          {
+            label: "Missing Perspectives",
+            value: debrief.missingPerspectives || "None",
+          },
+          {
+            label: "Emerging Hypotheses",
+            value: debrief.emergingHypotheses || "None",
+          },
+        ];
+        linkedIds = [
+          ...(debrief.linkedSourceIds || []),
+          ...(debrief.linkedEvidenceIds || []),
+        ];
+        linkedLabel = "Linked Sources & Evidence Considered";
+        whyThisMatters =
+          "Daily debriefs capture team sensemaking, emerging hypotheses, and contradictions while fresh from the field. They guide subsequent investigation without being treated as formal findings.";
+        safeguardNote =
+          "Debrief notes are internal methodological records and working theories. They are NOT approved findings.";
+      }
+    }
+
+    if (id.startsWith("RQ-")) {
+      const question = currentStudy?.questions?.find((q) => q.id === id);
+      if (question) {
+        itemType = "Study Question";
+        title = question.question;
+        textContent = question.shortLabel ? `Analytical Theme: ${question.shortLabel}` : "";
+        metadata = [
+          { label: "Question ID", value: question.id },
+          { label: "Criterion", value: question.criterion || "General Evaluation Criterion" },
+          { label: "Inquiry Status", value: question.isActive ? "Active Inquiry" : "Inactive" },
+        ];
+        const assignedEvidence = currentStudy?.evidence.filter((e) => e.studyQuestionIds?.includes(question.id)) || [];
+        const assignedFindings = currentStudy?.findings.filter((f) => f.studyQuestionId === question.id) || [];
+        linkedIds = [
+          ...assignedEvidence.map((e) => e.id),
+          ...assignedFindings.map((f) => f.id),
+        ];
+        linkedLabel = "Linked Validated Evidence & Findings";
+        whyThisMatters =
+          "Study questions establish the analytical spine of the evaluation, organizing raw field observations into disciplined comparative sensemaking.";
+        safeguardNote =
+          "Study questions guide lines of inquiry. They do not predetermine conclusions or findings.";
+      }
+    }
+
+    if (id.startsWith("PAT-")) {
+      const pattern = currentStudy?.patternNotes?.find((p) => p.id === id);
+      if (pattern) {
+        itemType = "Working Pattern";
+        title = pattern.statement;
+        textContent = pattern.contradictionNote ? `Contradiction / Exception: ${pattern.contradictionNote}` : "";
+        metadata = [
+          { label: "Pattern ID", value: pattern.id },
+          { label: "Study Question", value: pattern.questionId || "Study-wide" },
+          { label: "Theme", value: pattern.theme || "Uncategorized" },
+          { label: "Linked Evidence Count", value: `${pattern.evidenceIds.length} entries` },
+        ];
+        linkedIds = pattern.evidenceIds || [];
+        linkedLabel = "Underlying Evidence Base";
+        whyThisMatters =
+          "Working patterns allow evaluators to document recurring multi-source phenomena without prematurely committing to a formal finding.";
+        safeguardNote =
+          "Working patterns are intermediate sensemaking instruments and do NOT count as formal findings.";
       }
     }
 
@@ -571,12 +975,14 @@ export function FieldLearningStudioApp({
               )}
             </div>
 
-            <div className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace-wash)] p-4">
-              <span className="text-[11px] font-semibold text-[var(--trace)] block mb-2">
-                Source-to-brief path
-              </span>
-              <TraceChain id={id} demoCase={activeDemoCase} onSelect={setDrawerItemId} />
-            </div>
+            {!id.startsWith("DBR-") && !id.startsWith("RQ-") && !id.startsWith("PAT-") && (
+              <div className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace-wash)] p-4">
+                <span className="text-[11px] font-semibold text-[var(--trace)] block mb-2">
+                  Source-to-brief path
+                </span>
+                <TraceChain id={id} demoCase={activeDemoCase} onSelect={setDrawerItemId} />
+              </div>
+            )}
 
             {metadata.length > 0 && (
               <div className="border-t border-[var(--border)] pt-4">
@@ -655,22 +1061,51 @@ export function FieldLearningStudioApp({
 
   return (
     <main className="fls-dark-workbench min-h-screen text-[var(--foreground)]">
-      <AppHeader demoCase={activeDemoCase} />
-      <CaseSelector selectedId={selectedCaseId} onSelect={handleSelectCase} />
-
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <WorkspaceTabs
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
+      <a className="fls-skip-link" href="#workspace-panel">Skip to workspace</a>
+      <div className="fls-sticky-frame">
+        <CaseSelector
+          selectedId={selectedCaseId}
+          onSelect={handleSelectCase}
+          editableStudies={allStudies.filter((s) => !s.isDemoCase)}
+          currentStudy={currentStudy}
+          onCreateNewStudy={() => setIsNewStudyModalOpen(true)}
+          onOpenBackupRestore={() => setIsBackupRestoreModalOpen(true)}
         />
 
-        <div className="mt-5" id="workspace-panel">
+        <div className="fls-frame">
+          <WorkspaceTabs
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            evidenceCount={currentStudy?.evidence.length ?? activeDemoCase.evidence.length}
+            findingsCount={currentStudy?.findings.length ?? activeDemoCase.findings.length}
+            recommendationsCount={currentStudy?.recommendations.length ?? activeDemoCase.recommendations.length}
+          />
+        </div>
+      </div>
+
+      <div className="fls-frame">
+        <div className="fls-workspace" id="workspace-panel" role="tabpanel" aria-labelledby={`workspace-tab-${activeTab}`} tabIndex={-1}>
           {activeTab === "overview" ? (
             <OverviewTab 
+              currentStudy={currentStudy}
+              onOpenBackupRestore={() => setIsBackupRestoreModalOpen(true)}
               demoCase={activeDemoCase} 
               onTabChange={handleTabChange}
               sandboxText={sandboxText}
-              setSandboxText={setSandboxText}
+              setSandboxText={updateSandboxText}
+              sandboxStakeholder={sandboxStakeholder}
+              setSandboxStakeholder={setSandboxStakeholder}
+              sandboxDataType={sandboxDataType}
+              setSandboxDataType={setSandboxDataType}
+              sandboxTheme={sandboxTheme}
+              setSandboxTheme={setSandboxTheme}
+              sandboxSensitivity={sandboxSensitivity}
+              setSandboxSensitivity={setSandboxSensitivity}
+              sandboxSiteLabel={sandboxSiteLabel}
+              setSandboxSiteLabel={setSandboxSiteLabel}
+              scannerTriggered={scannerTriggered}
+              anonymizationConfirmed={anonymizationConfirmed}
+              setAnonymizationConfirmed={setAnonymizationConfirmed}
               onParse={handleParseSandbox}
               onReset={handleResetSandbox}
               hasSandboxItems={sandboxEvidence.length > 0}
@@ -678,9 +1113,23 @@ export function FieldLearningStudioApp({
               traceHandlers={traceHandlers}
             />
           ) : null}
+          {activeTab === "intake" ? (
+            currentStudy ? (
+              <FieldIntakeView
+                study={currentStudy}
+                onStudyChange={handleSelectCase}
+                onRefreshStudy={handleRefreshCurrentStudy}
+              />
+            ) : (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center text-xs text-[var(--muted)]">
+                Loading study repository...
+              </div>
+            )
+          ) : null}
           {activeTab === "evidence" ? (
             <EvidenceTab
               evidence={filteredEvidence}
+              rawEvidenceList={activeDemoCase.evidence}
               evidenceStrengths={evidenceStrengths}
               filters={filters}
               findings={activeDemoCase.findings}
@@ -690,13 +1139,45 @@ export function FieldLearningStudioApp({
               stakeholderTypes={stakeholderTypes}
               themes={themes}
               traceHandlers={traceHandlers}
+              currentStudy={currentStudy}
+              onRefreshStudy={handleRefreshCurrentStudy}
             />
+          ) : null}
+          {activeTab === "debrief" ? (
+            currentStudy ? (
+              <DailyDebriefView
+                study={currentStudy}
+                onRefreshStudy={handleRefreshCurrentStudy}
+                onStudyChange={handleSelectCase}
+                traceHandlers={traceHandlers}
+              />
+            ) : (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center text-xs text-[var(--muted)]">
+                Loading study repository...
+              </div>
+            )
+          ) : null}
+          {activeTab === "synthesis" ? (
+            currentStudy ? (
+              <SynthesisWorkbench
+                study={currentStudy}
+                onRefreshStudy={handleRefreshCurrentStudy}
+                onInspectTrace={setDrawerItemId}
+                onOpenTab={(tab) => handleTabChange(tab as WorkspaceTabId)}
+              />
+            ) : (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center text-xs text-[var(--muted)]">
+                Loading study repository...
+              </div>
+            )
           ) : null}
           {activeTab === "findings" ? (
             <FindingsSection
-              findings={currentBaseCase.findings}
+              findings={activeDemoCase.findings}
               traceHandlers={traceHandlers}
               demoCase={activeDemoCase}
+              currentStudy={currentStudy}
+              onRefreshStudy={handleRefreshCurrentStudy}
             />
           ) : null}
           {activeTab === "lessons" ? (
@@ -708,9 +1189,11 @@ export function FieldLearningStudioApp({
           ) : null}
           {activeTab === "recommendations" ? (
             <RecommendationsSection
-              recommendations={currentBaseCase.recommendations}
+              recommendations={activeDemoCase.recommendations}
               traceHandlers={traceHandlers}
               demoCase={activeDemoCase}
+              currentStudy={currentStudy}
+              onRefreshStudy={handleRefreshCurrentStudy}
             />
           ) : null}
           {activeTab === "qa" ? (
@@ -721,6 +1204,8 @@ export function FieldLearningStudioApp({
               auditRun={auditRun}
               auditMessage={auditMessage}
               onRunAudit={handleRunQaAudit}
+              currentStudy={currentStudy}
+              demoCase={activeDemoCase}
             />
           ) : null}
           {activeTab === "brief" ? (
@@ -730,12 +1215,41 @@ export function FieldLearningStudioApp({
               markdown={currentBriefMarkdown}
               onCopy={copyLearningBrief}
               traceHandlers={traceHandlers}
+              includeSandboxInBrief={includeSandboxInBrief}
+              setIncludeSandboxInBrief={setIncludeSandboxInBrief}
+              hasSandboxItems={sandboxEvidence.length > 0}
             />
           ) : null}
         </div>
 
         {renderDrawer()}
       </div>
+
+      <MinimalStudyModal
+        isOpen={isNewStudyModalOpen}
+        onClose={() => setIsNewStudyModalOpen(false)}
+        onStudyCreated={async (studyId) => {
+          if (typeof window !== "undefined") {
+            localStorage.setItem("fls_active_study_id", studyId);
+          }
+          await refreshStudiesList(studyId);
+          setActiveTab("intake");
+        }}
+      />
+
+      <BackupRestoreModal
+        isOpen={isBackupRestoreModalOpen}
+        onClose={() => setIsBackupRestoreModalOpen(false)}
+        currentStudy={currentStudy}
+        allStudies={allStudies}
+        onStudyRestored={async (studyId) => {
+          if (typeof window !== "undefined") {
+            localStorage.setItem("fls_active_study_id", studyId);
+          }
+          await refreshStudiesList(studyId);
+          setActiveTab("intake");
+        }}
+      />
     </main>
   );
 }
@@ -765,257 +1279,155 @@ function caseProfile(demoCase: DemoCase) {
 function CaseSelector({
   selectedId,
   onSelect,
+  editableStudies = [],
+  currentStudy,
+  onCreateNewStudy,
+  onOpenBackupRestore,
 }: {
   selectedId: string;
   onSelect: (id: string) => void;
+  editableStudies?: StudyMeta[];
+  currentStudy: FieldStudy | null;
+  onCreateNewStudy?: () => void;
+  onOpenBackupRestore?: () => void;
 }) {
+  const localStudies = currentStudy && !currentStudy.isDemoCase && !editableStudies.some((study) => study.id === currentStudy.id)
+    ? [...editableStudies, currentStudy]
+    : editableStudies;
+  const selectedDemo = demoCases.find((item) => item.id === selectedId);
   return (
-    <div
-      className="border-b border-[var(--border)] bg-[rgba(11,22,37,0.86)] px-4 py-5"
-      id="case-selector"
-    >
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold text-[var(--trace)]">
-              Demo pathway
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">
-              Select the evidence context you want to inspect
-            </h2>
-          </div>
-          <p className="max-w-2xl text-sm leading-6 text-[var(--muted)]">
-            Each case uses static demo data to show how field evidence becomes
-            findings, recommendations, QA checks, and a donor-ready brief.
-          </p>
+    <header className="fls-app-header" id="case-selector">
+      <div className="fls-app-bar">
+        <span className="fls-brand">Field Learning <strong>Studio</strong></span>
+        <div className="fls-study-switcher">
+          <label htmlFor="active-study">Active study</label>
+          <select id="active-study" value={selectedId} onChange={(event) => onSelect(event.target.value)}>
+            {localStudies.length > 0 && (
+              <optgroup label="Local studies">
+                {localStudies.map((study) => <option key={study.id} value={study.id}>{study.title}</option>)}
+              </optgroup>
+            )}
+            <optgroup label="Read-only examples">
+              {demoCases.map((item) => <option key={item.id} value={item.id}>{item.project}</option>)}
+            </optgroup>
+          </select>
         </div>
-
-        <div className="grid gap-4 lg:grid-cols-2">
-          {demoCases.map((c) => {
-            const isSelected = c.id === selectedId;
-            const profile = caseProfile(c);
-            return (
-              <button
-                key={c.id}
-                onClick={() => onSelect(c.id)}
-                type="button"
-                className={`text-left rounded-lg border p-5 transition cursor-pointer ${
-                  isSelected
-                    ? "border-[var(--trace)] bg-[var(--surface-elevated)] ring-1 ring-[rgba(34,211,238,0.3)]"
-                    : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-elevated)]"
-                }`}
-              >
-                <div>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <span className="text-base font-semibold leading-6 text-[var(--foreground)]">
-                      {c.project}
-                    </span>
-                    <span
-                      className={`inline-flex items-center rounded px-2 py-1 text-[10px] font-bold uppercase ${
-                        c.id === "school-nutrition"
-                          ? "border border-amber-300 bg-amber-50 text-amber-900"
-                          : "border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)]"
-                      }`}
-                    >
-                      {c.status}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                    {c.subtitle}
-                  </p>
-                </div>
-
-                <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
-                  <div>
-                    <dt className="font-semibold text-[var(--muted)]">
-                      Use case
-                    </dt>
-                    <dd className="mt-1 leading-5 text-[var(--foreground)]">
-                      {profile.useCase}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-semibold text-[var(--muted)]">
-                      Evidence base
-                    </dt>
-                    <dd className="mt-1 font-mono leading-5 text-[var(--foreground)]">
-                      {c.evidenceBase.sourceRecords} sources / {c.evidenceBase.evidenceEntries} evidence entries
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-semibold text-[var(--muted)]">
-                      Sensitivity level
-                    </dt>
-                    <dd className="mt-1 leading-5 text-[var(--foreground)]">
-                      {profile.sensitivity}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-semibold text-[var(--muted)]">
-                      Demonstrates
-                    </dt>
-                    <dd className="mt-1 leading-5 text-[var(--foreground)]">
-                      {profile.demonstrates}
-                    </dd>
-                  </div>
-                </dl>
-
-                <div className="mt-4 border-t border-[var(--border)] pt-3">
-                  <p className="text-xs font-medium leading-5 text-[var(--muted)]">
-                    {profile.note}
-                  </p>
-                </div>
-              </button>
-            );
-          })}
+        <span className="fls-mode">{selectedDemo ? "Read-only demo" : "Local study"}</span>
+        <div className="fls-app-utilities">
+          {onOpenBackupRestore && <button type="button" className="fls-button fls-button-quiet" onClick={onOpenBackupRestore}>Backup / Restore</button>}
+          {onCreateNewStudy && <button type="button" className="fls-button fls-button-quiet" onClick={onCreateNewStudy}>+ New study</button>}
         </div>
       </div>
-    </div>
+      {selectedDemo && (
+        <div className="fls-demo-notice">
+          <span>{caseProfile(selectedDemo).note}</span>
+          <span>Switching studies clears temporary sandbox drafts.</span>
+        </div>
+      )}
+    </header>
   );
 }
 
-function AppHeader({ demoCase }: { demoCase: DemoCase }) {
-  return (
-    <header className="border-b border-[var(--border)] bg-[rgba(5,11,20,0.96)]">
-      <div className="mx-auto grid w-full max-w-7xl gap-7 px-4 py-10 sm:px-6 lg:grid-cols-[1.18fr_0.82fr] lg:px-8">
-        <div>
-          <div className="flex flex-wrap gap-2">
-            <span className="inline-flex w-fit rounded border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]">
-              v0.6 blue command workbench
-            </span>
-            <span className="inline-flex w-fit rounded border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
-              {demoCase.id === "school-nutrition"
-                ? "Sanitized demo - no identifiable field data"
-                : "Fictional demo - local-only sandbox"}
-            </span>
-          </div>
-          <p className="mt-6 text-sm font-semibold text-[var(--muted-strong)]">
-            Blue-slate evidence command center
-          </p>
-          <h1 className="mt-2 max-w-4xl text-4xl font-semibold leading-tight tracking-normal text-[var(--foreground)] sm:text-5xl">
-            Field notes become defensible learning outputs.
-          </h1>
-          <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--muted)]">
-            Field Learning Studio gives MEL, evaluation, and programme teams a
-            controlled workspace for tracing evidence into findings,
-            recommendations, QA review, and a donor-ready learning brief.
-          </p>
-
-          <div className="mt-7 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-            <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] lg:items-center">
-              {[
-                ["Field notes", "Source material"],
-                ["Evidence", "Coded observations"],
-                ["Claim lineage", "Defensible trace"],
-                ["Brief", "Donor-ready output"],
-              ].map(([title, body], index) => (
-                <React.Fragment key={title}>
-                  <div>
-                    <h2 className="text-sm font-semibold text-[var(--foreground)]">
-                      {title}
-                    </h2>
-                    <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                      {body}
-                    </p>
-                  </div>
-                  {index < 3 ? (
-                    <span className="hidden text-[var(--trace)] lg:block">&rarr;</span>
-                  ) : null}
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {[
-              ["Evidence hierarchy", "Observation, interpretation, finding, and recommendation stay visibly connected."],
-              ["Claim lineage", "Clickable IDs open the source-to-brief chain for reviewer inspection."],
-              ["Human review gate", "QA stays deterministic and transparent before donor-facing use."],
-            ].map(([title, body]) => (
-              <div
-                className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4"
-                key={title}
-              >
-                <h2 className="text-sm font-semibold text-[var(--foreground)]">
-                  {title}
-                </h2>
-                <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                  {body}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-5">
-          <p className="text-xs font-semibold text-[var(--muted-strong)]">
-            Case intelligence panel
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold">{demoCase.project}</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            {demoCase.subtitle}
-          </p>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <Metric label="Sources" value={demoCase.evidenceBase.sourceRecords} />
-            <Metric label="Evidence" value={demoCase.evidenceBase.evidenceEntries} />
-            <Metric label="Findings" value={demoCase.evidenceBase.findings} />
-            <Metric
-              label="Recommendations"
-              value={demoCase.evidenceBase.recommendations}
-            />
-          </div>
-          <p className="mt-5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
-            {demoCase.safetyNote}
-          </p>
-        </div>
-      </div>
-    </header>
-  );
+function handleNavigationKeys(event: React.KeyboardEvent<HTMLDivElement>) {
+  const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+  const index = buttons.indexOf(event.target as HTMLButtonElement);
+  if (index < 0 || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  event.preventDefault();
+  const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+  const forward = event.key === (rtl ? "ArrowLeft" : "ArrowRight");
+  const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (index + (forward ? 1 : -1) + buttons.length) % buttons.length;
+  buttons[next]?.focus();
+  buttons[next]?.click();
 }
 
 function WorkspaceTabs({
   activeTab,
   onTabChange,
+  evidenceCount,
+  findingsCount,
+  recommendationsCount,
 }: {
   activeTab: WorkspaceTabId;
   onTabChange: (tabId: WorkspaceTabId) => void;
+  evidenceCount?: number;
+  findingsCount?: number;
+  recommendationsCount?: number;
 }) {
-  return (
-    <nav
-      aria-label="Field Learning Studio workspace"
-      className="sticky top-0 z-20 rounded-lg border border-[var(--border)] bg-[rgba(11,22,37,0.94)] px-3 backdrop-blur"
-    >
-      <div className="flex gap-1 overflow-x-auto py-2" role="tablist">
-        {workspaceTabs.map((tab) => {
-          const isActive = activeTab === tab.id;
+  const activeSpaceId = getSpaceForTab(activeTab);
+  const activeSpace = PRACTITIONER_SPACES.find((s) => s.id === activeSpaceId) || PRACTITIONER_SPACES[0];
 
+  return (
+    <nav aria-label="Field Learning Studio practitioner spaces" className="fls-space-nav">
+      <div className="fls-primary-tabs" role="tablist" aria-label="Practitioner spaces" onKeyDown={handleNavigationKeys}>
+        {PRACTITIONER_SPACES.map((space) => {
+          const isActive = space.id === activeSpaceId;
+          const count = space.id === "field-material" ? evidenceCount : space.id === "analysis" ? findingsCount : space.id === "deliverables" ? recommendationsCount : undefined;
           return (
             <button
-              aria-selected={isActive}
-              className={`min-h-10 min-w-fit rounded px-3 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer ${
-                isActive
-                  ? "bg-[var(--accent)] text-white"
-                  : "text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
-              }`}
-              key={tab.id}
-              onClick={() => onTabChange(tab.id)}
+              key={space.id}
               role="tab"
+              aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
+              id={space.id === "study" ? "workspace-tab-overview" : `space-${space.id}`}
+              aria-controls="workspace-panel"
+              data-space-id={space.id}
               type="button"
+              title={space.description}
+              onClick={() => {
+                if (!isActive) onTabChange(space.defaultTab);
+              }}
+              className="fls-space-tab"
             >
-              {tab.label}
+              <span>{space.label}</span>
+              {count !== undefined && <span className="fls-nav-count" aria-hidden="true">{count}</span>}
             </button>
           );
         })}
       </div>
+      {activeSpace.tabs.length > 1 && (
+        <div className="fls-secondary-tabs" role="tablist" aria-label={`${activeSpace.label} views`} onKeyDown={handleNavigationKeys}>
+          {activeSpace.tabs.map((tab) => (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              id={`workspace-tab-${tab.id}`}
+              aria-controls="workspace-panel"
+              data-tab-id={tab.id}
+              type="button"
+              onClick={() => onTabChange(tab.id)}
+              className="fls-view-tab"
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
     </nav>
   );
 }
 
 function OverviewTab({
   demoCase,
+  currentStudy,
+  onOpenBackupRestore,
   onTabChange,
   sandboxText,
   setSandboxText,
+  sandboxStakeholder,
+  setSandboxStakeholder,
+  sandboxDataType,
+  setSandboxDataType,
+  sandboxTheme,
+  setSandboxTheme,
+  sandboxSensitivity,
+  setSandboxSensitivity,
+  sandboxSiteLabel,
+  setSandboxSiteLabel,
+  scannerTriggered,
+  anonymizationConfirmed,
+  setAnonymizationConfirmed,
   onParse,
   onReset,
   hasSandboxItems,
@@ -1023,9 +1435,24 @@ function OverviewTab({
   traceHandlers,
 }: {
   demoCase: DemoCase;
+  currentStudy?: FieldStudy | null;
+  onOpenBackupRestore?: () => void;
   onTabChange: (tabId: WorkspaceTabId) => void;
   sandboxText: string;
   setSandboxText: (text: string) => void;
+  sandboxStakeholder: string;
+  setSandboxStakeholder: (val: string) => void;
+  sandboxDataType: string;
+  setSandboxDataType: (val: string) => void;
+  sandboxTheme: string;
+  setSandboxTheme: (val: string) => void;
+  sandboxSensitivity: "Low" | "Medium" | "High";
+  setSandboxSensitivity: (val: "Low" | "Medium" | "High") => void;
+  sandboxSiteLabel: string;
+  setSandboxSiteLabel: (val: string) => void;
+  scannerTriggered: boolean;
+  anonymizationConfirmed: boolean;
+  setAnonymizationConfirmed: (val: boolean) => void;
   onParse: () => void;
   onReset: () => void;
   hasSandboxItems: boolean;
@@ -1038,6 +1465,10 @@ function OverviewTab({
   };
   traceHandlers: TraceHandlers;
 }) {
+  const latestSandboxEvidence = demoCase.evidence.find((entry) =>
+    isSandboxRecordId(entry.id),
+  );
+
   const pipelineSteps: Array<{
     id: WorkspaceTabId;
     label: string;
@@ -1057,6 +1488,16 @@ function OverviewTab({
       id: "evidence",
       label: "Evidence matrix",
       description: "Theme-coded observations and meaning",
+    },
+    {
+      id: "debrief",
+      label: "Daily debrief",
+      description: "End-of-day sensemaking and priorities",
+    },
+    {
+      id: "synthesis",
+      label: "Synthesis workbench",
+      description: "Cross-site and cross-stakeholder comparative evidence synthesis",
     },
     {
       id: "findings",
@@ -1081,12 +1522,212 @@ function OverviewTab({
     {
       id: "brief",
       label: "Learning brief",
-      description: "Donor-ready output with trace annex",
+      description: "Professional draft output with trace annex",
     },
   ];
 
+  const nextAction = computeNextAction(currentStudy ?? null, demoCase);
+  const sources = currentStudy?.sources ?? demoCase.sources ?? [];
+  const evidence = currentStudy?.evidence ?? demoCase.evidence ?? [];
+  const findings = currentStudy?.findings ?? demoCase.findings ?? [];
+  const recommendations = currentStudy?.recommendations ?? demoCase.recommendations ?? [];
+  const limitations = currentStudy?.limitations ?? demoCase.limitations ?? [];
+  const sites = currentStudy?.scope?.targetSites ?? [];
+  const stakeholders = currentStudy?.scope?.targetStakeholderGroups ?? [];
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="fls-study-overview">
+      {/* 1. Study Identity Header */}
+      <header className="fls-study-header">
+        <div className="fls-study-meta-line">
+          <span className="fls-tag-primary">Study 01</span>
+          <span className="fls-study-status-badge">{currentStudy?.status ?? demoCase.status}</span>
+          <span className="fls-bullet-divider">·</span>
+          <span className="fls-study-period">{currentStudy?.isDemoCase ?? true ? "Curated Reference" : "Local Workspace"}</span>
+        </div>
+        <h1 className="fls-study-heading">{currentStudy?.title ?? demoCase.project}</h1>
+        <p className="fls-study-subtitle">{currentStudy?.subtitle ?? demoCase.subtitle}</p>
+      </header>
+
+      {/* 2. Action Band (Mobbin pattern): Compact horizontal continuity strip */}
+      <section className="fls-action-band" aria-label="Continue work">
+        <div className="fls-action-content">
+          <span className="fls-action-lead">Next Milestone:</span>
+          <span className="fls-action-title">{nextAction.title}</span>
+          <span className="fls-action-desc">— {nextAction.description}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => onTabChange(nextAction.targetTab)}
+          className="fls-action-button"
+        >
+          <span>{nextAction.buttonText}</span>
+        </button>
+      </section>
+
+      {/* 3. Refined Information Rail (shadcn pattern): Horizontal tabular metric strip */}
+      <div className="fls-status-rail" aria-label="Study progress inventory">
+        <div className="fls-rail-item">
+          <span className="fls-rail-count">{sources.length}</span>
+          <div className="fls-rail-meta">
+            <span className="fls-rail-label">Sources</span>
+            <span className="fls-rail-sub">Field records</span>
+          </div>
+        </div>
+        <span className="fls-rail-sep">/</span>
+        <div className="fls-rail-item">
+          <span className="fls-rail-count">{evidence.length}</span>
+          <div className="fls-rail-meta">
+            <span className="fls-rail-label">Observations</span>
+            <span className="fls-rail-sub text-emerald-400">
+              {evidence.filter((item) => item.validationStatus === "Validated").length} approved
+            </span>
+          </div>
+        </div>
+        <span className="fls-rail-sep">/</span>
+        <div className="fls-rail-item">
+          <span className="fls-rail-count">{findings.length}</span>
+          <div className="fls-rail-meta">
+            <span className="fls-rail-label">Findings</span>
+            <span className="fls-rail-sub text-emerald-400">
+              {findings.filter((item) => item.validationStatus === "Validated").length} validated
+            </span>
+          </div>
+        </div>
+        <span className="fls-rail-sep">/</span>
+        <div className="fls-rail-item">
+          <span className="fls-rail-count">{recommendations.length}</span>
+          <div className="fls-rail-meta">
+            <span className="fls-rail-label">Recommendations</span>
+            <span className="fls-rail-sub">Actionable draft</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Purpose, Scope, and Limitations (Layers.to / Godly asymmetrical editorial grid) */}
+      <div className="fls-editorial-grid">
+        <div className="fls-editorial-main">
+          {/* Purpose */}
+          <div className="fls-purpose-block">
+            <h2>Evaluation Purpose &amp; Context</h2>
+            <p className="fls-purpose-text">{currentStudy?.context || demoCase.context}</p>
+          </div>
+
+          {/* Scope metadata chips */}
+          <div className="fls-scope-chips-block">
+            <h3 className="fls-chips-label">Scope Parameters</h3>
+            <div className="fls-chips-list">
+              <div className="fls-chip">
+                <span className="fls-chip-key">Target Sites:</span>
+                <span className="fls-chip-val">{sites.join(", ") || "Target Project Sites"}</span>
+              </div>
+              <div className="fls-chip">
+                <span className="fls-chip-key">Stakeholders:</span>
+                <span className="fls-chip-val">{stakeholders.join(", ") || "Key Stakeholders"}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Core Analytical Questions */}
+          {(currentStudy?.questions?.length ?? 0) > 0 && (
+            <div className="fls-questions-block">
+              <h3 className="fls-questions-heading">
+                Analytical Study Questions ({currentStudy!.questions!.length})
+              </h3>
+              <ul className="fls-questions-flow">
+                {currentStudy!.questions!.map((q) => (
+                  <li key={q.id} className="fls-question-card">
+                    <span className="fls-question-tag">{q.id}</span>
+                    <span className="fls-question-body">{q.question}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+
+        {/* Right column: Methodological Boundaries & Limitations */}
+        <aside className="fls-editorial-aside">
+          <div className="fls-limitations-panel">
+            <div className="fls-limitations-header">
+              <svg className="fls-limitations-icon" viewBox="0 0 16 16" fill="currentColor">
+                <path fillRule="evenodd" d="M8.22 1.754a.75.75 0 0 0-1.44 0L1.68 13.5A.75.75 0 0 0 2.36 14.5h11.28a.75.75 0 0 0 .68-1l-5.1-11.746ZM8 5.5a.75.75 0 0 1 .75.75v3a.75.75 0 0 1-1.5 0v-3A.75.75 0 0 1 8 5.5Zm0 6.5a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
+              </svg>
+              <h3>Methodological Boundaries &amp; Limitations</h3>
+            </div>
+            {limitations.length > 0 ? (
+              <ul className="fls-limitations-list">
+                {limitations.map((lim, index) => (
+                  <li key={index}>
+                    <span>{lim}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="fls-limitations-empty">No specific methodological limitations recorded.</p>
+            )}
+          </div>
+
+          {onOpenBackupRestore && (
+            <div className="fls-governance-panel">
+              <h4>Study Governance</h4>
+              <p>All data persists locally in browser IndexedDB. Regular JSON recovery archives preserve analytical state.</p>
+              <button type="button" className="fls-text-button" onClick={onOpenBackupRestore}>
+                Manage Backup &amp; Recovery Archives →
+              </button>
+            </div>
+          )}
+        </aside>
+      </div>
+
+      {/* 5. Structured Learning Workflow Band */}
+      <section className="fls-pipeline-band" aria-label="Evidence-to-learning pipeline">
+        <div className="fls-pipeline-header">
+          <span className="fls-eyebrow">PRACTITIONER SPACES</span>
+          <span className="text-xs text-[var(--muted-soft)]">Sequential sensemaking workflow</span>
+        </div>
+        <div className="fls-pipeline-steps">
+          <button type="button" onClick={() => onTabChange("overview")} className="fls-pipeline-node fls-node-active">
+            <span className="fls-node-num">01</span>
+            <div className="fls-node-info">
+              <strong>Study Setup</strong>
+              <span>Scope &amp; governance</span>
+            </div>
+          </button>
+          <span className="fls-node-arrow">→</span>
+          <button type="button" onClick={() => onTabChange("evidence")} className="fls-pipeline-node">
+            <span className="fls-node-num">02</span>
+            <div className="fls-node-info">
+              <strong>Field Material</strong>
+              <span>Intake &amp; observations</span>
+            </div>
+          </button>
+          <span className="fls-node-arrow">→</span>
+          <button type="button" onClick={() => onTabChange("synthesis")} className="fls-pipeline-node">
+            <span className="fls-node-num">03</span>
+            <div className="fls-node-info">
+              <strong>Analysis</strong>
+              <span>Comparative synthesis</span>
+            </div>
+          </button>
+          <span className="fls-node-arrow">→</span>
+          <button type="button" onClick={() => onTabChange("brief")} className="fls-pipeline-node">
+            <span className="fls-node-num">04</span>
+            <div className="fls-node-info">
+              <strong>Deliverables</strong>
+              <span>Learning Brief draft</span>
+            </div>
+          </button>
+        </div>
+      </section>
+
+      {/* 6. Expandable Demo Tools & Sandbox Note Intake */}
+      <details className="fls-demo-drawer">
+        <summary>
+          <span className="fls-drawer-title">Demo Tools &amp; Local Sandbox Note Intake</span>
+          <span className="fls-drawer-sub">Walkthrough, sample field notes and signature traceability</span>
+        </summary>
+        <div className="space-y-5 pt-4 px-4 pb-4">
       <section className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] p-6 sm:p-8">
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
@@ -1137,7 +1778,7 @@ function OverviewTab({
                 "The case is safe to demo and clearly labelled.",
                 "Every finding can be inspected back to evidence IDs.",
                 "Recommendations show the finding and evidence base behind them.",
-                "QA checks flag overclaiming, sensitivity, and donor-readiness before export.",
+                "Final review checks flag overclaiming, sensitivity, and draft readiness before export.",
               ].map((item) => (
                 <li className="flex gap-3" key={item}>
                   <span className="mt-2 h-2 w-2 flex-none rounded-full bg-[var(--trace)]" />
@@ -1258,7 +1899,7 @@ function OverviewTab({
                     Run QA review
                   </p>
                   <p className="text-[var(--muted)]">
-                    Check overclaiming, sensitivity, traceability, and donor-readiness safeguards.
+                    Check overclaiming, sensitivity, traceability, and draft safeguards.
                   </p>
                   <button 
                     onClick={() => onTabChange("qa")}
@@ -1329,55 +1970,202 @@ function OverviewTab({
           </section>
 
           {/* 4. Sandbox Intake Section */}
-          <section id="sandbox-note-section" className="rounded-lg border border-amber-300 bg-amber-50/20 p-5 scroll-mt-20">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+          <section id="sandbox-note-section" className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5 scroll-mt-20">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4 mb-4">
               <div>
-                <h3 className="text-base font-semibold text-amber-900">
-                  Try a local sandbox field note
+                <h3 className="text-base font-semibold text-[var(--foreground)]">
+                  Try your own field note
                 </h3>
-                <p className="mt-1 text-xs text-amber-800/80 leading-5">
-                  Deterministic demo parsing only: no AI call, no upload, no storage. Do not enter real sensitive field evidence.
+                <p className="mt-1 text-xs text-[var(--muted)] leading-5">
+                  Paste a short anonymized note to see how Field Learning Studio structures evidence locally.
                 </p>
               </div>
               {hasSandboxItems && (
                 <button
-                  className="px-3 py-1 bg-[var(--surface)] border border-amber-300 text-amber-900 rounded-md text-xs font-semibold hover:bg-[var(--surface-elevated)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  className="px-3 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] rounded-md text-xs font-semibold hover:bg-[var(--surface-elevated)] cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--trace)]"
                   onClick={onReset}
                 >
-                  Reset Sandbox
+                  Clear sandbox
                 </button>
               )}
             </div>
 
-            <div className="mt-4 flex flex-col gap-3">
-              <textarea
-                id="sandbox-note-textarea"
-                className="w-full min-h-[100px] p-3 border border-amber-300/60 bg-[var(--surface)] rounded-lg text-sm text-[var(--foreground)] outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 placeholder-[var(--muted-soft)] font-sans"
-                placeholder="Type or paste 2-3 sentences of monitoring notes here..."
-                value={sandboxText}
-                onChange={(e) => setSandboxText(e.target.value)}
-              />
-              
-              <div className="flex flex-wrap items-center justify-between gap-3">
+            {/* Safety Warning Copy (Always Visible) */}
+            <div className="mb-4 rounded border border-amber-900/30 bg-amber-500/5 p-3 text-[11px] leading-5 text-amber-600/90">
+              <span className="font-bold">Local sandbox only:</span> This text is not uploaded, saved, or analyzed by an external AI service. Do not enter real names, exact locations, child-identifying details, or sensitive case information.
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {/* Field Note Textarea */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]" htmlFor="sandbox-note-textarea">
+                  Field Note text
+                </label>
+                <textarea
+                  id="sandbox-note-textarea"
+                  className="w-full min-h-[100px] p-3 border border-[var(--border)] bg-[var(--surface-muted)] rounded-lg text-sm text-[var(--foreground)] outline-none focus:border-[var(--trace)] focus:ring-1 focus:ring-[var(--trace)] placeholder-[var(--muted-soft)] font-sans"
+                  placeholder="Example: During a school visit, staff described low attendance during meal distribution because children preferred packaged food and clean water was not always available."
+                  value={sandboxText}
+                  onChange={(e) => setSandboxText(e.target.value)}
+                />
+              </div>
+
+              {/* Dynamic Sensitive Warning Check Panel */}
+              {scannerTriggered && (
+                <div className="rounded border border-amber-600/50 bg-amber-500/10 p-3.5 flex flex-col gap-2.5">
+                  <p className="text-xs text-amber-600 font-semibold leading-5">
+                    This note may contain sensitive or identifying details. Please anonymize before continuing, or confirm it is safe for demo processing.
+                  </p>
+                  <label className="inline-flex items-center gap-2 text-xs font-semibold text-amber-700 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      className="rounded border-[var(--border)] text-[var(--trace)] focus:ring-[var(--trace)] bg-[var(--surface)]"
+                      checked={anonymizationConfirmed}
+                      onChange={(e) => setAnonymizationConfirmed(e.target.checked)}
+                    />
+                    I confirm this note is anonymized and safe for demo processing.
+                  </label>
+                </div>
+              )}
+
+              {/* Metadata Inputs Grid */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Stakeholder Group Select */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                    Stakeholder group
+                  </label>
+                  <select
+                    className="p-2 border border-[var(--border)] bg-[var(--surface-muted)] rounded text-xs text-[var(--foreground)] outline-none focus:border-[var(--trace)] focus:ring-1 focus:ring-[var(--trace)] cursor-pointer"
+                    value={sandboxStakeholder}
+                    onChange={(e) => setSandboxStakeholder(e.target.value)}
+                  >
+                    <option value="Children / youth">Children / youth</option>
+                    <option value="Women / caregivers">Women / caregivers</option>
+                    <option value="School staff">School staff</option>
+                    <option value="Community leaders">Community leaders</option>
+                    <option value="Partner staff">Partner staff</option>
+                    <option value="Programme team">Programme team</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {/* Data Type Select */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                    Data type
+                  </label>
+                  <select
+                    className="p-2 border border-[var(--border)] bg-[var(--surface-muted)] rounded text-xs text-[var(--foreground)] outline-none focus:border-[var(--trace)] focus:ring-1 focus:ring-[var(--trace)] cursor-pointer"
+                    value={sandboxDataType}
+                    onChange={(e) => setSandboxDataType(e.target.value)}
+                  >
+                    <option value="Interview">Interview</option>
+                    <option value="Focus group">Focus group</option>
+                    <option value="Observation">Observation</option>
+                    <option value="Monitoring note">Monitoring note</option>
+                    <option value="Meeting note">Meeting note</option>
+                    <option value="Feedback channel">Feedback channel</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {/* Theme Select */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                    Theme
+                  </label>
+                  <select
+                    className="p-2 border border-[var(--border)] bg-[var(--surface-muted)] rounded text-xs text-[var(--foreground)] outline-none focus:border-[var(--trace)] focus:ring-1 focus:ring-[var(--trace)] cursor-pointer"
+                    value={sandboxTheme}
+                    onChange={(e) => setSandboxTheme(e.target.value)}
+                  >
+                    <option value="Access">Access</option>
+                    <option value="Safety">Safety</option>
+                    <option value="Participation">Participation</option>
+                    <option value="Nutrition">Nutrition</option>
+                    <option value="Coordination">Coordination</option>
+                    <option value="Training">Training</option>
+                    <option value="Inclusion">Inclusion</option>
+                    <option value="Accountability">Accountability</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {/* Sensitivity Select */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                    Sensitivity
+                  </label>
+                  <select
+                    className="p-2 border border-[var(--border)] bg-[var(--surface-muted)] rounded text-xs text-[var(--foreground)] outline-none focus:border-[var(--trace)] focus:ring-1 focus:ring-[var(--trace)] cursor-pointer"
+                    value={sandboxSensitivity}
+                    onChange={(e) => setSandboxSensitivity(e.target.value as "Low" | "Medium" | "High")}
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+
+                {/* Optional Site Label */}
+                <div className="flex flex-col gap-1.5 sm:col-span-2">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
+                    Optional anonymized site label
+                  </label>
+                  <input
+                    type="text"
+                    className="p-2 border border-[var(--border)] bg-[var(--surface-muted)] rounded text-xs text-[var(--foreground)] outline-none focus:border-[var(--trace)] focus:ring-1 focus:ring-[var(--trace)]"
+                    placeholder="Example: School A, Community Site 2, Partner Workshop"
+                    value={sandboxSiteLabel}
+                    onChange={(e) => setSandboxSiteLabel(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              {/* Action Bar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[var(--border)]">
+                {/* Sample note templates */}
                 <div className="flex flex-wrap gap-1.5 items-center">
-                  <span className="text-[11px] font-semibold text-amber-800">Templates:</span>
+                  <span className="text-[11px] font-bold text-[var(--muted)]">Sample Notes:</span>
                   {demoCase.id === "school-nutrition" ? (
                     <>
                       <button 
-                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
-                        onClick={() => setSandboxText("Children are skipping the dry meal snack because there is no clean drinking water available during lunch, and some report stomach aches from unpackaged cheese stored in open bins.")}
+                        className="px-2.5 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
+                        onClick={() => {
+                          setSandboxText("Children are skipping the dry meal snack because there is no clean drinking water available during lunch, and some report stomach aches from unpackaged cheese stored in open bins.");
+                          setSandboxStakeholder("Children / youth");
+                          setSandboxDataType("Observation");
+                          setSandboxTheme("Nutrition");
+                          setSandboxSensitivity("High");
+                          setSandboxSiteLabel("School A Canteen");
+                        }}
                       >
                         Water & Spoilage
                       </button>
                       <button 
-                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
-                        onClick={() => setSandboxText("Social workers report that fathers do not attend any school nutrition PTA sessions, claiming cooking is a female duty, but they control the household food budget.")}
+                        className="px-2.5 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
+                        onClick={() => {
+                          setSandboxText("Social workers report that fathers do not attend any school nutrition PTA sessions, claiming cooking is a female duty, but they control the household food budget.");
+                          setSandboxStakeholder("Women / caregivers");
+                          setSandboxDataType("Interview");
+                          setSandboxTheme("Inclusion");
+                          setSandboxSensitivity("Low");
+                          setSandboxSiteLabel("PTA Meeting");
+                        }}
                       >
                         Caregiver Roles
                       </button>
                       <button 
-                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
-                        onClick={() => setSandboxText("Teachers state they are expected to deliver weekly health and nutrition lessons but have never received training materials or guidelines.")}
+                        className="px-2.5 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
+                        onClick={() => {
+                          setSandboxText("Teachers state they are expected to deliver weekly health and nutrition lessons but have never received training materials or guidelines.");
+                          setSandboxStakeholder("School staff");
+                          setSandboxDataType("Interview");
+                          setSandboxTheme("Training");
+                          setSandboxSensitivity("Medium");
+                          setSandboxSiteLabel("Staff Room");
+                        }}
                       >
                         Teacher Capacity
                       </button>
@@ -1385,20 +2173,41 @@ function OverviewTab({
                   ) : (
                     <>
                       <button 
-                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
-                        onClick={() => setSandboxText("Women report feeling unsafe at evening peacebuilding committee meetings due to poor street lighting and lack of public transport.")}
+                        className="px-2.5 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
+                        onClick={() => {
+                          setSandboxText("Women report feeling unsafe at evening peacebuilding committee meetings due to poor street lighting and lack of public transport.");
+                          setSandboxStakeholder("Women / caregivers");
+                          setSandboxDataType("Focus group");
+                          setSandboxTheme("Safety");
+                          setSandboxSensitivity("Medium");
+                          setSandboxSiteLabel("Community Hall");
+                        }}
                       >
                         Safe Access
                       </button>
                       <button 
-                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
-                        onClick={() => setSandboxText("Youth committee attendance declines because meetings are unpredictable and do not link to practical local action budgets.")}
+                        className="px-2.5 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
+                        onClick={() => {
+                          setSandboxText("Youth committee attendance declines because meetings are unpredictable and do not link to practical local action budgets.");
+                          setSandboxStakeholder("Children / youth");
+                          setSandboxDataType("Monitoring note");
+                          setSandboxTheme("Participation");
+                          setSandboxSensitivity("Low");
+                          setSandboxSiteLabel("Youth Center");
+                        }}
                       >
                         Youth Engagement
                       </button>
                       <button 
-                        className="px-2.5 py-1 bg-[var(--surface)] border border-amber-200 text-amber-800 text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
-                        onClick={() => setSandboxText("Local partner staff spend more than 40% of their working hours compiling donor compliance reports, leaving little time for direct field engagement.")}
+                        className="px-2.5 py-1 bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--foreground)] text-[11px] rounded hover:bg-[var(--surface-elevated)] cursor-pointer transition font-semibold"
+                        onClick={() => {
+                          setSandboxText("Local partner staff spend more than 40% of their working hours compiling donor compliance reports, leaving little time for direct field engagement.");
+                          setSandboxStakeholder("Partner staff");
+                          setSandboxDataType("Meeting note");
+                          setSandboxTheme("Coordination");
+                          setSandboxSensitivity("Low");
+                          setSandboxSiteLabel("Partner Office");
+                        }}
                       >
                         Reporting Burden
                       </button>
@@ -1406,23 +2215,24 @@ function OverviewTab({
                   )}
                 </div>
 
+                {/* Submit button */}
                 <button
-                  className={`min-h-10 px-4 rounded-lg text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
-                    sandboxText.trim() 
-                      ? "bg-[var(--warning)] hover:bg-[#d88a06] text-[#03121a] cursor-pointer"
-                      : "bg-[var(--surface-muted)] text-[var(--muted-soft)] cursor-not-allowed"
+                  className={`min-h-9 px-4 rounded text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] ${
+                    sandboxText.trim() && (!scannerTriggered || anonymizationConfirmed)
+                      ? "bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white cursor-pointer"
+                      : "bg-[var(--surface-muted)] text-[var(--muted-soft)] cursor-not-allowed border border-[var(--border)]"
                   }`}
-                  disabled={!sandboxText.trim()}
+                  disabled={!sandboxText.trim() || (scannerTriggered && !anonymizationConfirmed)}
                   onClick={onParse}
                 >
-                  Parse into evidence
+                  Generate draft evidence
                 </button>
               </div>
             </div>
           </section>
 
           {/* 5. Active Traceability Chain Section */}
-          {hasSandboxItems && (
+          {hasSandboxItems && latestSandboxEvidence && (
             <section className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace-wash)] p-5">
               <h3 className="text-base font-semibold text-[var(--foreground)]">
                 Latest sandbox trace
@@ -1431,7 +2241,7 @@ function OverviewTab({
                 Below is the visual linkage path inferred for your ingested sandbox note. Click any ID pill to inspect its parameters.
               </p>
               <div className="mt-4 bg-[var(--surface)] p-3 rounded-lg border border-[var(--trace-border)]">
-                <TraceChain id="EV-TEMP-01" demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
+                <TraceChain id={latestSandboxEvidence.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
               </div>
             </section>
           )}
@@ -1466,7 +2276,7 @@ function OverviewTab({
             </h2>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
               The drawer turns each ID into a verifiable chain, so a reviewer
-              can test whether a donor-facing claim is grounded in evidence.
+              can test whether a drafted claim is grounded in evidence.
             </p>
             <div className="mt-4">
               <TraceChain
@@ -1478,12 +2288,15 @@ function OverviewTab({
           </section>
         </div>
       </div>
+        </div>
+      </details>
     </div>
   );
 }
 
 function EvidenceTab({
   evidence,
+  rawEvidenceList,
   evidenceStrengths,
   filters,
   findings,
@@ -1493,8 +2306,11 @@ function EvidenceTab({
   stakeholderTypes,
   themes,
   traceHandlers,
+  currentStudy,
+  onRefreshStudy,
 }: {
   evidence: EvidenceEntry[];
+  rawEvidenceList: EvidenceEntry[];
   evidenceStrengths: string[];
   filters: EvidenceFilters;
   findings: Finding[];
@@ -1504,11 +2320,14 @@ function EvidenceTab({
   stakeholderTypes: string[];
   themes: string[];
   traceHandlers: TraceHandlers;
+  currentStudy: FieldStudy | null;
+  onRefreshStudy: () => Promise<void> | void;
 }) {
   return (
-    <div className="grid gap-5">
-      <EvidenceMatrix
+    <div className="grid gap-8">
+      <EvidenceReviewWorkspace
         evidence={evidence}
+        rawEvidenceList={rawEvidenceList}
         evidenceStrengths={evidenceStrengths}
         filters={filters}
         findings={findings}
@@ -1518,6 +2337,8 @@ function EvidenceTab({
         stakeholderTypes={stakeholderTypes}
         themes={themes}
         traceHandlers={traceHandlers}
+        currentStudy={currentStudy}
+        onRefreshStudy={onRefreshStudy}
       />
       <SourceInventory sources={sources} traceHandlers={traceHandlers} />
     </div>
@@ -1572,206 +2393,214 @@ function SourceInventory({
   );
 }
 
-function EvidenceMatrix({
-  evidence,
-  filters,
-  findings,
-  onFiltersChange,
-  themes,
-  sources,
-  stakeholderTypes,
-  evidenceStrengths,
-  sensitivityFlags,
-  traceHandlers,
-}: {
-  evidence: EvidenceEntry[];
-  filters: EvidenceFilters;
-  findings: Finding[];
-  onFiltersChange: (filters: EvidenceFilters) => void;
-  themes: string[];
-  sources: SourceRecord[];
-  stakeholderTypes: string[];
-  evidenceStrengths: string[];
-  sensitivityFlags: string[];
-  traceHandlers: TraceHandlers;
-}) {
-  return (
-    <Section
-      description="Evidence IDs are clickable traceability anchors. Demo data remains static and safe for product validation."
-      eyebrow="Evidence matrix"
-      title="Theme-coded evidence"
-    >
-      <div className="text-xs font-semibold text-amber-700 bg-amber-50/60 border border-amber-200/50 rounded-lg px-3 py-1.5 w-fit">
-        Static demo data
-      </div>
-
-      <div className="grid gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 md:grid-cols-4">
-        <FilterSelect
-          label="Theme"
-          onChange={(theme) => onFiltersChange({ ...filters, theme })}
-          options={themes}
-          value={filters.theme}
-        />
-        <FilterSelect
-          label="Stakeholder"
-          onChange={(stakeholderType) =>
-            onFiltersChange({ ...filters, stakeholderType })
-          }
-          options={stakeholderTypes}
-          value={filters.stakeholderType}
-        />
-        <FilterSelect
-          label="Strength"
-          onChange={(evidenceStrength) =>
-            onFiltersChange({ ...filters, evidenceStrength })
-          }
-          options={evidenceStrengths}
-          value={filters.evidenceStrength}
-        />
-        <FilterSelect
-          label="Sensitivity"
-          onChange={(sensitivityFlag) =>
-            onFiltersChange({ ...filters, sensitivityFlag })
-          }
-          options={sensitivityFlags}
-          value={filters.sensitivityFlag}
-        />
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        {evidence.map((entry) => {
-          const isHighlighted = traceHandlers.highlightedId === entry.id;
-          const isSandbox = entry.id.startsWith("EV-TEMP-");
-          const source = sources.find((item) => item.id === entry.sourceId);
-          const linkedFinding = findings.find((finding) =>
-            finding.supportingEvidenceIds.includes(entry.id),
-          );
-
-          return (
-            <article
-              className={`scroll-mt-32 rounded-lg border transition p-6 flex flex-col justify-between ${
-                isHighlighted
-                  ? "border-[var(--trace)] bg-[var(--trace-wash)]"
-                  : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]"
-              }`}
-              id={traceDomId(entry.id)}
-              key={entry.id}
-            >
-              <div>
-                <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] pb-3 mb-4">
-                  <div>
-                    <TraceButton
-                      id={entry.id}
-                      onSelect={traceHandlers.onTraceSelect}
-                    />
-                    <h3 className="mt-3 text-lg font-semibold leading-7 text-[var(--foreground)]">
-                      {entry.primaryTheme}
-                    </h3>
-                    <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                      {entry.stakeholderType}
-                      {source ? ` from ${source.sourceType}` : ""}
-                    </p>
-                    {isSandbox && (
-                      <span className="mt-2 inline-flex text-[9px] font-bold uppercase text-amber-700 bg-amber-50 border border-amber-200/50 rounded px-1.5 py-0.5">
-                        Sandbox evidence item — local demo only, not validated.
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <TraceButton
-                      id={entry.sourceId}
-                      onSelect={traceHandlers.onTraceSelect}
-                    />
-                    <StatusBadge label={entry.qaStatus} tone="qa" />
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3">
-                    <span className="text-[11px] font-semibold text-[var(--muted)] block mb-1">
-                      Observation
-                    </span>
-                    <p className="text-sm font-medium leading-6 text-[var(--foreground)]">
-                      {entry.rawEvidence}
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace-wash)] p-3 text-xs leading-relaxed">
-                    <span className="font-semibold text-[var(--muted)] text-[11px] block mb-1">
-                      Interpretation
-                    </span>
-                    <p className="text-[var(--foreground)] font-medium">
-                      {entry.potentialFinding}
-                    </p>
-                  </div>
-
-                  <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3">
-                    <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
-                      Linked finding
-                    </span>
-                    {linkedFinding ? (
-                      <div>
-                        <TraceButton
-                          id={linkedFinding.id}
-                          onSelect={traceHandlers.onTraceSelect}
-                        />
-                        <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                          {linkedFinding.statement}
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-xs leading-5 text-[var(--muted)]">
-                        Not yet linked to a validated finding.
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 border-t border-[var(--border)] pt-4 flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-semibold bg-[var(--surface-muted)] text-[var(--muted)] px-2 py-0.5 rounded border border-[var(--border)]">
-                  {entry.secondaryTheme}
-                </span>
-                <StrengthBadge value={entry.evidenceStrength} />
-                <StatusBadge label={entry.sensitivityFlag} tone="sensitivity" />
-                
-                <button
-                  onClick={() => traceHandlers.onTraceSelect(entry.id)}
-                  className="ml-auto min-h-9 rounded border border-[var(--trace-border)] bg-[var(--trace)] px-3 text-xs font-semibold text-[#03121a] hover:border-[var(--trace)] hover:bg-[var(--trace-text)] cursor-pointer flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-[var(--trace)]"
-                >
-                  Inspect Chain &rarr;
-                </button>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-      {evidence.length === 0 ? (
-        <div className="p-6 text-sm text-[var(--muted)] border border-[var(--border)] rounded-lg bg-[var(--surface)] text-center">
-          No evidence entries match the selected filters.
-        </div>
-      ) : null}
-    </Section>
-  );
-}
 
 function FindingsSection({
   findings,
   traceHandlers,
   demoCase,
+  currentStudy,
+  onRefreshStudy,
 }: {
   findings: Finding[];
   traceHandlers: TraceHandlers;
   demoCase: DemoCase;
+  currentStudy?: FieldStudy | null;
+  onRefreshStudy?: () => Promise<void>;
 }) {
+  const normalFindings = findings.filter((f) => !f.id.includes("SBX"));
+  const sandboxFindings = findings.filter((f) => f.id.includes("SBX"));
+  const isEditable = Boolean(currentStudy && !currentStudy.isDemoCase);
+
+  const handleFindingSubmitForReview = async (finding: Finding) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    try {
+      const updated = submitForReview(finding);
+      await saveFinding({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to submit finding for review.");
+    }
+  };
+
+  const handleFindingValidate = async (finding: Finding) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    const cachedReviewer = typeof window !== "undefined" ? localStorage.getItem("fls_reviewer_name") : null;
+    const reviewerName = window.prompt(
+      "Enter reviewer identity for finding validation:",
+      cachedReviewer || "Lead Evaluator"
+    );
+    if (!reviewerName?.trim()) return;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fls_reviewer_name", reviewerName.trim());
+    }
+
+    let limitationNote = finding.limitationNote;
+    const profile = computeSupportProfile(
+      finding,
+      currentStudy.scope,
+      currentStudy.evidence,
+      currentStudy.sources
+    );
+    if (requiresFindingLimitationNote(finding, profile) && !limitationNote?.trim()) {
+      const note = window.prompt(
+        "Support tier is Emerging or coverage gaps exist. Document a concise limitation note:",
+        "Conclusion is provisional pending further site data."
+      );
+      if (!note?.trim()) {
+        alert("Validation cancelled: A limitation note is required for Emerging findings or coverage gaps.");
+        return;
+      }
+      limitationNote = note.trim();
+    }
+
+    try {
+      const updated = validateArtifact(finding, reviewerName.trim(), limitationNote, {
+        evidence: currentStudy.evidence,
+        sources: currentStudy.sources,
+        findings: currentStudy.findings,
+      });
+      await saveFinding({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to validate finding.");
+    }
+  };
+
+  const handleFindingReject = async (finding: Finding) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    const reason = window.prompt(
+      "Enter rejection rationale:",
+      "Insufficient distinct source record triangulation."
+    );
+    if (!reason?.trim()) return;
+
+    try {
+      const updated = rejectArtifact(finding, reason.trim());
+      await saveFinding({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to reject finding.");
+    }
+  };
+
+  const handleFindingReopen = async (finding: Finding) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    try {
+      const updated = reopenRejectedArtifact(finding);
+      await saveFinding({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to reopen finding.");
+    }
+  };
+
   return (
     <Section
-      description="Each finding shows supporting evidence, contradictions, implications, and linked recommendations."
-      eyebrow="Findings"
-      title="No finding without evidence"
+      description="Authored findings with supporting evidence, contradictions, implications, and claim lineage. Use Synthesis Workbench to author new findings."
+      eyebrow="Findings Ledger"
+      title="Study Findings Ledger"
     >
+      {/* Contextual link to Synthesis Workbench to make the single finding-authoring journey obvious */}
+      <div className="mb-6 rounded-xl border border-[var(--trace)]/30 bg-[var(--trace-wash)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--trace)]">
+            Primary Analysis Pathway
+          </span>
+          <p className="mt-0.5 text-xs text-[var(--foreground)]">
+            Findings are developed from validated evidence. To compare material across study questions, draft new findings, and inspect live coverage &amp; limitations, use the Synthesis Workbench.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const synthTab = document.querySelector("button[data-tab-id='synthesis']");
+            if (synthTab instanceof HTMLElement) synthTab.click();
+          }}
+          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[var(--accent-strong)] transition cursor-pointer text-center"
+        >
+          Open Synthesis Workbench →
+        </button>
+      </div>
+      {/* Sandbox Drafts Section */}
+      {sandboxFindings.length > 0 && (
+        <div className="mb-6 rounded-lg border border-cyan-800 bg-cyan-950/10 p-5">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-cyan-800/40 pb-3">
+            <div>
+              <h4 className="text-sm font-semibold uppercase tracking-wider text-[var(--trace)]">
+                Sandbox Draft Findings (Local only)
+              </h4>
+              <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                Temporary drafts generated during this session.
+              </p>
+            </div>
+            <div className="flex gap-1.5">
+              <span className="inline-flex items-center rounded border border-cyan-800/30 bg-cyan-950/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--trace)]">
+                Sandbox draft
+              </span>
+              <span className="inline-flex items-center rounded border border-amber-900/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-500">
+                Not validated
+              </span>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {sandboxFindings.map((finding) => (
+              <article
+                className={`scroll-mt-32 rounded-lg border p-5 flex flex-col justify-between border-cyan-800/40 bg-[rgba(11,22,37,0.6)] ${
+                  traceHandlers.highlightedId === finding.id ? "ring-2 ring-[var(--trace)]" : ""
+                }`}
+                id={traceDomId(finding.id)}
+                key={finding.id}
+              >
+                <div>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <TraceButton
+                      id={finding.id}
+                      onSelect={traceHandlers.onTraceSelect}
+                    />
+                    <StrengthBadge value={finding.evidenceStrength} />
+                  </div>
+                  <h3 className="mt-4 text-lg font-semibold leading-7 text-[var(--foreground)]">
+                    {finding.statement}
+                  </h3>
+                  <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                    {finding.explanation}
+                  </p>
+                  <TraceIdList
+                    ids={finding.supportingEvidenceIds}
+                    label="Supporting evidence"
+                    onTraceSelect={traceHandlers.onTraceSelect}
+                  />
+                  <div className="mt-4 rounded-lg border border-amber-950/30 bg-amber-950/10 p-3 text-sm leading-6 text-amber-400">
+                    <span className="font-semibold">Contradictory evidence: </span>
+                    {finding.contradictoryEvidence}
+                  </div>
+                  <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+                    <span className="font-semibold text-[var(--foreground)]">
+                      Programme implication:
+                    </span>{" "}
+                    {finding.programmeImplication}
+                  </p>
+                  <TraceIdList
+                    ids={finding.linkedRecommendationIds}
+                    label="Linked recommendations"
+                    onTraceSelect={traceHandlers.onTraceSelect}
+                  />
+                </div>
+                <div className="mt-5 pt-4 border-t border-[var(--border)]">
+                  <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
+                    Claim lineage
+                  </span>
+                  <TraceChain id={finding.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Normal Findings Section */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {findings.map((finding) => (
+        {normalFindings.map((finding) => (
           <article
             className={traceCardClass(
               finding.id,
@@ -1781,39 +2610,141 @@ function FindingsSection({
             id={traceDomId(finding.id)}
             key={finding.id}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <TraceButton
-                id={finding.id}
-                onSelect={traceHandlers.onTraceSelect}
+            <div>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <TraceButton
+                    id={finding.id}
+                    onSelect={traceHandlers.onTraceSelect}
+                  />
+                  {finding.validationStatus && (
+                    <span
+                      className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                        finding.validationStatus === "Validated"
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                          : finding.validationStatus === "Needs Review"
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                          : finding.validationStatus === "Rejected"
+                          ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                          : "bg-slate-500/20 text-slate-300 border border-slate-500/40"
+                      }`}
+                    >
+                      {finding.validationStatus}
+                    </span>
+                  )}
+                  {finding.revision && finding.revision > 1 && (
+                    <span className="rounded bg-[var(--surface-muted)] border border-[var(--border)] px-1.5 py-0.2 text-[9px] text-[var(--muted)]">
+                      Rev {finding.revision}
+                    </span>
+                  )}
+                </div>
+                <StrengthBadge value={finding.evidenceStrength} />
+              </div>
+
+              <h3 className="mt-4 text-lg font-semibold leading-7">
+                {finding.statement}
+              </h3>
+              <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
+                {finding.explanation}
+              </p>
+
+              {finding.limitationNote && (
+                <div className="mt-3 rounded-lg border border-amber-900/40 bg-amber-950/20 p-2.5 text-xs text-amber-300">
+                  <span className="font-semibold">Evaluator Limitation Note: </span>
+                  {finding.limitationNote}
+                </div>
+              )}
+
+              <TraceIdList
+                ids={finding.supportingEvidenceIds}
+                label="Supporting evidence"
+                onTraceSelect={traceHandlers.onTraceSelect}
               />
-              <StrengthBadge value={finding.evidenceStrength} />
+              <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+                <span className="font-semibold">Contradictory evidence: </span>
+                {finding.contradictoryEvidence}
+              </div>
+              <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
+                <span className="font-semibold text-[var(--foreground)]">
+                  Programme implication:
+                </span>{" "}
+                {finding.programmeImplication}
+              </p>
+              <TraceIdList
+                ids={finding.linkedRecommendationIds}
+                label="Linked recommendations"
+                onTraceSelect={traceHandlers.onTraceSelect}
+              />
             </div>
-            <h3 className="mt-4 text-lg font-semibold leading-7">
-              {finding.statement}
-            </h3>
-            <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              {finding.explanation}
-            </p>
-            <TraceIdList
-              ids={finding.supportingEvidenceIds}
-              label="Supporting evidence"
-              onTraceSelect={traceHandlers.onTraceSelect}
-            />
-            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
-              <span className="font-semibold">Contradictory evidence: </span>
-              {finding.contradictoryEvidence}
-            </div>
-            <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-              <span className="font-semibold text-[var(--foreground)]">
-                Programme implication:
-              </span>{" "}
-              {finding.programmeImplication}
-            </p>
-            <TraceIdList
-              ids={finding.linkedRecommendationIds}
-              label="Linked recommendations"
-              onTraceSelect={traceHandlers.onTraceSelect}
-            />
+
+            {/* Governance Action Bar for Editable Studies */}
+            {isEditable && (
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3 text-xs">
+                {(!finding.validationStatus || finding.validationStatus === "Draft") && (
+                  <button
+                    type="button"
+                    onClick={() => handleFindingSubmitForReview(finding)}
+                    className="rounded bg-amber-600/20 border border-amber-500/40 px-2.5 py-1 text-xs font-semibold text-amber-200 hover:bg-amber-600/40"
+                  >
+                    Submit for Review
+                  </button>
+                )}
+
+                {finding.validationStatus === "Needs Review" && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => handleFindingValidate(finding)}
+                      className="rounded bg-emerald-600/30 border border-emerald-500/40 px-2.5 py-1 text-xs font-semibold text-emerald-200 hover:bg-emerald-600/50"
+                    >
+                      Validate Finding
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleFindingReject(finding)}
+                      className="rounded bg-rose-600/20 border border-rose-500/40 px-2.5 py-1 text-xs font-semibold text-rose-200 hover:bg-rose-600/40"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+
+                {finding.validationStatus === "Validated" && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const newStatement = window.prompt(
+                        "Edit Finding Statement (substantive changes require re-validation):",
+                        finding.statement
+                      );
+                      if (newStatement === null || !newStatement.trim() || newStatement.trim() === finding.statement.trim()) {
+                        return;
+                      }
+                      const { updated } = applySubstantiveFindingEdit(finding, {
+                        statement: newStatement.trim(),
+                      });
+                      if (!currentStudy || !onRefreshStudy) return;
+                      await saveFinding({ ...updated, studyId: currentStudy.id });
+                      await onRefreshStudy();
+                    }}
+                    className="rounded bg-slate-600/20 border border-slate-500/40 px-2.5 py-1 text-xs font-semibold text-slate-200 hover:bg-slate-600/40"
+                  >
+                    Edit Finding
+                  </button>
+                )}
+
+                {finding.validationStatus === "Rejected" && (
+                  <button
+                    type="button"
+                    onClick={() => handleFindingReopen(finding)}
+                    className="rounded bg-slate-600/20 border border-slate-500/40 px-2.5 py-1 text-xs font-semibold text-slate-200 hover:bg-slate-600/40"
+                  >
+                    Reopen to Draft
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="mt-5 pt-4 border-t border-[var(--border)]">
               <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
                 Claim lineage
@@ -1928,11 +2859,81 @@ function RecommendationsSection({
   recommendations,
   traceHandlers,
   demoCase,
+  currentStudy,
+  onRefreshStudy,
 }: {
   recommendations: Recommendation[];
   traceHandlers: TraceHandlers;
   demoCase: DemoCase;
+  currentStudy?: FieldStudy | null;
+  onRefreshStudy?: () => Promise<void>;
 }) {
+  const normalRecommendations = recommendations.filter((r) => !r.id.includes("SBX"));
+  const sandboxRecommendations = recommendations.filter((r) => r.id.includes("SBX"));
+  const isEditable = Boolean(currentStudy && !currentStudy.isDemoCase);
+
+  const handleRecSubmitForReview = async (rec: Recommendation) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    try {
+      const updated = submitForReview(rec);
+      await saveRecommendation({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to submit recommendation for review.");
+    }
+  };
+
+  const handleRecValidate = async (rec: Recommendation) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    const cachedReviewer = typeof window !== "undefined" ? localStorage.getItem("fls_reviewer_name") : null;
+    const reviewerName = window.prompt(
+      "Enter reviewer identity for recommendation validation:",
+      cachedReviewer || "Lead Evaluator"
+    );
+    if (!reviewerName?.trim()) return;
+    if (typeof window !== "undefined") {
+      localStorage.setItem("fls_reviewer_name", reviewerName.trim());
+    }
+    try {
+      const updated = validateArtifact(rec, reviewerName.trim(), undefined, {
+        findings: currentStudy.findings,
+        evidence: currentStudy.evidence,
+        sources: currentStudy.sources,
+      });
+      await saveRecommendation({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to validate recommendation.");
+    }
+  };
+
+  const handleRecReject = async (rec: Recommendation) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    const reason = window.prompt(
+      "Enter rejection rationale:",
+      "Feasibility constraints or misaligned actor."
+    );
+    if (!reason?.trim()) return;
+    try {
+      const updated = rejectArtifact(rec, reason.trim());
+      await saveRecommendation({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to reject recommendation.");
+    }
+  };
+
+  const handleRecReopen = async (rec: Recommendation) => {
+    if (!currentStudy || !onRefreshStudy) return;
+    try {
+      const updated = reopenRejectedArtifact(rec);
+      await saveRecommendation({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to reopen recommendation.");
+    }
+  };
+
   return (
     <Section
       description="Recommendations are grouped by priority and linked to findings and evidence."
@@ -1940,34 +2941,38 @@ function RecommendationsSection({
       title="No recommendation without a finding"
     >
       <div className="space-y-5">
-        {priorityOrder.map((priority) => {
-          const items = recommendations.filter(
-            (recommendation) => recommendation.priority === priority,
-          );
-
-          return (
-            <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4" key={priority}>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
-                <div>
-                  <h3 className="text-lg font-semibold">{priority} priority</h3>
-                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                    {items.length} recommendation{items.length === 1 ? "" : "s"} requiring executive review.
-                  </p>
-                </div>
-                <PriorityBadge value={priority} />
+        {/* Sandbox Draft Recommendations Block */}
+        {sandboxRecommendations.length > 0 && (
+          <section className="rounded-lg border border-cyan-800 bg-cyan-950/10 p-5">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-cyan-800/40 pb-3">
+              <div>
+                <h3 className="text-base font-semibold text-[var(--trace)]">
+                  Sandbox Draft Recommendations (Local only)
+                </h3>
+                <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                  Temporary actions inferred from sandbox themes.
+                </p>
               </div>
+              <div className="flex gap-1.5">
+                <span className="inline-flex items-center rounded border border-cyan-800/30 bg-cyan-950/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-[var(--trace)]">
+                  Sandbox draft
+                </span>
+                <span className="inline-flex items-center rounded border border-amber-900/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-amber-500">
+                  Not validated
+                </span>
+              </div>
+            </div>
 
-              <div className="grid gap-3 lg:grid-cols-2">
-                {items.map((recommendation) => (
-                  <article
-                    className={traceCardClass(
-                      recommendation.id,
-                      traceHandlers.highlightedId,
-                      "p-5 min-w-0",
-                    )}
-                    id={traceDomId(recommendation.id)}
-                    key={recommendation.id}
-                  >
+            <div className="grid gap-3 lg:grid-cols-2">
+              {sandboxRecommendations.map((recommendation) => (
+                <article
+                  className={`scroll-mt-32 rounded-lg border p-5 flex flex-col justify-between border-cyan-800/40 bg-[rgba(11,22,37,0.6)] ${
+                    traceHandlers.highlightedId === recommendation.id ? "ring-2 ring-[var(--trace)]" : ""
+                  }`}
+                  id={traceDomId(recommendation.id)}
+                  key={recommendation.id}
+                >
+                  <div>
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <TraceButton
                         id={recommendation.id}
@@ -2010,22 +3015,201 @@ function RecommendationsSection({
                         fullWidth
                       />
                     </div>
-                    <div className="mt-4 border-t border-[var(--border)] pt-3">
-                      <TraceIdList
-                        className=""
-                        ids={recommendation.evidenceBase}
-                        label="Evidence base"
-                        onTraceSelect={traceHandlers.onTraceSelect}
-                      />
-                    </div>
-                    <div className="mt-4 border-t border-[var(--border)] pt-4">
-                      <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
-                        Claim lineage
-                      </span>
-                      <TraceChain id={recommendation.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
-                    </div>
-                  </article>
-                ))}
+                  </div>
+                  <div className="mt-4 border-t border-[var(--border)] pt-3">
+                    <TraceIdList
+                      className=""
+                      ids={recommendation.evidenceBase}
+                      label="Evidence base"
+                      onTraceSelect={traceHandlers.onTraceSelect}
+                    />
+                  </div>
+                  <div className="mt-4 border-t border-[var(--border)] pt-4">
+                    <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
+                      Claim lineage
+                    </span>
+                    <TraceChain id={recommendation.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Normal recommendations grouped by priority */}
+        {priorityOrder.map((priority) => {
+          const items = normalRecommendations.filter(
+            (recommendation) => recommendation.priority === priority,
+          );
+
+          if (items.length === 0) return null;
+
+          return (
+            <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4" key={priority}>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
+                <div>
+                  <h3 className="text-lg font-semibold">{priority} priority</h3>
+                  <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                    {items.length} recommendation{items.length === 1 ? "" : "s"} requiring executive review.
+                  </p>
+                </div>
+                <PriorityBadge value={priority} />
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-2">
+                {items.map((recommendation) => {
+                  const linkedFinding = demoCase.findings.find(
+                    (f) => f.id === recommendation.linkedFindingId
+                  );
+                  const depWarning = getRecommendationDependencyWarning(
+                    recommendation,
+                    linkedFinding
+                  );
+
+                  return (
+                    <article
+                      className={traceCardClass(
+                        recommendation.id,
+                        traceHandlers.highlightedId,
+                        "p-5 min-w-0 flex flex-col justify-between",
+                      )}
+                      id={traceDomId(recommendation.id)}
+                      key={recommendation.id}
+                    >
+                      <div>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-2">
+                            <TraceButton
+                              id={recommendation.id}
+                              onSelect={traceHandlers.onTraceSelect}
+                            />
+                            {recommendation.validationStatus && (
+                              <span
+                                className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                                  recommendation.validationStatus === "Validated"
+                                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                                    : recommendation.validationStatus === "Needs Review"
+                                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                                    : recommendation.validationStatus === "Rejected"
+                                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                                    : "bg-slate-500/20 text-slate-300 border border-slate-500/40"
+                                }`}
+                              >
+                                {recommendation.validationStatus}
+                              </span>
+                            )}
+                          </div>
+                          <LinkedTraceField
+                            className=""
+                            id={recommendation.linkedFindingId}
+                            label="Finding"
+                            onTraceSelect={traceHandlers.onTraceSelect}
+                          />
+                        </div>
+
+                        {depWarning && (
+                          <div className="mt-2.5 rounded-lg border border-amber-800/40 bg-amber-950/20 p-2 text-xs font-semibold text-amber-300 flex items-center gap-1.5">
+                            <span>⚠️</span>
+                            <span>{depWarning} (temporarily excluded from formal export)</span>
+                          </div>
+                        )}
+
+                        <h4 className="mt-3 text-base font-semibold leading-6 text-[var(--foreground)]">
+                          {recommendation.recommendation}
+                        </h4>
+                        <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                          <span className="font-semibold text-[var(--foreground)]">Expected benefit: </span>
+                          {recommendation.expectedBenefit}
+                        </p>
+                        <div className="mt-4 grid grid-cols-1 gap-x-4 gap-y-3 border-t border-[var(--border)] pt-3 text-xs sm:grid-cols-2">
+                          <CompactField
+                            label="Owner"
+                            value={recommendation.responsibleActor}
+                          />
+                          <CompactField
+                            label="Timeframe"
+                            value={recommendation.timeframe}
+                          />
+                          <CompactField
+                            label="Feasibility"
+                            value={recommendation.feasibility}
+                          />
+                          <CompactField
+                            label="Risk / sensitivity"
+                            value={recommendation.riskSensitivity}
+                          />
+                          <CompactField
+                            label="Success indicator"
+                            value={recommendation.successIndicator}
+                            fullWidth
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        {/* Governance Action Bar for Editable Studies */}
+                        {isEditable && (
+                          <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3 text-xs">
+                            {(!recommendation.validationStatus ||
+                              recommendation.validationStatus === "Draft") && (
+                              <button
+                                type="button"
+                                onClick={() => handleRecSubmitForReview(recommendation)}
+                                className="rounded bg-amber-600/20 border border-amber-500/40 px-2.5 py-1 text-xs font-semibold text-amber-200 hover:bg-amber-600/40"
+                              >
+                                Submit for Review
+                              </button>
+                            )}
+
+                            {recommendation.validationStatus === "Needs Review" && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRecValidate(recommendation)}
+                                  className="rounded bg-emerald-600/30 border border-emerald-500/40 px-2.5 py-1 text-xs font-semibold text-emerald-200 hover:bg-emerald-600/50"
+                                >
+                                  Validate
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRecReject(recommendation)}
+                                  className="rounded bg-rose-600/20 border border-rose-500/40 px-2.5 py-1 text-xs font-semibold text-rose-200 hover:bg-rose-600/40"
+                                >
+                                  Reject
+                                </button>
+                              </>
+                            )}
+
+                            {recommendation.validationStatus === "Rejected" && (
+                              <button
+                                type="button"
+                                onClick={() => handleRecReopen(recommendation)}
+                                className="rounded bg-slate-600/20 border border-slate-500/40 px-2.5 py-1 text-xs font-semibold text-slate-200 hover:bg-slate-600/40"
+                              >
+                                Reopen to Draft
+                              </button>
+                            )}
+                          </div>
+                        )}
+
+                        <div className="mt-4 border-t border-[var(--border)] pt-3">
+                          <TraceIdList
+                            className=""
+                            ids={recommendation.evidenceBase}
+                            label="Evidence base"
+                            onTraceSelect={traceHandlers.onTraceSelect}
+                          />
+                        </div>
+                        <div className="mt-4 border-t border-[var(--border)] pt-4">
+                          <span className="text-[11px] font-semibold text-[var(--muted)] block mb-2">
+                            Claim lineage
+                          </span>
+                          <TraceChain id={recommendation.id} demoCase={demoCase} onSelect={traceHandlers.onTraceSelect} />
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </section>
           );
@@ -2037,9 +3221,9 @@ function RecommendationsSection({
 
 function renderTextWithPills(text: string, onSelect: (id: string) => void) {
   if (!text) return "";
-  const parts = text.split(/(\b(?:SRC|EV|FND|LES|GP|REC|QA)-\d+\b|\bEV-TEMP-\d+\b|\bSRC-TEMP-\d+\b)/g);
+  const parts = text.split(/(\b(?:SRC|EV|FND|LES|GP|REC|QA)-(?:\d+|SBX-\d+|TEMP-\d+)\b)/g);
   return parts.map((part, index) => {
-    if (/^(?:SRC|EV|FND|LES|GP|REC|QA)-\d+$/.test(part) || /^(?:EV|SRC)-TEMP-\d+$/.test(part)) {
+    if (/^(?:SRC|EV|FND|LES|GP|REC|QA)-(?:\d+|SBX-\d+|TEMP-\d+)$/.test(part)) {
       return (
         <button
           key={index}
@@ -2061,6 +3245,8 @@ function QAReviewSection({
   auditRun,
   auditMessage,
   onRunAudit,
+  currentStudy,
+  demoCase,
 }: {
   qaItems: QAReviewItem[];
   traceHandlers: TraceHandlers;
@@ -2068,55 +3254,170 @@ function QAReviewSection({
   auditRun: boolean;
   auditMessage: string;
   onRunAudit: () => void;
+  currentStudy?: FieldStudy | null;
+  demoCase: DemoCase;
 }) {
+  const activeFindings = currentStudy?.findings ?? demoCase.findings ?? [];
+  const activeRecs = currentStudy?.recommendations ?? demoCase.recommendations ?? [];
+  const activeEvidence = currentStudy?.evidence ?? demoCase.evidence ?? [];
+
+  const eligibleFindings = activeFindings.filter((f) => f.validationStatus === "Validated");
+  const linkedRecommendations = activeRecs.filter((r) =>
+    activeFindings.some((f) => f.id === r.linkedFindingId && f.validationStatus === "Validated")
+  );
+  const needsReviewItems = [
+    ...activeEvidence.filter((e) => e.validationStatus === "Needs Review" || e.validationStatus === "Draft"),
+    ...activeFindings.filter((f) => f.validationStatus !== "Validated"),
+    ...activeRecs.filter((r) => r.validationStatus !== "Validated"),
+  ];
+  const findingsWithLimitations = activeFindings.filter(
+    (f) => Boolean(f.limitationNote && f.limitationNote.trim().length > 0)
+  );
+  const challengingEvidenceCount = activeFindings.reduce(
+    (acc, f) => acc + (f.contradictoryEvidenceIds?.length || (f.contradictoryEvidence ? 1 : 0)),
+    0
+  );
+
   const stats = {
     pass: qaItems.filter((i) => i.status === "Pass").length,
-    needsReview: qaItems.filter((i) => i.status === "Needs Review").length,
-    warning: qaItems.filter((i) => i.status === "Warning").length,
+    needsReview: qaItems.filter((i) => i.status === "Needs Review" || i.status === "Human Review Required").length,
+    warning: qaItems.filter((i) => i.status === "Warning" || i.status === "Check Required" || i.status === "Evidence Missing").length,
+    notAssessed: qaItems.filter((i) => i.status === "Not Assessed" || i.status === "Informational").length,
   };
 
   const sortedQaItems = [...qaItems].sort((a, b) => {
-    const score = { "Warning": 3, "Needs Review": 2, "Pass": 1 };
+    const score: Record<string, number> = {
+      "Warning": 4,
+      "Check Required": 4,
+      "Evidence Missing": 4,
+      "Needs Review": 3,
+      "Human Review Required": 3,
+      "Not Assessed": 2,
+      "Informational": 1,
+      "Pass": 0,
+    };
     return (score[b.status] || 0) - (score[a.status] || 0);
   });
   const qaGroups: Array<{ status: QAReviewStatus; label: string; items: QAReviewItem[] }> = [
     {
       status: "Warning",
-      label: "Warnings",
-      items: sortedQaItems.filter((item) => item.status === "Warning"),
+      label: "Warnings & Checks Required",
+      items: sortedQaItems.filter((item) => ["Warning", "Check Required", "Evidence Missing"].includes(item.status)),
     },
     {
       status: "Needs Review",
-      label: "Needs review",
-      items: sortedQaItems.filter((item) => item.status === "Needs Review"),
+      label: "Actionable Review Required",
+      items: sortedQaItems.filter((item) => ["Needs Review", "Human Review Required"].includes(item.status)),
+    },
+    {
+      status: "Not Assessed",
+      label: "Contextual / Informational",
+      items: sortedQaItems.filter((item) => ["Not Assessed", "Informational"].includes(item.status)),
     },
     {
       status: "Pass",
-      label: "Passed checks",
+      label: "Passed Verified Checks",
       items: sortedQaItems.filter((item) => item.status === "Pass"),
     },
   ];
 
   return (
     <Section
-      description="The checklist flags traceability, sensitivity, overclaiming, and donor-readiness risks."
-      eyebrow="QA review"
-      title="Human review required"
+      description="Actionable verification checks required before circulating or exporting the professional draft."
+      eyebrow="Deliverables Check"
+      title="Final Review before Professional Draft"
     >
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+      {/* Actionable Pre-Draft Verification Checks */}
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--trace)]">
+              Pre-Draft Actionable Checks
+            </h3>
+            <p className="mt-0.5 text-xs text-[var(--muted)]">
+              Key checks required before final draft circulation.
+            </p>
+          </div>
+          <span className="rounded bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 text-[10px] font-semibold text-sky-300">
+            Actionable Verification
+          </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">1. Eligible Findings</span>
+            <p className="mt-1 font-semibold text-[var(--foreground)]">
+              {eligibleFindings.length} of {activeFindings.length} findings validated
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Only validated, non-stale findings appear in draft.</p>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">2. Linked Recommendations</span>
+            <p className="mt-1 font-semibold text-[var(--foreground)]">
+              {linkedRecommendations.length} of {activeRecs.length} recommendations anchored
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Each action is tied to an approved finding.</p>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">3. Unresolved Items</span>
+            <p className={`mt-1 font-semibold ${needsReviewItems.length > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+              {needsReviewItems.length} items awaiting review
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Draft or in-review observations/claims.</p>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">4. Recorded Limitations</span>
+            <p className="mt-1 font-semibold text-[var(--foreground)]">
+              {findingsWithLimitations.length} documented limitations
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Contextual qualifications and boundaries noted.</p>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">5. Challenging Material</span>
+            <p className="mt-1 font-semibold text-[var(--foreground)]">
+              {challengingEvidenceCount > 0 ? `${challengingEvidenceCount} items considered` : "None flagged"}
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Contradictory and counter-perspectives reviewed.</p>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">6. Traceability Verified</span>
+            <p className="mt-1 font-semibold text-emerald-400">
+              Complete source-to-brief lineage
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Clickable audit IDs linked for all claims.</p>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">7. Scope Confirmed</span>
+            <p className="mt-1 font-semibold text-emerald-400">
+              Inquiry boundaries active
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">
+              {currentStudy?.scope ? `${currentStudy.scope.targetSites.length} sites · ${(currentStudy.questions || []).length} questions` : "Standard evaluation scope active"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
             <h3 className="text-base font-semibold text-[var(--foreground)]">
-              QA checks help prevent overclaiming and protect sensitive field evidence.
+              Review checks help prevent overclaiming and protect sensitive field evidence.
             </h3>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              This deterministic demo review checks whether claims are linked,
+              This deterministic review checks whether claims are linked,
               limitations are visible, sensitive evidence is flagged, and the
-              brief remains suitable for human donor-facing review.
+              brief remains suitable for draft professional review.
             </p>
           </div>
           <span className="rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
-            Local deterministic demo check
+            Deterministic verification gate
           </span>
         </div>
 
@@ -2155,9 +3456,9 @@ function QAReviewSection({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
-          <h3 className="text-base font-semibold text-[var(--foreground)]">Review gate not yet complete</h3>
+          <h3 className="text-base font-semibold text-[var(--foreground)]">Final review not yet triggered</h3>
           <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed">
-            Run the checklist to reveal grouped warnings, needs-review items,
+            Run the check to reveal grouped warnings, needs-review items,
             and passed safeguards for the selected case.
           </p>
           <div className="mt-6 flex flex-col items-center gap-3">
@@ -2165,10 +3466,10 @@ function QAReviewSection({
               className="min-h-11 px-5 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white font-semibold text-sm rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--trace)] transition"
               onClick={onRunAudit}
             >
-              Run review gate
+              Run final review
             </button>
             <span className="text-[10px] text-[var(--muted)] font-semibold uppercase tracking-wider">
-              Deterministic demo check — not an AI or human evaluation
+              Deterministic verification gate — not an external certification
             </span>
           </div>
         </div>
@@ -2259,19 +3560,25 @@ function LearningBriefSection({
   copyStatus,
   onCopy,
   traceHandlers,
+  includeSandboxInBrief,
+  setIncludeSandboxInBrief,
+  hasSandboxItems,
 }: {
   demoCase: DemoCase;
   markdown: string;
   copyStatus: "idle" | "copied" | "error";
   onCopy: () => void;
   traceHandlers: TraceHandlers;
+  includeSandboxInBrief: boolean;
+  setIncludeSandboxInBrief: (val: boolean) => void;
+  hasSandboxItems: boolean;
 }) {
   const [exportStatus, setExportStatus] = React.useState<"idle" | "docx-loading" | "pdf-loading" | "md-loading" | "error">("idle");
 
   const handleDownloadDocx = async () => {
     try {
       setExportStatus("docx-loading");
-      const model = buildBriefExportModel(demoCase);
+      const model = buildBriefExportModel(demoCase, includeSandboxInBrief);
       downloadBriefDocx(model);
       setExportStatus("idle");
     } catch (err) {
@@ -2283,7 +3590,7 @@ function LearningBriefSection({
   const handleDownloadPdf = async () => {
     try {
       setExportStatus("pdf-loading");
-      const model = buildBriefExportModel(demoCase);
+      const model = buildBriefExportModel(demoCase, includeSandboxInBrief);
       await downloadBriefPdf(model);
       setExportStatus("idle");
     } catch (err) {
@@ -2295,7 +3602,7 @@ function LearningBriefSection({
   const handleDownloadMarkdown = async () => {
     try {
       setExportStatus("md-loading");
-      const model = buildBriefExportModel(demoCase);
+      const model = buildBriefExportModel(demoCase, includeSandboxInBrief);
       downloadBriefMarkdown(model);
       setExportStatus("idle");
     } catch (err) {
@@ -2308,84 +3615,88 @@ function LearningBriefSection({
     <Section
       description={
         demoCase.id === "school-nutrition"
-          ? "Sanitized real-world-inspired demo data formatted as a donor learning brief draft."
-          : "Fictional workspace demo data formatted as a donor learning brief draft."
+          ? "Sanitized real-world-inspired demo data formatted as a draft for professional review."
+          : "Fictional workspace demo data formatted as a draft for professional review."
       }
-      eyebrow="Learning brief"
-      title="Donor-ready brief preview"
+      eyebrow="Draft for Professional Review"
+      title="Professional Draft Preview"
     >
-      <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] p-5 sm:p-6 flex flex-col gap-6">
-        {/* Professional Export Action Area */}
-        <div className="flex flex-col gap-4 border-b border-[var(--border)] pb-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <span className="text-xs font-semibold text-[var(--trace)] uppercase tracking-wider">
-                Export Brief Deliverable
-              </span>
-              <p className="text-xs text-[var(--muted-soft)] mt-0.5">
-                Download structured documents generated from the active demo case. No data is uploaded.
+      <div className="flex flex-col gap-4">
+        <div className="fls-export-toolbar">
+          <div className="flex flex-wrap items-center gap-2" role="status">
+            {exportStatus === "pdf-loading" && <span className="text-xs text-[var(--warning-text)]">Preparing PDF…</span>}
+            {exportStatus === "error" && <span className="text-xs text-[var(--danger-text)]">Export failed. Please try again.</span>}
+          </div>
+          {/* Toggle sandbox inclusion */}
+          {hasSandboxItems && (
+            <div className="w-full rounded border border-amber-900/30 bg-amber-500/5 p-3 flex flex-col gap-2">
+              <label className="inline-flex items-center gap-3 text-xs font-semibold text-amber-700 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  className="rounded border-[var(--border)] text-[var(--trace)] focus:ring-[var(--trace)] bg-[var(--surface)]"
+                  checked={includeSandboxInBrief}
+                  onChange={(e) => setIncludeSandboxInBrief(e.target.checked)}
+                />
+                Include sandbox draft evidence in brief export
+              </label>
+              <p className="text-[11px] text-amber-600/90 leading-relaxed pl-6">
+                {includeSandboxInBrief
+                  ? "Warning: Sandbox content will be included in Word, PDF, and Markdown exports as unvalidated draft evidence."
+                  : "Sandbox drafts are currently excluded from exports. Check this box to append them as draft evidence."
+                }
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              {exportStatus === "pdf-loading" && (
-                <span className="text-xs text-[var(--warning-text)] bg-[var(--accent-wash-strong)] px-3 py-1.5 rounded border border-[var(--warning)] font-mono animate-pulse">
-                  Preparing PDF…
-                </span>
-              )}
-              {exportStatus === "error" && (
-                <span className="text-xs text-[var(--danger-text)] bg-[rgba(248,113,113,0.1)] px-3 py-1.5 rounded border border-[var(--danger)] font-mono">
-                  Export failed. Please try again.
-                </span>
-              )}
-            </div>
-          </div>
-
+          )}
           <div className="flex flex-wrap items-center gap-3">
             <button
-              className="min-h-10 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white px-5 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer disabled:opacity-50"
+              className="fls-button fls-button-primary"
               disabled={exportStatus !== "idle"}
               onClick={handleDownloadDocx}
               type="button"
             >
-              {exportStatus === "docx-loading" ? "Generating Word..." : "Download Word brief"}
+              {exportStatus === "docx-loading" ? "Generating Word..." : "Download Word draft (.docx)"}
             </button>
 
-            <button
-              className="min-h-10 rounded-lg bg-[var(--surface-soft)] hover:bg-[var(--surface-elevated)] border border-[var(--border-strong)] text-[var(--foreground)] px-5 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer disabled:opacity-50"
-              disabled={exportStatus !== "idle"}
-              onClick={handleDownloadPdf}
-              type="button"
-            >
-              {exportStatus === "pdf-loading" ? "Preparing PDF..." : "Download PDF"}
-            </button>
+            <div className="inline-flex items-center rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-0.5 text-xs">
+              <button
+                className="rounded px-3 py-1 font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-elevated)] transition disabled:opacity-50 cursor-pointer"
+                disabled={exportStatus !== "idle"}
+                onClick={handleDownloadPdf}
+                type="button"
+              >
+                {exportStatus === "pdf-loading" ? "Preparing PDF..." : "PDF"}
+              </button>
 
-            <button
-              className="min-h-10 rounded-lg bg-transparent hover:bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--muted)] px-5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer disabled:opacity-50"
-              disabled={exportStatus !== "idle"}
-              onClick={handleDownloadMarkdown}
-              type="button"
-            >
-              {exportStatus === "md-loading" ? "Generating..." : "Download Markdown"}
-            </button>
+              <button
+                className="rounded px-3 py-1 font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-elevated)] transition disabled:opacity-50 cursor-pointer"
+                disabled={exportStatus !== "idle"}
+                onClick={handleDownloadMarkdown}
+                type="button"
+              >
+                {exportStatus === "md-loading" ? "Generating..." : "Markdown"}
+              </button>
 
-            <button
-              className="min-h-10 rounded-lg bg-transparent hover:bg-[var(--accent-wash)] text-[var(--trace)] px-4 text-xs font-medium transition focus:outline-none cursor-pointer"
-              onClick={onCopy}
-              type="button"
-            >
-              {copyStatus === "copied" ? "✓ Copied Markdown" : "Copy Markdown"}
-            </button>
+              <button
+                className="rounded px-3 py-1 font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-elevated)] transition cursor-pointer"
+                onClick={onCopy}
+                type="button"
+              >
+                {copyStatus === "copied" ? "✓ Copied" : "Copy MD"}
+              </button>
+            </div>
           </div>
+          <p className="fls-export-note">Internal workspace draft · Review and clearance required before external distribution. Exports are generated locally.</p>
         </div>
 
         <StyledBriefPreview
           demoCase={demoCase}
           traceHandlers={traceHandlers}
+          includeSandbox={includeSandboxInBrief}
         />
 
         <details className="mt-2 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]">
           <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-[var(--foreground)] select-none">
-            View raw Markdown payload source
+            View Markdown source
           </summary>
           <textarea
             className="h-[300px] w-full resize-y border-t border-[var(--border)] bg-[var(--surface)] p-4 font-mono text-xs leading-5 text-[var(--foreground)] outline-none focus:border-[var(--trace)]"
@@ -2401,16 +3712,28 @@ function LearningBriefSection({
 function StyledBriefPreview({
   demoCase,
   traceHandlers,
+  includeSandbox,
 }: {
   demoCase: DemoCase;
   traceHandlers: TraceHandlers;
+  includeSandbox: boolean;
 }) {
+  const model = useMemo(
+    () => buildBriefExportModel(demoCase, includeSandbox),
+    [demoCase, includeSandbox]
+  );
+  const mainFindings = model.findings;
+  const mainLessons = model.lessons;
+  const mainGoodPractices = model.goodPractices;
+  const mainRecommendations = model.recommendations;
+  const sandboxEvidence = model.sandboxEvidence || [];
+
   return (
-    <div className="bg-[rgba(148,163,184,0.08)] p-4 sm:p-8 rounded-lg border border-[var(--border)] mt-5">
+    <div className="fls-draft-canvas">
       <article className="brief-document mx-auto max-w-[820px] border border-[var(--document-border)] rounded-md overflow-hidden p-8 sm:p-12">
         <header className="border-b border-[var(--border)] pb-6 mb-8">
-          <span className="text-[11px] font-semibold text-[var(--accent)] block mb-2">
-            Programme Learning Brief
+          <span className="text-[11px] font-semibold text-[var(--accent)] block mb-2 uppercase tracking-wide">
+            Programme Learning Brief &bull; Draft for Professional Review
           </span>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--foreground)]">
             {demoCase.project}
@@ -2447,12 +3770,12 @@ function StyledBriefPreview({
           </div>
 
           <dl className="mt-6 grid gap-4 grid-cols-2 sm:grid-cols-4 text-xs sm:text-sm">
-            <BriefMetric label="Sources" value={demoCase.evidenceBase.sourceRecords} />
-            <BriefMetric label="Evidence entries" value={demoCase.evidenceBase.evidenceEntries} />
-            <BriefMetric label="Findings" value={demoCase.evidenceBase.findings} />
+            <BriefMetric label="Sources" value={demoCase.evidenceBase?.sourceRecords ?? demoCase.sources.length} />
+            <BriefMetric label="Evidence entries" value={demoCase.evidenceBase?.evidenceEntries ?? demoCase.evidence.length} />
+            <BriefMetric label="Findings" value={mainFindings.length} />
             <BriefMetric
               label="Recommendations"
-              value={demoCase.evidenceBase.recommendations}
+              value={mainRecommendations.length}
             />
           </dl>
 
@@ -2475,10 +3798,10 @@ function StyledBriefPreview({
 
         <BriefSection title="Evidence Base">
           <p>
-            This brief is generated from {demoCase.evidenceBase.sourceRecords} source records,
-            {" "}{demoCase.evidenceBase.evidenceEntries} evidence entries,
-            {" "}{demoCase.evidenceBase.findings} findings, and
-            {" "}{demoCase.evidenceBase.recommendations} recommendations in the selected demo case.
+            This brief is generated from {demoCase.sources.length} source records,
+            {" "}{demoCase.evidence.length} evidence entries,
+            {" "}{mainFindings.length} eligible findings, and
+            {" "}{mainRecommendations.length} eligible recommendations in the selected case.
           </p>
         </BriefSection>
 
@@ -2509,33 +3832,39 @@ function StyledBriefPreview({
         ) : null}
 
         <BriefSection title="Main Findings">
-          <div className="space-y-4">
-            {demoCase.findings.map((finding) => (
-              <div
-                className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
-                key={finding.id}
-              >
-                <TraceButton
-                  id={finding.id}
-                  onSelect={traceHandlers.onTraceSelect}
-                />
-                <h4 className="mt-3 font-semibold text-[var(--foreground)]">
-                  {finding.statement}
-                </h4>
-                <p className="mt-2">{finding.explanation}</p>
-                <TraceIdList
-                  ids={finding.supportingEvidenceIds}
-                  label="Evidence base"
-                  onTraceSelect={traceHandlers.onTraceSelect}
-                />
-              </div>
-            ))}
-          </div>
+          {mainFindings.length === 0 ? (
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-6 text-center text-xs text-[var(--muted)]">
+              No formally eligible findings. Only approved findings with verified, current supporting evidence appear in the formal Learning Brief deliverable.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {mainFindings.map((finding) => (
+                <div
+                  className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
+                  key={finding.id}
+                >
+                  <TraceButton
+                    id={finding.id}
+                    onSelect={traceHandlers.onTraceSelect}
+                  />
+                  <h4 className="mt-3 font-semibold text-[var(--foreground)]">
+                    {finding.statement}
+                  </h4>
+                  <p className="mt-2">{finding.explanation}</p>
+                  <TraceIdList
+                    ids={finding.evidenceBase || []}
+                    label="Evidence base"
+                    onTraceSelect={traceHandlers.onTraceSelect}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </BriefSection>
 
         <BriefSection title="Lessons Learned">
           <div className="grid gap-3 md:grid-cols-2">
-            {demoCase.lessons.map((lesson) => (
+            {mainLessons.map((lesson) => (
               <div
                 className="rounded-lg border border-[var(--border)] p-4"
                 key={lesson.id}
@@ -2555,7 +3884,7 @@ function StyledBriefPreview({
 
         <BriefSection title="Good Practices">
           <div className="grid gap-3 md:grid-cols-2">
-            {demoCase.goodPractices.map((practice) => (
+            {mainGoodPractices.map((practice) => (
               <div
                 className="rounded-lg border border-[var(--border)] p-4"
                 key={practice.id}
@@ -2574,49 +3903,56 @@ function StyledBriefPreview({
         </BriefSection>
 
         <BriefSection title="Recommendations">
-          <div className="space-y-3">
-            {priorityOrder.map((priority) => {
-              const recommendations = demoCase.recommendations.filter(
-                (recommendation) => recommendation.priority === priority,
-              );
+          {mainRecommendations.length === 0 ? (
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-6 text-center text-xs text-[var(--muted)]">
+              No formally eligible recommendations. Only recommendations linked to eligible, approved findings appear in the formal Learning Brief deliverable.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {priorityOrder.map((priority) => {
+                const recommendations = mainRecommendations.filter(
+                  (recommendation) => recommendation.priority === priority,
+                );
+                if (recommendations.length === 0) return null;
 
-              return (
-                <div
-                  className="rounded-lg border border-[var(--border)] p-4"
-                  key={priority}
-                >
-                  <h4 className="font-semibold text-[var(--foreground)]">
-                    {priority} Priority
-                  </h4>
-                  <div className="mt-3 space-y-3">
-                    {recommendations.map((recommendation) => (
-                      <div
-                        className="border-t border-[var(--border)] pt-3 first:border-t-0 first:pt-0"
-                        key={recommendation.id}
-                      >
-                        <TraceButton
-                          id={recommendation.id}
-                          onSelect={traceHandlers.onTraceSelect}
-                        />
-                        <p className="mt-2 font-semibold text-[var(--foreground)]">
-                          {recommendation.recommendation}
-                        </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                          <span className="text-[var(--muted)]">
-                            Linked finding
-                          </span>
+                return (
+                  <div
+                    className="rounded-lg border border-[var(--border)] p-4"
+                    key={priority}
+                  >
+                    <h4 className="font-semibold text-[var(--foreground)]">
+                      {priority} Priority
+                    </h4>
+                    <div className="mt-3 space-y-3">
+                      {recommendations.map((recommendation) => (
+                        <div
+                          className="border-t border-[var(--border)] pt-3 first:border-t-0 first:pt-0"
+                          key={recommendation.id}
+                        >
                           <TraceButton
-                            id={recommendation.linkedFindingId}
+                            id={recommendation.id}
                             onSelect={traceHandlers.onTraceSelect}
                           />
+                          <p className="mt-2 font-semibold text-[var(--foreground)]">
+                            {recommendation.recommendation}
+                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                            <span className="text-[var(--muted)]">
+                              Linked finding
+                            </span>
+                            <TraceButton
+                              id={recommendation.linkedFindingId}
+                              onSelect={traceHandlers.onTraceSelect}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </BriefSection>
 
         {(demoCase.safeguardingNotes || demoCase.safetyNote) ? (
@@ -2624,6 +3960,45 @@ function StyledBriefPreview({
             <p>{demoCase.safeguardingNotes || demoCase.safetyNote}</p>
           </BriefSection>
         ) : null}
+
+        {includeSandbox && sandboxEvidence.length > 0 && (
+          <BriefSection title="Sandbox Draft Evidence — Requires Review">
+            <div className="rounded border border-amber-900/30 bg-amber-500/5 p-4 mb-4 text-xs text-amber-600/90 leading-5">
+              <span className="font-bold">Sandbox Warning:</span> Sandbox draft content is user-provided, local-only, and not validated.
+            </div>
+            <div className="space-y-4">
+              {sandboxEvidence.map((e) => {
+                const fnd = demoCase.findings.find((f) => f.supportingEvidenceIds.includes(e.id as EvidenceEntryId));
+                const rec = fnd ? demoCase.recommendations.find((r) => r.linkedFindingId === fnd.id) : null;
+                return (
+                  <div key={e.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4 flex flex-col gap-3">
+                    <div className="flex items-center gap-2">
+                      <TraceButton id={e.id} onSelect={traceHandlers.onTraceSelect} />
+                      <span className="text-[10px] font-bold text-[var(--muted)]">Evidence ID: {e.id}</span>
+                      <span className="text-[10px] font-bold text-[var(--muted)]">Source ID: {e.sourceId}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wider block mb-1">Observation Summary</span>
+                      <p className="text-sm text-[var(--foreground)]">{e.rawEvidence}</p>
+                    </div>
+                    {fnd && (
+                      <div>
+                        <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wider block mb-1">Draft Finding ({fnd.id})</span>
+                        <p className="text-xs text-[var(--foreground)] font-medium">{fnd.statement}</p>
+                      </div>
+                    )}
+                    {rec && (
+                      <div>
+                        <span className="text-[10px] font-semibold text-[var(--muted)] uppercase tracking-wider block mb-1">Draft Recommendation ({rec.id})</span>
+                        <p className="text-xs text-[var(--foreground)] font-medium">{rec.recommendation}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </BriefSection>
+        )}
 
         <BriefSection title="Limitations">
           <ul className="space-y-2">
@@ -2638,30 +4013,33 @@ function StyledBriefPreview({
 
         <BriefSection title="Annex: Traceability Summary">
           <div className="space-y-3">
-            {demoCase.findings.map((finding) => (
-              <div
-                className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
-                key={finding.id}
-              >
-                <TraceButton
-                  id={finding.id}
-                  onSelect={traceHandlers.onTraceSelect}
-                />
-                <p className="mt-3 text-sm font-semibold text-[var(--foreground)]">
-                  {finding.statement}
-                </p>
-                <TraceIdList
-                  ids={finding.supportingEvidenceIds}
-                  label="Evidence"
-                  onTraceSelect={traceHandlers.onTraceSelect}
-                />
-                <TraceIdList
-                  ids={finding.linkedRecommendationIds}
-                  label="Recommendations"
-                  onTraceSelect={traceHandlers.onTraceSelect}
-                />
-              </div>
-            ))}
+            {model.traceability.map((item) => {
+              const finding = mainFindings.find((f) => f.id === item.findingId);
+              return (
+                <div
+                  className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
+                  key={item.findingId}
+                >
+                  <TraceButton
+                    id={item.findingId}
+                    onSelect={traceHandlers.onTraceSelect}
+                  />
+                  <p className="mt-3 text-sm font-semibold text-[var(--foreground)]">
+                    {finding?.statement || item.findingId}
+                  </p>
+                  <TraceIdList
+                    ids={item.evidenceIds}
+                    label="Evidence"
+                    onTraceSelect={traceHandlers.onTraceSelect}
+                  />
+                  <TraceIdList
+                    ids={item.recommendationIds}
+                    label="Recommendations"
+                    onTraceSelect={traceHandlers.onTraceSelect}
+                  />
+                </div>
+              );
+            })}
           </div>
         </BriefSection>
       </div>
@@ -2682,17 +4060,13 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section role="tabpanel">
-      <div className="mb-4">
-        <p className="text-sm font-semibold text-[var(--muted-strong)]">
-          {eyebrow}
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-normal sm:text-3xl">
-          {title}
-        </h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)] sm:text-base sm:leading-7">
-          {description}
-        </p>
+    <section>
+      <div className="fls-page-heading mb-5">
+        <div>
+          <p className="fls-eyebrow">{eyebrow}</p>
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </div>
       </div>
       <div className="flex flex-col gap-4">{children}</div>
     </section>
@@ -2742,35 +4116,6 @@ function BriefMetric({ label, value }: { label: string; value: number }) {
   );
 }
 
-function FilterSelect({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: string[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="flex flex-col gap-2 text-sm font-medium text-[var(--foreground)]">
-      {label}
-      <select
-        className="min-h-11 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-sm text-[var(--foreground)] outline-none focus:border-[var(--trace)]"
-        onChange={(event) => onChange(event.target.value)}
-        value={value}
-      >
-        <option value="All">All</option>
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 
 
 
@@ -2830,12 +4175,16 @@ function PriorityBadge({ value }: { value: RecommendationPriority }) {
 }
 
 function QAStatusBadge({ value }: { value: QAReviewStatus }) {
-  const className =
-    value === "Pass"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-      : value === "Needs Review"
-        ? "border-amber-200 bg-amber-50 text-amber-800"
-        : "border-red-200 bg-red-50 text-red-800";
+  let className = "border-slate-500/30 bg-slate-800/40 text-slate-300";
+  if (value === "Pass") {
+    className = "border-emerald-500/40 bg-emerald-950/40 text-emerald-300";
+  } else if (value === "Needs Review" || value === "Human Review Required") {
+    className = "border-amber-500/40 bg-amber-950/40 text-amber-300";
+  } else if (value === "Warning" || value === "Check Required" || value === "Evidence Missing") {
+    className = "border-rose-500/40 bg-rose-950/40 text-rose-300";
+  } else if (value === "Not Assessed" || value === "Informational") {
+    className = "border-sky-500/40 bg-sky-950/40 text-sky-300";
+  }
 
   return (
     <span
@@ -3191,6 +4540,14 @@ function traceDomId(id: string) {
 }
 
 function tabForTraceId(id: string): WorkspaceTabId {
+  if (id.startsWith("DBR-")) {
+    return "debrief";
+  }
+
+  if (id.startsWith("RQ-") || id.startsWith("PAT-")) {
+    return "synthesis";
+  }
+
   if (id.startsWith("EV-") || id.startsWith("SRC-")) {
     return "evidence";
   }

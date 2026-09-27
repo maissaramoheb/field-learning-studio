@@ -364,6 +364,51 @@ export function downloadBriefDocx(model: BriefExportModel): void {
     children.push(createParagraph(model.safeguardingNotes));
   }
 
+  // Sandbox Draft Evidence — Requires Review
+  if (model.includeSandbox && model.sandboxEvidence && model.sandboxEvidence.length > 0) {
+    children.push(
+      createParagraph("Sandbox Draft Evidence — Requires Review", {
+        heading: HeadingLevel.HEADING_2,
+        bold: true,
+        size: 32,
+        color: "b45309",
+        spaceBefore: 360,
+        spaceAfter: 120,
+      }),
+    );
+    children.push(
+      createParagraph(
+        "Sandbox Warning: Sandbox draft content is user-provided, local-only, and not validated.",
+        { bold: true, color: "b45309", italic: true },
+      ),
+    );
+
+    model.sandboxEvidence.forEach((e) => {
+      children.push(
+        createParagraph(`${e.id}`, {
+          heading: HeadingLevel.HEADING_3,
+          bold: true,
+          size: 26,
+          color: "1e293b",
+          spaceBefore: 240,
+          spaceAfter: 120,
+        }),
+      );
+      children.push(createParagraph(`Evidence ID: ${e.id}`));
+      children.push(createParagraph(`Source ID: ${e.sourceId}`));
+      children.push(createParagraph(`Stakeholder: ${e.stakeholderType}`));
+      children.push(createParagraph(`Observation Summary: ${e.rawEvidence}`));
+      children.push(createParagraph(`Theme: ${e.primaryTheme}`));
+      children.push(createParagraph(`Sensitivity: ${e.sensitivityFlag}`));
+      if (e.draftFindingId) {
+        children.push(createParagraph(`Draft Finding: ${e.draftFindingId} - ${e.draftFindingStatement}`));
+      }
+      if (e.draftRecommendationId) {
+        children.push(createParagraph(`Draft Recommendation: ${e.draftRecommendationId} - ${e.draftRecommendationStatement}`));
+      }
+    });
+  }
+
   // Limitations
   children.push(
     createParagraph("Limitations", {

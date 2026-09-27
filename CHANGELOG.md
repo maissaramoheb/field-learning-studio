@@ -1,5 +1,260 @@
 # Changelog
 
+## v0.9.2 - Final UI/UX Integration Pass
+
+- **Compact Workspace Architecture & Above-the-Fold Elevation**:
+  - Tightened application header bar to 48px, demo notice to 24px, and practitioner space tabs to 42px. Total header footprint reduced to ~93px, elevating primary workspace content to ~260–300px from top on standard 1440×900 viewports.
+  - Implemented `.fls-study-overview` featuring a compact Continue Work row (`.fls-resume-row`), a 4-metric horizontal study inventory strip (`.fls-inventory-strip`), a balanced 2-column scope and limitations panel (`.fls-study-context`), and collapsible demo guide (`<details className="fls-details fls-demo-guide">`).
+- **Accessible Native Workspace Dialogs**:
+  - Authored `WorkspaceDialog.tsx` utilizing standards-compliant HTML5 `<dialog>` with focus trap, backdrop styling, Escape key handling, and focus restoration to the trigger element.
+  - Migrated `MinimalStudyModal` and `FindingAuthoringModal` to use `WorkspaceDialog`.
+- **Docked Intake & Field Material**:
+  - Implemented 2-column intake layout (`.fls-intake-grid`) with docked reading pane, source history (`aria-pressed`), and observation extraction form.
+  - Styled compact evidence card grid (`.fls-review-grid`) with semantic left-border interpretation styling.
+- **Analysis Grid & Synthesis**:
+  - Implemented two-column analysis workbench (`.fls-analysis-grid`) with study question selector toolbar, comparative matrix, missing coverage warning summary, and draft finding authoring.
+- **Deliverables Canvas**:
+  - Implemented centered quiet document preview canvas (`.fls-draft-canvas`) and compact export toolbar (`.fls-export-toolbar`).
+- **Visible Demo Inconsistency Resolved**:
+  - Fixed `computeNextAction` logic (`validationStatus === "Draft" || validationStatus === "Needs Review"`). When all evidence is approved, the study displays "Review Professional Draft →" matching the inventory strip ("20 approved"), removing the prior "3 awaiting review" conflict.
+- **Responsiveness**:
+  - Verified across 1440×900, 1280×800, and 1024×768 with clean typography, no horizontal scroll, and zero layout overflow. All 191 tests passing, TypeScript clean, ESLint clean, Next.js build clean.
+
+## v0.9.1 - Presentation-Ready Execution Sprint
+
+- **Stage 1 — Real Browser MEP-01 Acceptance**:
+  - Successfully verified complete claim boundary against live preview via headless Chrome CDP: initial chain eligibility, substantive invalidation cascade, wrong-order approval block, deliberate re-review restoration, and source deletion block.
+- **Stage 2 — Minimum MEP-02 Storage Safety Boundary**:
+  - Enforced duplicate ID rejection across batch operations and backup imports.
+  - Enforced strict referential checks rejecting broken parent relations and cross-study contamination.
+  - Added collision detection in `studyStore.ts` preventing silent overwrite of existing records on creation.
+  - Added 15 new automated regression tests in `tests/mep02SafetyBoundary.test.ts`. Total test suite: 191 tests passing across 17 test files.
+- **Stage 3 — Presentation-Critical UX**:
+  - Replaced 10-tab navigation with **4 Practitioner Spaces**: **1. Study**, **2. Field Material**, **3. Analysis**, **4. Deliverables** with clean sub-navigation.
+  - Prominent "Resume Work / Next Action" hero card on Study Home with direct one-click navigation to where the user left off.
+  - Study Scope, Context, Governance, and Data Recovery card on Study Home.
+  - Frictionless observation capture: optional primary theme (defaults to `Uncategorized`) and blank interpretations allowed.
+  - Retired arbitrary headline tier badges in Finding authoring in favor of factual **Evidence Coverage & Limitations** (sources, methods, sites, stakeholders, challenging evidence).
+  - Streamlined Recommendation authoring with progressive disclosure for implementation parameters.
+
+## v0.9.0-mep01 - Formal Claim Boundary & Export Parity Closure
+
+- **Formal Claim Eligibility & Export Parity**:
+  - Implemented unified canonical formal eligibility contract in `src/lib/exportPolicy.ts` (`isFindingExportEligible`, `isRecommendationExportEligible`, `isLessonExportEligible`, `isGoodPracticeExportEligible`).
+  - Refactored `StyledBriefPreview` in `src/components/FieldLearningStudioApp.tsx` to derive directly from `buildBriefExportModel`, establishing 100% parity across Styled Brief Preview, Copy Markdown, Download Markdown, DOCX, and PDF.
+- **Finding Approval Prerequisite Guard**:
+  - Hardened `validateArtifact` in `src/lib/validation/validationLifecycle.ts` to block wrong-order approvals when supporting evidence is in `Draft` or `Needs Review`, has active stale warnings, or is missing.
+- **Bi-directional Invalidation Cascading**:
+  - Extended `cascadeEvidenceInvalidationToFindings` in `src/lib/storage/integrity.ts` to cascade invalidation when either supporting evidence or challenging/contradictory evidence is substantively modified.
+- **Parent Deletion Guard**:
+  - Enforced deletion guard in `src/lib/storage/studyStore.ts` preventing deletion of Source records that have active dependent Evidence records.
+- **Batch Mutation Lifecycle Equivalence**:
+  - Updated `saveEvidenceBatch`, `bulkAssignEvidenceTheme`, and `bulkAssignEvidenceToQuestion` in `src/lib/storage/studyStore.ts` to detect substantive changes on validated evidence and run the invalidation cascade.
+- **Deliberate Review Semantics**:
+  - Enforced that re-reviewing an evidence item clears evidence-level alerts but leaves dependent findings in `Needs Review` until an analyst deliberately re-reviews and approves the finding.
+- **Legacy Demo Compatibility Isolation**:
+  - Isolated the legacy demo adapter to ensure demo compatibility policies never validate editable live-study artifacts.
+- **Regression Test Suites**:
+  - Added `tests/mep01ClaimBoundaryReproduction.test.ts` (6 tests reproducing audit defects) and `tests/claimBoundary.test.ts` (14 comprehensive regression tests covering all 11 invariant areas). All 176 tests passing.
+
+## v0.9.0-audit-resolution - Evidence Integrity & Recovery Stabilization
+
+- **Cross-Study Referential Integrity & Isolation**:
+  - Implemented `assertEvidenceSourceIntegrity`, `assertFindingEvidenceIntegrity`, and `assertRecommendationFindingIntegrity` in `src/lib/storage/integrity.ts`.
+  - Enforced repository-level foreign-key rejection preventing observations, findings, and recommendations from referencing entities from other studies.
+- **Strict Export Parity & Boundary Enforcement**:
+  - Centralized export eligibility logic in `src/lib/exportPolicy.ts`.
+  - Updated `buildBriefExportModel.ts` and `generateMarkdownFromModel.ts` to guarantee that unvalidated artifacts (Draft, Needs Review, Rejected) and recommendations linked to unvalidated findings are strictly excluded from preview models, Markdown export, and document downloads.
+- **Stale Dependency Propagation**:
+  - Enforced that substantive edits to validated findings revert validation status to `Needs Review`, increment revision count, and log to `invalidationHistory`.
+  - Downstream recommendations immediately display dependency warning banners and become ineligible for export until human revalidation of the parent finding.
+- **Support Profile Hardening & Context Realism**:
+  - Hardened `computeSupportProfile` to exclude rejected evidence entries and foreign sources.
+  - Added full support for single-site study scopes, satisfying site coverage without penalizing single-site studies.
+  - Robust placeholder detection preventing default phrases ("None documented", etc.) from being counted as substantive contradictions.
+- **Forensic Backup Archive Inspection & Collision Management**:
+  - Deep structural validation of `.fls.json` backup envelopes in `inspectStudyBackup`, enforcing required entity schemas and referential integrity.
+  - Implemented `import_as_new` re-keying and `overwrite` collision resolution strategies.
+- **Cleansed Synthetic Defaults**:
+  - Removed manufactured placeholder text from `FindingAuthoringModal.tsx` and `OptionalOutputsModal.tsx`.
+- **Restored QA Baseline Truth**:
+  - Restored requirement in `src/lib/qa.ts` that sandbox-generated evidence must be reviewed before donor-facing use.
+- **UX Simplification Blueprint**:
+  - Created `docs/ux_simplification_blueprint.md` detailing the 4-Space Architecture (Study, Field Material, Analysis, Deliverables), terminology normalization, and modal reduction roadmap.
+- **Regression Suite**:
+  - Added dedicated test suite in `tests/integrityAudit.test.ts`. Total test suite: 156 passing tests across 14 test files.
+
+## v0.9.0-phase7 - Bulk Intake & Structured Import
+
+- Implemented **Route A: Batch Observation Builder**:
+  - Direct narrative-to-observation extraction workspace in `BatchObservationBuilder.tsx` accessible from active source reader in Field Intake.
+  - Deterministic segmentation helper in `src/lib/intake/segmentationHelper.ts` (`splitNarrativeIntoSegments`) supporting paragraphs, bullets (`-`, `*`, `•`, `1.`), and nested combinations.
+  - Text highlight capture directly appending selected phrases into observation rows.
+  - Compact review table with inline text editing of `Raw Observation` and `Analytical Meaning / Interpretation`.
+  - Bulk action toolbar for setting Primary Theme, Observation Reliability (`High`, `Medium`, `Low`), and row deletion.
+  - Atomic batch save via `saveEvidenceBatch` generating sequential non-colliding `EV-***` IDs and setting `validationStatus = "Draft"`, `revision = 1`.
+- Implemented **Route B: Multi-Source Structured Paste**:
+  - `BulkSourceModal.tsx` parsing multi-source notes separated by `---` blocks in `src/lib/intake/structuredTextParser.ts`.
+  - Case-insensitive extraction of standard headers: `Title`, `Date`, `Site`, `Stakeholder`, `Method`, `Consent`, `Anonymization`, `Sensitivity`, and `Notes`.
+  - Conservative ethics defaults: `Restricted / Unclear` consent and `Identifiable / Restricted` anonymization when omitted.
+  - Narrative heuristic safety scanner reporting clean status or flagging sensitive patterns.
+  - Planned study scope mismatch detector alerting on new sites or stakeholder groups with options to formally expand study scope or import as out-of-scope fieldwork.
+  - Deterministic duplicate detector in `src/lib/intake/duplicateDetector.ts` flagging duplicates by Title + Date or $\ge 40$ character normalized narrative match.
+  - Import receipt displaying created, skipped, and warning tallies.
+- Implemented **Route C: Tabular CSV / TSV Import**:
+  - Native, zero-dependency RFC 4180 parser in `src/lib/intake/csvParser.ts` (`parseCsvOrTsv`) with delimiter auto-detection (`,`, `\t`, `;`), quoted strings, multiline cells, and escaped quotes.
+  - Smart column mapping suggester (`suggestColumnMappings`) with interactive dropdown selectors for incoming headers.
+  - Direct file upload or clipboard text paste.
+  - Conversion to candidate sources and reconciliation through preview and scope decision grid.
+- Enforced **Architectural Invariants & Provenance Integrity**:
+  - Strict provenance model: `Source -> candidate observations -> reviewed Evidence`.
+  - Every observation created begins as `Draft` (Rev 1) and never alters validated findings until human review.
+  - Triangulation invariant: multiple observations derived from a single source represent exactly one independent source in analytical support profiles (`computeSupportProfile`).
+- Added comprehensive technical documentation in `docs/v0.9_bulk_intake_guide.md`.
+- Added 20 Vitest unit and integration tests in `tests/bulkIntake.test.ts`. Total test suite: 146 passing tests across 13 test files.
+- Completed 7-step browser acceptance audit via CDP in headless Chrome across 11 screenshots.
+
+## v0.9.0-phase6 - Study Framework + Synthesis Workbench
+
+- Implemented **Study Framework & Analytical Spine**:
+  - Defined `StudyQuestion` model with DAC evaluation criteria (`Relevance`, `Coherence`, `Effectiveness`, `Efficiency`, `Impact`, `Sustainability`, `Cross-Cutting`).
+  - Added interactive `StudyQuestionSelector` with analytical spine pills, unassigned evidence filter counter, and question management modals.
+  - Linked evidence entries to study questions via `studyQuestionIds` in IndexedDB with referential integrity on question deletion.
+- Implemented **Multi-dimensional Synthesis Comparison View** (`SynthesisComparisonView`):
+  - Five comparative grouping modes: **Site**, **Stakeholder**, **Method**, **Theme**, and **Matrix** (cross-tabulation).
+  - Common themes indicator across multiple sites.
+  - Cross-tab matrix with coverage indicators and missing data alerts.
+- Implemented **Working Patterns & Sensemaking Notes** (`WorkingPatternsPanel`):
+  - Defined `PatternNote` model (`PAT-***`) with pattern statement, thematic tagging, counter-evidence/contradictions, and linked evidence items.
+  - One-click promotion to draft finding pre-populating authoring modal.
+- Implemented **Defensible Finding Authoring with Live Support Profiles**:
+  - Integrated `computeSupportProfile()` into `FindingAuthoringModal` displaying real-time confidence tier (`Strongly Supported`, `Moderately Supported`, `Emerging / Needs Triangulation`, `Contradicted / Challenged`) and diagnostic flags.
+  - Mandatory limitation notes enforced for `Emerging` claims and coverage gaps during authoring and human validation.
+- Implemented **Decoupled Downstream Outputs & Recommendations**:
+  - Replaced mandatory four-sequence pipeline (`Finding -> Lesson -> Good Practice -> Recommendation`) with flexible downstream outputs.
+  - Added `RecommendationAuthoringModal` anchored directly in validated findings.
+  - Configurable study output toggles (`enableRecommendations`, `enableLessonsLearned`, `enableGoodPractices`) via `StudyOutputConfig`.
+  - Added `OptionalOutputsModal` for lessons learned and good practices.
+- Implemented **Strict Dependency Invalidation & Re-validation Workflow**:
+  - Substantive edit detector `isSubstantiveFindingChange` detecting changes to statement, explanation, implication, or evidence base.
+  - Substantive edits to validated findings bump revision (`revision += 1`), revert status to `Needs Review`, and record audit history in `invalidationHistory`.
+  - Downstream recommendations linked to unvalidated findings display amber warning banners (`⚠️ Linked Finding requires re-validation`) and are excluded from formal exports (`isRecommendationExportEligible`).
+  - Human re-validation of parent finding automatically restores recommendation export eligibility.
+- Extended **Traceability Drawer**:
+  - Added dedicated inspectors for `RQ-***` and `PAT-***` records with assigned evidence chips and parent links.
+- Updated **Export Boundaries**:
+  - Export engine in `buildBriefExportModel.ts` strictly enforces validated-only export for findings, recommendations, lessons, and good practices in non-demo studies.
+- Added comprehensive documentation in `docs/v0.9_synthesis_workbench_guide.md`.
+- Added 19 Vitest unit and integration tests in `tests/synthesisWorkbench.test.ts`. Total test suite: 122 passing tests across 12 files.
+- Completed 18-step browser acceptance audit via CDP in headless Chrome with 14 screenshots verified.
+
+## v0.9.0-phase5 - Daily Field Debrief Studio
+
+- Implemented dedicated **Daily Field Debrief Studio** situated between Evidence and Findings in the primary navigation:
+  - Guided practitioner reflection across 7 key methodological questions: *What surprised us?*, *What patterns repeated?*, *What contradicted earlier information?*, *Which assumptions should we question?*, *Where might researcher bias be influencing interpretation?*, *Whose perspective is still missing?*, and *What hypotheses are emerging?*.
+  - Multi-site support: debriefs support study-wide scope (`siteIds: []`) or multiple study sites simultaneously (`siteIds: string[]`), plus dynamic custom site addition.
+  - Discrete tomorrow action priorities manager: add, inline edit, and remove discrete questions/tasks for tomorrow's field inquiries.
+  - System evidence-gap signal: integrated read-only calibration signal from the Phase 2 gap detector displaying target stakeholder groups with zero recorded observations.
+  - Field grounding: dedicated `RecordLinkSelector` for referencing today's Source records and Evidence observations with date-matching toggle and validation status badges.
+- Enforced strict architectural boundaries and non-mutation invariants:
+  - No `ValidationStatus` on `DailyDebrief` (internal methodological log, not donor claim).
+  - Evidence non-mutation invariant: creating or editing debriefs never alters Evidence validation status, revisions, or contradiction IDs.
+  - Contradiction independence: reflections in `contradictionsObserved` never write to `EvidenceEntry.contradictionIds`.
+  - Hypothesis isolation: prominent amber `Boundary Guardrail` notice enforces that emerging hypotheses are working theories to focus fieldwork, never auto-promoted to findings.
+  - Traceability Drawer integration: inspecting `DBR-*` suppresses the linear `TraceChain` claim lineage while displaying metadata, reflections, and linked records.
+- Built modular Daily Debrief UI in `src/components/debrief/`:
+  - `DebriefHistory`: reverse-chronological timeline, search/filtering, summary count badges, reflection snippet previews, and empty state with CTA.
+  - `DebriefForm`: full reflection form with multi-site selection, attendees parser, priorities list, and link selector.
+  - `RecordLinkSelector`: multi-tab selector for linking sources and observations with date matching filter.
+  - `DebriefDetail`: comprehensive full view of reflections, checkable priorities list, and linked records with drawer triggers.
+  - `DailyDebriefView`: tab-level coordinator managing list/create/edit/detail view transitions, cloning, and persistence.
+- Enforced pristine demo case protection with `Create Editable Copy` cloning workflow.
+- Updated `CaseSelector` active study persistence to preserve active study selection across page reloads.
+- Created technical documentation in `docs/v0.9_daily_debrief_guide.md`.
+- Added 12 new Vitest unit and storage integration tests in `tests/dailyDebrief.test.ts`. Total test suite: 103 passing tests across 11 files.
+- Completed 11-step browser acceptance audit via CDP in headless Chrome covering study creation, note intake, debrief recording, editing, detail view, traceability drawer suppression, page reload persistence, invariant checks, and demo cloning with 10 screenshots captured.
+
+## v0.9.0-phase4 - Editable Evidence Management & Human Validation Workflow
+
+- Built pure validation lifecycle state machine in `src/lib/validation/validationLifecycle.ts`:
+  - Lifecycle: `Draft` -> `Needs Review` -> `Validated` / `Rejected`.
+  - Reopen rejected items: `Rejected` -> `Draft` (preserving rejection history).
+  - Substantive edit handler: substantive changes to `Validated` evidence increment revision number (`revision = original.revision + 1`), preserve audit metadata (`lastValidatedAt`, `lastValidatedBy`), set `previousValidationStatus = "Validated"`, reset status to `Needs Review`, and require formal re-validation.
+  - Deterministic substantive change detector `isSubstantiveEvidenceChange` comparing trimmed observation text, interpretation, themes, strength, sensitivity, stakeholder, and site.
+- Corrected safeguarding acknowledgment text in `SourceCaptureForm.tsx` to: *"I have reviewed the warning and confirm I am authorized to save this information in this local study."*
+- Built modular Evidence Review UI in `src/components/evidence/`:
+  - `ValidationStatusBadge`: displays true validation status and revision.
+  - `ReviewerIdentityBar`: records accountable evaluator identity with `localStorage` persistence under `fls_reviewer_name`.
+  - `StatusFilterPills`: interactive status filter pills (`All`, `Draft`, `Needs Review`, `Validated`, `Rejected`) with live dynamic counts.
+  - `EvidenceCard`: renders validation badge, revision indicator, re-validation warning banner, validated attribution banner, rejection rationale banner, provenance, analytical interpretation, and contextual action controls.
+  - `EvidenceEditModal`: keyed modal with explicit amber re-validation warning when editing validated evidence.
+  - `EvidenceRejectModal`: keyed modal requiring non-empty methodological rationale.
+  - `EvidenceReviewWorkspace`: integrated tab workspace connecting state machine, filters, reviewer identity, and IndexedDB persistence.
+- Enforced read-only protection for pristine demo cases (`community-bridges`, `school-nutrition`), rendering "Demo Reference" badges and suppressing review/edit actions.
+- Added 19 unit and persistence round-trip tests in `tests/validationLifecycle.test.ts`. Total test suite: 91 passing tests across 10 files.
+- Completed 14-step browser acceptance audit via CDP in headless Chrome covering Scenarios A through F with all screenshots captured.
+
+## v0.9.0-phase3 - Field Intake Studio
+
+- Replaced single-note sandbox mockup with persistent, local-first **Field Intake Studio**:
+  - Narrative capture with full provenance metadata (date, site, stakeholder group, collection method, collector name, consent status, anonymization status, sensitivity flag).
+  - Direct atomic persistence to IndexedDB (`studyStore.saveSource`).
+- Implemented safe human-readable ID generation in `src/lib/idGenerator.ts`:
+  - Deterministically extracts maximum numerical suffixes (`^PREFIX-(\d+)$` -> `maxNum + 1`) to guarantee collision-free IDs across deletions and sparse imports.
+  - Generates `SRC-001`, `EV-001`, `FND-001`, `LES-001`, `GP-001`, `REC-001`, `DBR-001`.
+- Enhanced narrative safety & PII scanner in `src/lib/sandboxParser.ts`:
+  - `scanNarrativeSafety` returns structured warning details for phone numbers, email addresses, exact dates, names, and high-sensitivity safeguarding terms.
+  - Displays *"No automated warning detected"* when clean (never claims "Safe" or "Anonymized").
+  - Enforces explicit practitioner confirmation checkbox before allowing intake if heuristic warnings trigger.
+- Implemented `ObservationCaptureForm`:
+  - Links directly to the active source record.
+  - Supports rapid text selection from narrative box.
+  - Strictly separates raw observations (what was seen/heard) from analytical interpretations (what it might mean).
+  - Initializes observations with `validationStatus: "Draft"`, `revision: 1`. Does not auto-generate findings.
+- Implemented `SourceHistory` drawer:
+  - Lists all captured sources with extracted observation counts and sensitivity badges.
+  - Allows one-click switching of active source for further observation extraction.
+- Implemented `MinimalStudyModal` and updated `CaseSelector`:
+  - Enables creating blank editable local studies with target sites, stakeholder groups, and collection methods.
+  - Displays local editable studies in the main case selector alongside pristine demo templates.
+  - Displays one-click cloning prompt when viewing read-only demo templates.
+- Added comprehensive documentation in `docs/v0.9_field_intake_guide.md`.
+- Added 12 new Vitest unit and integration tests across `tests/idGenerator.test.ts` (7 tests) and `tests/fieldIntake.test.ts` (5 tests). Total test suite: 72 passing tests across 9 files.
+
+## v0.9.0-phase2 - Evidence Support Profile & Gap Detection Engine
+
+- Implemented pure analytical module `src/lib/analytics/supportProfile.ts`:
+  - Enforced strict Source Independence Rule: multiple evidence citations from the same source count as 1 independent source.
+  - Implemented study-aware scope calibration: single-site studies are not penalized for lack of cross-site evidence; multi-site studies track geographic concentration.
+  - Implemented stakeholder-specific claim handling: claims targeted at specific stakeholder groups evaluate target representation without requiring artificial non-target diversity.
+  - Enforced contradiction state tracking: unresolved contradictory evidence prevents findings from achieving `Strongly Supported` and downgrades them to `Emerging`.
+  - Implemented 3 explainable support tiers: `Strongly Supported`, `Partially Supported`, and `Emerging`.
+  - Generated factual, deterministic transparency flags for source counts, method diversity, stakeholder coverage, site distribution, and contradiction status.
+- Implemented pure gap detection engine `src/lib/analytics/gapDetector.ts`:
+  - 6 explicit gap types: `InsufficientCoverage`, `SingleSourceDependency`, `MethodConcentration`, `MissingStakeholder`, `MissingSite`, and `UnresolvedContradiction`.
+  - Calibrated severities (`Info`, `Needs Attention`, `Critical`) and actionable remediation guidance.
+  - Added finding-level and study-level scope gap scanners.
+- Documented analytical architecture in `docs/v0.9_evidence_support_model.md`.
+- Added 17 unit tests in `tests/supportProfile.test.ts` and `tests/gapDetector.test.ts` covering Cases A through H. Total test suite: 60 passing tests across 7 files.
+
+## v0.9.0-phase1 - Domain Model & Normalized IndexedDB Persistence Foundation
+
+- Implemented normalized local-first IndexedDB persistence using `idb` (`FieldLearningStudioDB` v1) with 8 stores (`studies`, `sources`, `evidence`, `debriefs`, `findings`, `lessons`, `goodPractices`, `recommendations`).
+- Implemented compound primary keys `[studyId, id]` across all child stores to ensure human-readable entity IDs (e.g. `EV-001`, `SRC-001`) remain isolated per study without collisions.
+- Extended domain model in `src/lib/types.ts`: `StudyMeta`, `ValidationStatus` (`Draft` -> `Needs Review` -> `Validated` / `Rejected`), `ConsentStatus`, `AnonymizationStatus`, `CollectionMethod`, `DailyDebrief` supporting multi-site `siteIds`, `rejectionReason`, `revision`, `lastValidatedAt`, and `FieldStudy` projection.
+- Implemented typed repository operations in `src/lib/storage/studyStore.ts` including CRUD for all entities, `assembleStudy` non-authoritative projection, and atomic whole-study transactions.
+- Implemented Option A demo template strategy: `bootstrapDemoTemplates` seeds pristine fixtures idempotently with deletion guards, while `cloneDemoStudy` produces editable copies with new unique study IDs.
+- Implemented portable `.fls.json` unencrypted backup export and atomic multi-strategy import (`reject_collision`, `overwrite`, `import_as_new`) with strict runtime schema validation.
+- Created bidirectional compatibility adapter between `DemoCase` and `FieldStudy` in `src/lib/storage/demoStudyAdapter.ts`.
+- Created comprehensive storage test suite with 16 tests in `tests/storage.test.ts` using `fake-indexeddb`. Total test suite: 43 passing tests across 5 test files.
+
+
+- Added v0.8 local-only field note intake workflow with sandbox draft evidence and optional export inclusion.
+- Added deterministic local safety warning checks for possible identifying or sensitive details before draft generation.
+- Displayed sandbox evidence, findings, and recommendations in separate local-only draft sections rather than mixing them with validated demo content.
+- Kept sandbox drafts excluded from Word, PDF, and Markdown exports by default; optional inclusion now uses a separate "Sandbox Draft Evidence — Requires Review" section.
+- Preserved no-backend, no-upload, no-database, no-localStorage, and no-external-AI constraints.
+
 ## v0.7.0 - Word, PDF, and Markdown Brief Export Pack
 
 - Added v0.7 export pack with Word, PDF, and Markdown brief downloads.

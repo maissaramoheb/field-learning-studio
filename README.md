@@ -8,11 +8,11 @@ Raw field evidence -> source inventory -> evidence matrix -> findings -> lessons
 
 ## Current Stage
 
-v0.7-export-pack (Word, PDF, Markdown Export Package). This is a premium interactive product demonstrator and validation tool, not a production SaaS.
+v0.8-local-note-intake (local-only sandbox note intake). This is a premium interactive product demonstrator and validation tool, not a production SaaS.
 
 - **Live Production URL:** https://field-learning-studio.vercel.app/
 - **Deployment Platform:** Vercel
-- **Current Version:** v0.7-export-pack (Professional Word, PDF, and Markdown Export Pack)
+- **Current Version:** v0.8-local-note-intake (Paste-only local sandbox field note intake with optional export inclusion)
 
 ## Documentation
 
@@ -21,6 +21,7 @@ v0.7-export-pack (Word, PDF, Markdown Export Package). This is a premium interac
 - [Impeccable v0.3 UI Review](docs/impeccable_v0.3_ui_review.md)
 - [v0.5 Dark Workbench Shape](docs/v0.5_dark_workbench_shape.md)
 - [v0.6 Blue Command Workbench Refinement](docs/v0.6_blue_command_workbench_refinement.md)
+- [v0.8 Local Note Intake Plan](docs/v0.8_local_note_intake_plan.md)
 
 ## Setup
 
@@ -44,14 +45,14 @@ npm run build
 - No file upload.
 - No real user data.
 - No external AI API calls.
-- Local/session state only.
+- Local React component state only for pasted sandbox notes; no localStorage persistence.
 - Client-side Word, PDF, and Markdown document exports (no upload or backend processing).
 - Human review required.
 
 ## Core Workflow
 
 1. Select a fictional or sanitized real-world-inspired demo case.
-2. Try a local sandbox field note or inspect the static evidence base.
+2. Try a local-only sandbox field note or inspect the static evidence base.
 3. Trace evidence into findings, lessons, good practices, and recommendations.
 4. Run deterministic QA review safeguards.
 5. Preview a donor-ready learning brief and download/copy the Word, PDF, or Markdown export.

@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Field Learning Studio",
   description:
-    "AI-assisted evidence synthesis for MEL, evaluation, and donor-ready learning briefs.",
+    "AI-assisted evidence synthesis for MEL, evaluation, and professional learning briefs.",
 };
 
 export default function RootLayout({

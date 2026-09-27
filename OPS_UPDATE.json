@@ -1,31 +1,28 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "v0.7_export_pack_implemented",
+  "status": "coherent_visual_redesign_complete",
   "priority": "high",
-  "current_phase": "v0.7 Export Pack",
-  "next_action": "Review v0.7 export pack and validate Word, PDF, and Markdown outputs for both demo cases.",
+  "current_phase": "Coherent Visual Product Redesign Pass",
+  "next_action": "Deploy preview and present coherent visual product redesign across all 4 practitioner spaces.",
   "blocker": null,
-  "decision_needed": "Decide whether to merge the feature/v0.7-export-pack branch into main and deploy to production after visual validation of generated documents.",
+  "decision_needed": null,
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
-  "preview_url": "http://localhost:3000",
+  "preview_url": "https://field-learning-studio-qiqb520s7-delta4ce20-5830s-projects.vercel.app",
   "production_url": "https://field-learning-studio.vercel.app/",
   "validation_results": {
     "primary": "passed",
-    "lint": "passed",
-    "build": "passed",
+    "tsc": "0_errors_whole_repo",
+    "lint": "0_errors_0_warnings",
+    "build": "passed_turbopack",
     "json": "passed",
     "diff_check": "passed",
-    "local_http": "passed_browser_build_checks",
-    "tests": "not_configured"
+    "local_http": "passed",
+    "tests": "191_passed_17_files"
   },
   "remaining_risks": [
-    "PDF/Word client-side downloads rely on browser-level file generation APIs (Blob, URL.createObjectURL, and react-pdf iframe/blob streams). Browser-specific download policies may apply.",
-    "Scope creep before target-user validation remains a risk.",
-    "Overbuilding into SaaS features too early remains a risk.",
-    "Accidental sensitive data handling remains a risk; v0.7 did not change demo data or data intake boundaries.",
-    "Clipboard behavior may still vary by browser permission model; raw Markdown export remains visible in the secondary textarea."
+    "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported."
   ],
-  "recommended_next_step": "Validate generated exports by downloading the Word, PDF, and Markdown files for both fictional and sanitized School Nutrition cases.",
-  "notion_page_update": "Implemented v0.7 export pack on branch feature/v0.7-export-pack. Integrated professional Word (.docx), PDF (.pdf), and improved Markdown (.md) brief downloads in a clean Export Action Area, mapped case-aware safety note boundaries, and confirmed Next.js build compilation."
+  "recommended_next_step": "Review and verify preview deployment of coherent visual product redesign.",
+  "notion_page_update": "Completed Coherent Visual Product Redesign on feature/v0.9-field-sensemaking: (1) Replaced dark monochrome SaaS/admin dashboard aesthetic with an intentional analytical research tool visual language inspired by Mobbin, Layers.to, Godly, and shadcn/ui; (2) Study space redesigned with editorial metadata header, integrated horizontal action band (46px), inline tabular metric rail, and 60/40 asymmetrical content grid; (3) Field Material space transformed into a Mobbin-inspired Master/Detail workstation with compact scannable observation cards on the left, sticky rich detail inspector on the right, and split/grid view toggle; (4) Analysis space refined into a coherent analytical desk with study question selector toolbar, comparative matrix, and persistent finding synthesizer; (5) Deliverables space unified around a centered document-first sheet with crisp export toolbar; (6) Verified 191/191 tests pass, TS clean, ESLint clean (0 errors, 0 warnings), and Turbopack production build passing."
 }

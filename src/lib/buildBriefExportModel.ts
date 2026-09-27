@@ -1,4 +1,11 @@
-import type { DemoCase } from "@/lib/types";
+import type { DemoCase, FieldStudy } from "@/lib/types";
+import {
+  isFindingExportEligible,
+  isRecommendationExportEligible,
+  isLessonExportEligible,
+  isGoodPracticeExportEligible,
+  type CanonicalExportContext,
+} from "./exportPolicy";
 
 export interface ExportFinding {
   id: string;
@@ -49,6 +56,19 @@ export interface ExportTraceItem {
   recommendationIds: string[];
 }
 
+export interface ExportSandboxEvidence {
+  id: string;
+  sourceId: string;
+  stakeholderType: string;
+  rawEvidence: string;
+  primaryTheme: string;
+  sensitivityFlag: string;
+  draftFindingId?: string;
+  draftFindingStatement?: string;
+  draftRecommendationId?: string;
+  draftRecommendationStatement?: string;
+}
+
 export interface BriefExportModel {
   caseId: string;
   title: string;
@@ -68,9 +88,14 @@ export interface BriefExportModel {
   demoNote: string;
   reviewNote: string;
   generatedDate: string;
+  includeSandbox?: boolean;
+  sandboxEvidence?: ExportSandboxEvidence[];
 }
 
-export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
+export function buildBriefExportModel(
+  demoCase: DemoCase | FieldStudy,
+  includeSandbox: boolean = false
+): BriefExportModel {
   const safetyNote = demoCase.id === "school-nutrition"
     ? "This case is a sanitized demo derived from prior fieldwork. No raw identifiable field data is included."
     : "This case uses fictional demo data for product validation.";
@@ -87,22 +112,75 @@ export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
     day: "numeric",
   });
 
+  const isLegacyDemo = Boolean(
+    (demoCase as unknown as { isDemoCase?: boolean }).isDemoCase ||
+    demoCase.id === "school-nutrition" ||
+    demoCase.id === "community-bridges"
+  );
+
+  const context: CanonicalExportContext = {
+    sources: demoCase.sources,
+    evidence: demoCase.evidence,
+    findings: demoCase.findings,
+    isLegacyDemo,
+  };
+
+  const filteredFindings = demoCase.findings.filter((f) =>
+    isFindingExportEligible(f, context)
+  );
+
+  const filteredRecs = demoCase.recommendations.filter((r) =>
+    isRecommendationExportEligible(r, context)
+  );
+
+  const filteredLessons = demoCase.lessons.filter((l) =>
+    isLessonExportEligible(l, context)
+  );
+
+  const filteredGoodPractices = demoCase.goodPractices.filter((g) =>
+    isGoodPracticeExportEligible(g, context)
+  );
+
+  const sandboxEvidence: ExportSandboxEvidence[] = [];
+  if (includeSandbox) {
+    demoCase.evidence
+      .filter((e) => e.id.includes("SBX") || e.id.includes("TEMP"))
+      .forEach((e) => {
+        const fnd = demoCase.findings.find((f) => f.supportingEvidenceIds.includes(e.id));
+        const rec = fnd ? demoCase.recommendations.find((r) => r.linkedFindingId === fnd.id) : null;
+        sandboxEvidence.push({
+          id: e.id,
+          sourceId: e.sourceId,
+          stakeholderType: e.stakeholderType,
+          rawEvidence: e.rawEvidence,
+          primaryTheme: e.primaryTheme,
+          sensitivityFlag: e.sensitivityFlag,
+          draftFindingId: fnd?.id,
+          draftFindingStatement: fnd?.statement,
+          draftRecommendationId: rec?.id,
+          draftRecommendationStatement: rec?.recommendation,
+        });
+      });
+  }
+
+  const projectTitle = "project" in demoCase ? demoCase.project : demoCase.title;
+
   return {
     caseId: demoCase.id,
-    title: `${demoCase.project}: Learning Brief`,
+    title: `${projectTitle}: Learning Brief`,
     subtitle: demoCase.subtitle,
     executiveSummary: demoCase.executiveSummary,
     keyMessages: demoCase.keyMessages,
-    purposeAndScope: demoCase.purposeAndScope,
-    keyThemes: demoCase.keyThemes,
-    findings: demoCase.findings.map(f => ({
+    purposeAndScope: "purposeAndScope" in demoCase ? demoCase.purposeAndScope : undefined,
+    keyThemes: "keyThemes" in demoCase ? demoCase.keyThemes : undefined,
+    findings: filteredFindings.map((f) => ({
       id: f.id,
       statement: f.statement,
       explanation: f.explanation,
       evidenceBase: f.supportingEvidenceIds,
       programmeImplication: f.programmeImplication,
     })),
-    lessons: demoCase.lessons.map(l => ({
+    lessons: filteredLessons.map((l) => ({
       id: l.id,
       statement: l.statement,
       whatWorkedOrDidNotWork: l.whatWorkedOrDidNotWork,
@@ -111,7 +189,7 @@ export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
       evidenceBase: l.evidenceBase,
       transferability: l.transferability,
     })),
-    goodPractices: demoCase.goodPractices.map(g => ({
+    goodPractices: filteredGoodPractices.map((g) => ({
       id: g.id,
       title: g.title,
       description: g.description,
@@ -121,7 +199,7 @@ export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
       risksLimits: g.risksLimits,
       recommendedUse: g.recommendedUse,
     })),
-    recommendations: demoCase.recommendations.map(r => ({
+    recommendations: filteredRecs.map((r) => ({
       id: r.id,
       recommendation: r.recommendation,
       linkedFindingId: r.linkedFindingId,
@@ -134,9 +212,9 @@ export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
       expectedBenefit: r.expectedBenefit,
       successIndicator: r.successIndicator,
     })),
-    safeguardingNotes: demoCase.safeguardingNotes,
+    safeguardingNotes: "safeguardingNotes" in demoCase ? demoCase.safeguardingNotes : undefined,
     limitations: demoCase.limitations,
-    traceability: demoCase.findings.map(f => ({
+    traceability: filteredFindings.map((f) => ({
       findingId: f.id,
       evidenceIds: f.supportingEvidenceIds,
       recommendationIds: f.linkedRecommendationIds,
@@ -145,5 +223,7 @@ export function buildBriefExportModel(demoCase: DemoCase): BriefExportModel {
     demoNote,
     reviewNote,
     generatedDate: currentDate,
+    includeSandbox,
+    sandboxEvidence: sandboxEvidence.length > 0 ? sandboxEvidence : undefined,
   };
 }

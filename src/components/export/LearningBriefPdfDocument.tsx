@@ -105,6 +105,27 @@ const styles = StyleSheet.create({
     borderLeftWidth: 1,
     borderLeftColor: "#cbd5e1",
   },
+  sandboxWarningBlock: {
+    marginTop: 8,
+    padding: 8,
+    backgroundColor: "#fffbeb", // amber-50
+    borderLeftWidth: 2,
+    borderLeftColor: "#b45309", // amber-700
+    marginBottom: 10,
+  },
+  sandboxWarningText: {
+    fontSize: 8,
+    color: "#b45309", // amber-700
+    fontFamily: "Helvetica-Bold",
+  },
+  sandboxItemBlock: {
+    marginBottom: 8,
+    padding: 8,
+    backgroundColor: "#f8fafc", // slate-50
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+  },
   safetyBlock: {
     marginTop: 20,
     padding: 8,
@@ -302,6 +323,35 @@ export function LearningBriefPdfDocument({ model }: { model: BriefExportModel })
           <View style={{ marginBottom: 10 }}>
             <Text style={styles.sectionHeading}>Safeguarding and Sensitivity Notes</Text>
             <Text style={styles.body}>{model.safeguardingNotes}</Text>
+          </View>
+        )}
+
+        {/* Sandbox Draft Evidence */}
+        {model.includeSandbox && model.sandboxEvidence && model.sandboxEvidence.length > 0 && (
+          <View style={{ marginBottom: 10 }} wrap={false}>
+            <Text style={styles.sectionHeading}>Sandbox Draft Evidence — Requires Review</Text>
+            <View style={styles.sandboxWarningBlock}>
+              <Text style={styles.sandboxWarningText}>
+                Sandbox Warning: Sandbox draft content is user-provided, local-only, and not validated.
+              </Text>
+            </View>
+            {model.sandboxEvidence.map((e) => (
+              <View key={e.id} style={styles.sandboxItemBlock}>
+                <Text style={styles.subSectionHeading}>{e.id}</Text>
+                <Text style={styles.body}>Evidence ID: {e.id}</Text>
+                <Text style={styles.body}>Source ID: {e.sourceId}</Text>
+                <Text style={styles.body}>Stakeholder: {e.stakeholderType}</Text>
+                <Text style={styles.body}>Observation Summary: {e.rawEvidence}</Text>
+                <Text style={styles.body}>Theme: {e.primaryTheme}</Text>
+                <Text style={styles.body}>Sensitivity: {e.sensitivityFlag}</Text>
+                {e.draftFindingId && (
+                  <Text style={styles.body}>Draft Finding: {e.draftFindingId} - {e.draftFindingStatement}</Text>
+                )}
+                {e.draftRecommendationId && (
+                  <Text style={styles.body}>Draft Recommendation: {e.draftRecommendationId} - {e.draftRecommendationStatement}</Text>
+                )}
+              </View>
+            ))}
           </View>
         )}
 

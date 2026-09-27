@@ -29,6 +29,118 @@
 - [x] Rework TraceChain into labeled source-to-brief lineage nodes.
 - [x] Preserve static demo data, local-only sandbox behavior, and Markdown export in v0.6.
 - [x] v0.7 Export Pack: client-side Word (.docx), PDF (.pdf), and improved Markdown (.md) brief downloads in a shared export model.
+- [x] v0.8 Local Note Intake: local sandbox note paste, regex safety checks, confirmation bypass gate, mock parser, separate drafts in findings/recommendations, QA flags, and conditional exports.
+- [x] v0.9 Phase 1: Domain Model + Normalized IndexedDB Persistence Foundation:
+  - [x] Extend domain types in `src/lib/types.ts` (`StudyMeta`, `ValidationStatus`, `ConsentStatus`, `AnonymizationStatus`, `CollectionMethod`, `DailyDebrief` with multi-site `siteIds`, `rejectionReason`, `revision`, `FieldStudy`).
+  - [x] Implement normalized `FieldLearningStudioDB` v1 schema across 8 object stores with compound keys `[studyId, id]` in `src/lib/storage/indexedDb.ts`.
+  - [x] Implement typed repository operations in `src/lib/storage/studyStore.ts` (CRUD, `assembleStudy` projection, atomic persistence).
+  - [x] Implement Option A demo template strategy (idempotent `bootstrapDemoTemplates`, deletion guard, `cloneDemoStudy` with fresh UUIDs).
+  - [x] Implement portable `.fls.json` backup export and atomic multi-strategy import with runtime validator in `src/lib/storage/studyBackup.ts`.
+  - [x] Implement bidirectional compatibility adapter in `src/lib/storage/demoStudyAdapter.ts`.
+  - [x] Document storage architecture in `docs/v0.9_storage_architecture.md`.
+  - [x] Create comprehensive Vitest suite in `tests/storage.test.ts` (16 tests, 43 total suite).
+- [x] v0.9 Phase 2: Evidence Support Profile & Gap Detection Engine:
+  - [x] Implement pure `computeSupportProfile()` in `src/lib/analytics/supportProfile.ts` with source independence, method diversity, stakeholder coverage, site coverage, contradiction handling, 3 support tiers, and transparency flags.
+  - [x] Implement pure `detectFindingGaps()` and `detectStudyGaps()` in `src/lib/analytics/gapDetector.ts` with 6 explicit gap types and calibrated severities.
+  - [x] Document evidence support model in `docs/v0.9_evidence_support_model.md`.
+  - [x] Create unit tests in `tests/supportProfile.test.ts` and `tests/gapDetector.test.ts` covering Cases A through H (17 tests, 60 total suite).
+- [x] v0.9 Phase 3: Field Intake Studio:
+  - [x] Implement safe human-readable ID generation in `src/lib/idGenerator.ts` (`maxNum + 1` algorithm).
+  - [x] Implement `scanNarrativeSafety` in `src/lib/sandboxParser.ts` with "No automated warning detected" feedback and confirmation gate.
+  - [x] Implement `MinimalStudyModal` for creating blank local editable studies.
+  - [x] Implement `SourceCaptureForm` with full provenance tracking and IndexedDB persistence.
+  - [x] Implement `ObservationCaptureForm` separating raw observations from interpretations with text selection and Draft status.
+  - [x] Implement `SourceHistory` drawer for active source switching and observation counting.
+  - [x] Implement `FieldIntakeView` workbench and integrate into app tabs.
+  - [x] Update `CaseSelector` with persistent local studies and "+ New Blank Study" action.
+  - [x] Document intake architecture in `docs/v0.9_field_intake_guide.md`.
+  - [x] Add unit and integration tests in `tests/idGenerator.test.ts` and `tests/fieldIntake.test.ts` (12 tests, 72 total suite).
+- [x] v0.9 Phase 4: Editable Evidence Management & Human Validation Workflow:
+  - [x] Implement pure validation state machine (`Draft` -> `Needs Review` -> `Validated` / `Rejected`, reopen to `Draft`) in `src/lib/validation/validationLifecycle.ts`.
+  - [x] Enforce mandatory reviewer identity for validation and non-empty rationale for rejection.
+  - [x] Implement deterministic substantive change detector `isSubstantiveEvidenceChange`.
+  - [x] Implement substantive edit handler: increment revision number (`Revision 2+`), set `previousValidationStatus: "Validated"`, reset to `Needs Review`, and require re-validation.
+  - [x] Correct safeguarding acknowledgment text in `SourceCaptureForm.tsx` to authorized confirmation.
+  - [x] Build modular Evidence Review UI (`ValidationStatusBadge`, `ReviewerIdentityBar`, `StatusFilterPills`, `EvidenceCard`, `EvidenceEditModal`, `EvidenceRejectModal`, `EvidenceReviewWorkspace`).
+  - [x] Enforce read-only protection and "Demo Reference" badge for pristine demo templates.
+  - [x] Add unit and persistence tests in `tests/validationLifecycle.test.ts` (19 tests, 91 total suite).
+  - [x] Conduct full 14-step browser acceptance audit via CDP with verified screenshots.
+- [x] v0.9 Phase 5: Daily Field Debrief Studio:
+  - [x] Implement `DailyDebrief` schema with multi-site support (`siteIds: string[]`), attendees, 7 guided reflection questions, discrete priorities list, and linked records.
+  - [x] Enforce non-negotiable architectural boundaries: no `ValidationStatus` on debriefs, non-mutation invariant for Evidence validation/revisions/contradictions, hypothesis isolation behind Boundary Guardrails, and Traceability Drawer linear trace suppression for `DBR-*`.
+  - [x] Build modular debrief UI in `src/components/debrief/`: `DebriefHistory`, `DebriefForm`, `RecordLinkSelector`, `DebriefDetail`, and `DailyDebriefView`.
+  - [x] Integrate Daily Debrief tab into primary navigation between Evidence and Findings and update pipeline steps.
+  - [x] Enforce pristine demo case protection with `Create Editable Copy` cloning workflow.
+  - [x] Persist active study selection to localStorage across page reloads.
+  - [x] Document debrief methodology and architecture in `docs/v0.9_daily_debrief_guide.md`.
+  - [x] Add unit and storage persistence tests in `tests/dailyDebrief.test.ts` (12 tests, 103 total suite).
+  - [x] Conduct full 11-step browser acceptance audit via CDP with 10 verified screenshots.
+- [x] v0.9 Modified Phase 6: Study Framework + Synthesis Workbench:
+  - [x] Define `StudyQuestion` and `PatternNote` models and zero-migration IndexedDB persistence within `StudyMeta`.
+  - [x] Build `StudyQuestionModal` and `StudyQuestionSelector` for analytical spine navigation.
+  - [x] Build `SynthesisComparisonView` with 5 comparative lenses (Site, Stakeholder, Method, Theme, Matrix).
+  - [x] Build `WorkingPatternsPanel` with one-click promotion to draft finding.
+  - [x] Build `FindingAuthoringModal` with live `computeSupportProfile()` triangulation feedback and limitation note enforcement.
+  - [x] Decouple downstream outputs with `StudyOutputConfig`, `RecommendationAuthoringModal`, and `OptionalOutputsModal`.
+  - [x] Implement pure validation lifecycle: substantive edit detection, revision bumping, invalidation history, and downstream recommendation dependency invalidation.
+  - [x] Enforce validated-only export boundaries in `buildBriefExportModel.ts`.
+  - [x] Add 19 Vitest unit/integration tests in `tests/synthesisWorkbench.test.ts` (122 tests total).
+- [x] v0.9 Phase 7: Bulk Intake & Structured Import:
+  - [x] Implement Route A: Batch Observation Builder with narrative pane, deterministic segmentation (`splitNarrativeIntoSegments`), text highlight capture, compact review table with inline text editing, bulk theme and reliability setters, and atomic Draft save.
+  - [x] Implement Route B: Multi-Source Structured Paste (`BulkSourceModal`) parsing `---` blocks with header extraction, conservative ethics defaults, narrative safety scan, scope mismatch reconciliation, and exact duplicate detection.
+  - [x] Implement Route C: Tabular CSV/TSV Import (`parseCsvOrTsv`) with delimiter auto-detection, smart column mapping suggester, and preview reconciliation.
+  - [x] Preserve provenance hierarchy (`Source -> candidate observations -> reviewed Evidence`), `validationStatus = "Draft"`, `revision = 1`, and triangulation invariance.
+  - [x] Document bulk intake architecture in `docs/v0.9_bulk_intake_guide.md`.
+  - [x] Add 20 Vitest unit/integration tests in `tests/bulkIntake.test.ts` (146 tests total).
+  - [x] Conduct 7-step browser acceptance audit via CDP in headless Chrome with 11 verified screenshots.
+- [x] Codex Audit Resolution & Evidence Integrity Stabilization:
+  - [x] Enforce cross-study referential integrity in repository layer (`src/lib/storage/integrity.ts`).
+  - [x] Unify export boundary policies (`src/lib/exportPolicy.ts`) across brief preview, Markdown export, and download paths.
+  - [x] Implement stale dependency cascade on substantive finding edits with recommendation export blocking.
+  - [x] Harden `computeSupportProfile` for single-site studies, rejected evidence exclusion, and placeholder detection.
+  - [x] Implement deep structural validation and collision handling (`import_as_new`, `overwrite`) for `.fls.json` backups.
+  - [x] Cleanse manufactured placeholder prose from synthesis modals.
+  - [x] Restore QA baseline truth for sandbox-generated evidence.
+  - [x] Author UX Simplification Blueprint (`docs/ux_simplification_blueprint.md`).
+  - [x] Add dedicated regression suite in `tests/integrityAudit.test.ts` (10 tests, 156 total tests passing across 14 test files).
+- [x] MEP-01 — Close the Formal Claim Boundary:
+  - [x] Implement canonical formal eligibility contract in `src/lib/exportPolicy.ts` (`isFindingExportEligible`, `isRecommendationExportEligible`, `isLessonExportEligible`, `isGoodPracticeExportEligible`).
+  - [x] Establish 100% parity across Styled Brief Preview, Copy Markdown, Download Markdown, DOCX, and PDF via shared `BriefExportModel`.
+  - [x] Implement finding approval prerequisite guards in `validateArtifact` (`src/lib/validation/validationLifecycle.ts`) blocking wrong-order approvals when supporting evidence is unreviewed or stale.
+  - [x] Implement bi-directional invalidation cascading in `src/lib/storage/integrity.ts` for both supporting and challenging/contradictory evidence edits.
+  - [x] Implement source deletion guard in `src/lib/storage/studyStore.ts` blocking deletion of parent sources with active dependent evidence.
+  - [x] Harmonize batch mutation routes (`saveEvidenceBatch`, `bulkAssignEvidenceTheme`, `bulkAssignEvidenceToQuestion`) to trigger invalidation cascades on substantive edits.
+  - [x] Enforce deliberate review semantics: re-validating evidence clears evidence alerts while leaving dependent findings in `Needs Review` until deliberate analyst re-approval.
+  - [x] Maintain strict isolation between legacy demo compatibility adapter and editable live-study artifacts.
+  - [x] Add reproduction suite (`tests/mep01ClaimBoundaryReproduction.test.ts`, 6 tests) and regression suite (`tests/claimBoundary.test.ts`, 14 tests) covering all 11 required invariant areas. All 176 tests passing across 16 files.
+  - [x] Author technical architecture document in `docs/mep01_formal_claim_boundary.md`.
+- [x] Presentation-Ready Execution Sprint:
+  - [x] Stage 1 — Close MEP-01 with live browser acceptance on hosted preview verifying full claim chain, substantive edits, wrong-order blocks, deliberate re-review, and export parity.
+  - [x] Stage 2 — Close Minimum MEP-02 Safety Boundary: duplicate ID rejections, cross-study contamination guards, broken relationship validation, atomic backup rollback, and collision detection (15 tests in `tests/mep02SafetyBoundary.test.ts`).
+  - [x] Stage 3 — Presentation-Critical UX:
+    - [x] 4 Practitioner Spaces (`Study`, `Field Material`, `Analysis`, `Deliverables`) replacing 10-tab bar.
+    - [x] Prominent "Resume Work / Next Action" hero card on Study Home with direct navigation.
+    - [x] Study Scope, Governance, and Data Recovery card on Study Home.
+    - [x] Frictionless observation capture: optional primary theme (defaults to `Uncategorized`) and blank interpretations allowed.
+    - [x] Live Evidence Coverage & Limitations in Finding modal (factual source, method, site, stakeholder counts; retired arbitrary tier badge).
+    - [x] Simplified Recommendation authoring with progressive disclosure for implementation parameters.
+- [x] Final Presentation Hardening Pass:
+  - [x] Remove "Donor-Ready" language throughout app and exports; replace with "Professional Draft" and "Draft for Professional Review".
+  - [x] Correct source terminology to "distinct source records" in Evidence Coverage & Limitations without inferring independence from source IDs.
+  - [x] Harden Recommendation validation model: Action (required), Linked Finding (required), Intended Actor (identified role or explicit "Responsibility to be agreed" required before approval); progressive disclosure for Priority, Timeframe, Constraints, Risks, Indicators without default High/Low/Short-term judgments.
+  - [x] Prevent duplicate finding workflow: clear primary analysis pathway via Synthesis Workbench with contextual launcher banner in Findings Ledger.
+  - [x] Turn QA review into Final Review with 7 actionable pre-draft verification cards (Eligible Findings, Linked Recommendations, Unresolved Items, Recorded Limitations, Challenging Material, Traceability Verified, Scope Confirmed).
+  - [x] Eliminate overclaiming: use honest, bounded framing ("Defined integrity and recovery scenarios passed", "Structured trace from evidence to findings to draft recommendations", "Deterministic safeguards against unanchored claims").
+  - [x] Restore documentation and MEP definitions (MEP-01 formal claim boundary, MEP-02 recovery/intake write safety, MEP-03 understandable core professional journey, MEP-04 qualified professional draft/reporting, MEP-05 shadow pilot; all cross-study/canvas/AI/cloud features remain deferred).
+- [x] Final UI/UX Integration Pass:
+  - [x] Compact Workspace Layout & Above-the-Fold Elevation: App bar (48px), space tabs (42px), header stack (~93px), elevating content to ~260–300px from top on 1440×900 screens.
+  - [x] Study Overview & Inventory Strip: Compact Continue Work row with primary CTA, 4-metric horizontal inventory strip, 2-column scope & limitations panel, and collapsible demo guide.
+  - [x] Native Accessible Workspace Dialogs: Standards-compliant HTML5 `<dialog>` (`WorkspaceDialog.tsx`) with focus trap, backdrop, Escape key handling, and focus restoration to trigger element.
+  - [x] Docked Intake & Field Material: Two-column intake layout with docked reading pane, source history (`aria-pressed`), observation extraction form, and compact card grid.
+  - [x] Analysis Grid & Synthesis: Two-column workbench with study question toolbar, comparative matrix, coverage summary for missing sites/stakeholders, and draft finding authoring.
+  - [x] Deliverables Canvas: Quiet, centered document preview canvas and compact export toolbar.
+  - [x] Resolve Demo Inconsistency: Fixed `computeNextAction` logic (`validationStatus === "Draft" || validationStatus === "Needs Review"`), perfectly aligning Resume Work ("Review Professional Draft →") with inventory strip ("20 approved").
+  - [x] Full Responsive Verification: Verified on 1440×900, 1280×800, and 1024×768 with clean typography, no horizontal scroll, and zero layout overflow. All 191 tests passing, TypeScript clean, ESLint clean, Next.js build clean.
 
 ## P1
 
