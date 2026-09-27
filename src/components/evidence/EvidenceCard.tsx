@@ -49,7 +49,7 @@ export function EvidenceCard({
   return (
     <article
       id={`trace-${entry.id}`}
-      className={`scroll-mt-32 rounded-xl border transition p-5 flex flex-col justify-between ${
+      className={`scroll-mt-52 rounded-lg border transition p-4 flex flex-col justify-between ${
         isHighlighted
           ? "border-[var(--trace)] bg-[var(--trace-wash)] shadow-lg shadow-[var(--trace)]/5"
           : isSandbox
@@ -77,7 +77,7 @@ export function EvidenceCard({
               )}
             </div>
 
-            <h3 className="mt-2 text-base font-bold text-[var(--foreground)] leading-snug">
+            <h3 className="mt-2 text-sm font-semibold text-[var(--foreground)] leading-snug">
               {entry.primaryTheme}
             </h3>
             <p className="mt-0.5 text-xs text-[var(--muted)]">
@@ -152,17 +152,17 @@ export function EvidenceCard({
 
         {/* Observations & Interpretations */}
         <div className="space-y-3">
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3">
+          <div className="py-1">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] block mb-1">
               Observation
             </span>
-            <p className="text-xs font-medium leading-relaxed text-[var(--foreground)]">
+            <p className="text-sm leading-relaxed text-[var(--foreground)]">
               {entry.rawObservation || entry.rawEvidence}
             </p>
           </div>
 
           {(entry.interpretation || entry.potentialFinding) && (
-            <div className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace-wash)] p-3 text-xs leading-relaxed">
+            <div className="border-s-2 border-[var(--trace-border)] ps-3 text-[13px] leading-relaxed">
               <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted)] block mb-1">
                 Interpretation
               </span>

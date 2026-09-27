@@ -179,7 +179,7 @@ export function computeNextAction(study: FieldStudy | null, demoCase: DemoCase) 
   }
 
   const unreviewedEvidence = evidence.filter(
-    (e) => e.validationStatus === "Draft" || e.qaStatus === "Needs Review"
+    (e) => e.validationStatus === "Draft" || e.validationStatus === "Needs Review"
   );
   if (unreviewedEvidence.length > 0) {
     return {
@@ -540,6 +540,7 @@ export function FieldLearningStudioApp({
   }, [highlightedId]);
 
   function handleTabChange(tabId: WorkspaceTabId) {
+    window.scrollTo({ top: 0, behavior: "instant" });
     setActiveTab(tabId);
     setPendingTraceId(null);
     setHighlightedId(null);
@@ -1060,25 +1061,30 @@ export function FieldLearningStudioApp({
 
   return (
     <main className="fls-dark-workbench min-h-screen text-[var(--foreground)]">
-      <AppHeader demoCase={activeDemoCase} />
-      <CaseSelector
-        selectedId={selectedCaseId}
-        onSelect={handleSelectCase}
-        editableStudies={allStudies.filter((s) => !s.isDemoCase)}
-        onCreateNewStudy={() => setIsNewStudyModalOpen(true)}
-        onOpenBackupRestore={() => setIsBackupRestoreModalOpen(true)}
-      />
-
-      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <WorkspaceTabs
-          activeTab={activeTab}
-          onTabChange={handleTabChange}
-          evidenceCount={currentStudy?.evidence.length ?? activeDemoCase.evidence.length}
-          findingsCount={currentStudy?.findings.length ?? activeDemoCase.findings.length}
-          recommendationsCount={currentStudy?.recommendations.length ?? activeDemoCase.recommendations.length}
+      <a className="fls-skip-link" href="#workspace-panel">Skip to workspace</a>
+      <div className="fls-sticky-frame">
+        <CaseSelector
+          selectedId={selectedCaseId}
+          onSelect={handleSelectCase}
+          editableStudies={allStudies.filter((s) => !s.isDemoCase)}
+          currentStudy={currentStudy}
+          onCreateNewStudy={() => setIsNewStudyModalOpen(true)}
+          onOpenBackupRestore={() => setIsBackupRestoreModalOpen(true)}
         />
 
-        <div className="mt-5" id="workspace-panel">
+        <div className="fls-frame">
+          <WorkspaceTabs
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+            evidenceCount={currentStudy?.evidence.length ?? activeDemoCase.evidence.length}
+            findingsCount={currentStudy?.findings.length ?? activeDemoCase.findings.length}
+            recommendationsCount={currentStudy?.recommendations.length ?? activeDemoCase.recommendations.length}
+          />
+        </div>
+      </div>
+
+      <div className="fls-frame">
+        <div className="fls-workspace" id="workspace-panel" role="tabpanel" aria-labelledby={`workspace-tab-${activeTab}`} tabIndex={-1}>
           {activeTab === "overview" ? (
             <OverviewTab 
               currentStudy={currentStudy}
@@ -1274,303 +1280,64 @@ function CaseSelector({
   selectedId,
   onSelect,
   editableStudies = [],
+  currentStudy,
   onCreateNewStudy,
   onOpenBackupRestore,
 }: {
   selectedId: string;
   onSelect: (id: string) => void;
   editableStudies?: StudyMeta[];
+  currentStudy: FieldStudy | null;
   onCreateNewStudy?: () => void;
   onOpenBackupRestore?: () => void;
 }) {
+  const localStudies = currentStudy && !currentStudy.isDemoCase && !editableStudies.some((study) => study.id === currentStudy.id)
+    ? [...editableStudies, currentStudy]
+    : editableStudies;
+  const selectedDemo = demoCases.find((item) => item.id === selectedId);
   return (
-    <div
-      className="border-b border-[var(--border)] bg-[rgba(11,22,37,0.86)] px-4 py-5"
-      id="case-selector"
-    >
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold text-[var(--trace)]">
-              Workspace & Evidence Context
-            </p>
-            <h2 className="mt-1 text-xl font-semibold text-[var(--foreground)]">
-              Select or create an evidence study
-            </h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <p className="hidden max-w-xl text-sm leading-6 text-[var(--muted)] sm:block">
-              Choose a pristine demo case or an active local field study with persistent narrative intake.
-            </p>
-            {onOpenBackupRestore && (
-              <button
-                type="button"
-                onClick={onOpenBackupRestore}
-                className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3.5 py-2 text-xs font-semibold text-[var(--foreground)] shadow-sm hover:border-[var(--trace)] transition cursor-pointer"
-                title="Backup or restore study archives (.fls.json)"
-              >
-                <span>📦</span> Backup / Restore
-              </button>
+    <header className="fls-app-header" id="case-selector">
+      <div className="fls-app-bar">
+        <span className="fls-brand">Field Learning <strong>Studio</strong></span>
+        <div className="fls-study-switcher">
+          <label htmlFor="active-study">Active study</label>
+          <select id="active-study" value={selectedId} onChange={(event) => onSelect(event.target.value)}>
+            {localStudies.length > 0 && (
+              <optgroup label="Local studies">
+                {localStudies.map((study) => <option key={study.id} value={study.id}>{study.title}</option>)}
+              </optgroup>
             )}
-            {onCreateNewStudy && (
-              <button
-                type="button"
-                onClick={onCreateNewStudy}
-                className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[var(--accent-strong)] transition cursor-pointer"
-              >
-                <span>+</span> New Blank Study
-              </button>
-            )}
-          </div>
+            <optgroup label="Read-only examples">
+              {demoCases.map((item) => <option key={item.id} value={item.id}>{item.project}</option>)}
+            </optgroup>
+          </select>
         </div>
-
-        {editableStudies.length > 0 && (
-          <div className="mb-5">
-            <div className="flex items-center gap-2 mb-2.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--muted-strong)]">
-                Local Field Studies ({editableStudies.length})
-              </span>
-              <span className="text-[10px] rounded bg-emerald-950/60 border border-emerald-700/60 px-1.5 py-0.5 font-medium text-emerald-400">
-                IndexedDB Persistent
-              </span>
-            </div>
-            <div className="grid gap-4 lg:grid-cols-2">
-              {editableStudies.map((s) => {
-                const isSelected = s.id === selectedId;
-                return (
-                  <button
-                    key={s.id}
-                    onClick={() => onSelect(s.id)}
-                    type="button"
-                    className={`text-left rounded-lg border p-5 transition cursor-pointer ${
-                      isSelected
-                        ? "border-[var(--trace)] bg-[var(--surface-elevated)] ring-1 ring-[rgba(34,211,238,0.3)]"
-                        : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-elevated)]"
-                    }`}
-                  >
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <span className="text-base font-semibold leading-6 text-[var(--foreground)]">
-                          {s.title}
-                        </span>
-                        <p className="mt-1 text-xs text-[var(--muted)]">{s.subtitle}</p>
-                      </div>
-                      <span className="inline-flex items-center rounded border border-emerald-500/40 bg-emerald-500/10 px-2 py-1 text-[10px] font-bold uppercase text-emerald-300">
-                        {s.status}
-                      </span>
-                    </div>
-                    <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-3">
-                      <div>
-                        <dt className="text-[11px] font-semibold text-[var(--muted)]">Sites</dt>
-                        <dd className="mt-0.5 text-[var(--foreground)]">{s.scope?.targetSites?.length || 0} sites</dd>
-                      </div>
-                      <div>
-                        <dt className="text-[11px] font-semibold text-[var(--muted)]">Stakeholders</dt>
-                        <dd className="mt-0.5 text-[var(--foreground)]">{s.scope?.targetStakeholderGroups?.length || 0} groups</dd>
-                      </div>
-                      <div>
-                        <dt className="text-[11px] font-semibold text-[var(--muted)]">Methods</dt>
-                        <dd className="mt-0.5 text-[var(--foreground)]">{s.scope?.expectedMethods?.length || 0} planned</dd>
-                      </div>
-                    </dl>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div>
-          {editableStudies.length > 0 && (
-            <p className="mb-2.5 text-xs font-bold uppercase tracking-wider text-[var(--muted-strong)]">
-              Demo Templates (Read-Only)
-            </p>
-          )}
-          <div className="grid gap-4 lg:grid-cols-2">
-            {demoCases.map((c) => {
-              const isSelected = c.id === selectedId;
-              const profile = caseProfile(c);
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => onSelect(c.id)}
-                  type="button"
-                  className={`text-left rounded-lg border p-5 transition cursor-pointer ${
-                    isSelected
-                      ? "border-[var(--trace)] bg-[var(--surface-elevated)] ring-1 ring-[rgba(34,211,238,0.3)]"
-                      : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)] hover:bg-[var(--surface-elevated)]"
-                  }`}
-                >
-                  <div>
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <span className="text-base font-semibold leading-6 text-[var(--foreground)]">
-                        {c.project}
-                      </span>
-                      <span
-                        className={`inline-flex items-center rounded px-2 py-1 text-[10px] font-bold uppercase ${
-                          c.id === "school-nutrition"
-                            ? "border border-amber-300 bg-amber-50 text-amber-900"
-                            : "border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)]"
-                        }`}
-                      >
-                        {c.status}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-                      {c.subtitle}
-                    </p>
-                  </div>
-
-                  <dl className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
-                    <div>
-                      <dt className="font-semibold text-[var(--muted)]">
-                        Use case
-                      </dt>
-                      <dd className="mt-1 leading-5 text-[var(--foreground)]">
-                        {profile.useCase}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold text-[var(--muted)]">
-                        Evidence base
-                      </dt>
-                      <dd className="mt-1 font-mono leading-5 text-[var(--foreground)]">
-                        {c.evidenceBase.sourceRecords} sources / {c.evidenceBase.evidenceEntries} evidence entries
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold text-[var(--muted)]">
-                        Sensitivity level
-                      </dt>
-                      <dd className="mt-1 leading-5 text-[var(--foreground)]">
-                        {profile.sensitivity}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="font-semibold text-[var(--muted)]">
-                        Demonstrates
-                      </dt>
-                      <dd className="mt-1 leading-5 text-[var(--foreground)]">
-                        {profile.demonstrates}
-                      </dd>
-                    </div>
-                  </dl>
-
-                  <div className="mt-4 border-t border-[var(--border)] pt-3">
-                    <p className="text-xs font-medium leading-5 text-[var(--muted)]">
-                      {profile.note}
-                    </p>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+        <span className="fls-mode">{selectedDemo ? "Read-only demo" : "Local study"}</span>
+        <div className="fls-app-utilities">
+          {onOpenBackupRestore && <button type="button" className="fls-button fls-button-quiet" onClick={onOpenBackupRestore}>Backup / Restore</button>}
+          {onCreateNewStudy && <button type="button" className="fls-button fls-button-quiet" onClick={onCreateNewStudy}>+ New study</button>}
         </div>
-        <p className="mt-3 text-[11px] font-medium text-amber-500/80">
-          Note: switching demo cases clears any temporary local sandbox drafts.
-        </p>
       </div>
-    </div>
+      {selectedDemo && (
+        <div className="fls-demo-notice">
+          <span>{caseProfile(selectedDemo).note}</span>
+          <span>Switching studies clears temporary sandbox drafts.</span>
+        </div>
+      )}
+    </header>
   );
 }
 
-function AppHeader({ demoCase }: { demoCase: DemoCase }) {
-  return (
-    <header className="border-b border-[var(--border)] bg-[rgba(5,11,20,0.96)]">
-      <div className="mx-auto grid w-full max-w-7xl gap-7 px-4 py-10 sm:px-6 lg:grid-cols-[1.18fr_0.82fr] lg:px-8">
-        <div>
-          <div className="flex flex-wrap gap-2">
-            <span className="inline-flex w-fit rounded border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold text-[var(--foreground)]">
-              v0.6 blue command workbench
-            </span>
-            <span className="inline-flex w-fit rounded border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
-              {demoCase.id === "school-nutrition"
-                ? "Sanitized demo - no identifiable field data"
-                : "Fictional demo - local-only sandbox"}
-            </span>
-          </div>
-          <p className="mt-6 text-sm font-semibold text-[var(--muted-strong)]">
-            Blue-slate evidence command center
-          </p>
-          <h1 className="mt-2 max-w-4xl text-4xl font-semibold leading-tight tracking-normal text-[var(--foreground)] sm:text-5xl">
-            Field notes become defensible learning outputs.
-          </h1>
-          <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--muted)]">
-            Field Learning Studio gives MEL, evaluation, and programme teams a
-            controlled workspace for tracing evidence into findings,
-            recommendations, final review, and a professional learning brief draft.
-          </p>
-
-          <div className="mt-7 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
-            <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] lg:items-center">
-              {[
-                ["Field notes", "Source material"],
-                ["Evidence", "Coded observations"],
-                ["Claim lineage", "Defensible trace"],
-                ["Brief", "Professional draft output"],
-              ].map(([title, body], index) => (
-                <React.Fragment key={title}>
-                  <div>
-                    <h2 className="text-sm font-semibold text-[var(--foreground)]">
-                      {title}
-                    </h2>
-                    <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
-                      {body}
-                    </p>
-                  </div>
-                  {index < 3 ? (
-                    <span className="hidden text-[var(--trace)] lg:block">&rarr;</span>
-                  ) : null}
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            {[
-              ["Evidence hierarchy", "Observation, interpretation, finding, and recommendation stay visibly connected."],
-              ["Claim lineage", "Clickable IDs open the source-to-brief chain for reviewer inspection."],
-              ["Human review gate", "Review checks stay deterministic and transparent before professional draft use."],
-            ].map(([title, body]) => (
-              <div
-                className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4"
-                key={title}
-              >
-                <h2 className="text-sm font-semibold text-[var(--foreground)]">
-                  {title}
-                </h2>
-                <p className="mt-2 text-xs leading-5 text-[var(--muted)]">
-                  {body}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface-elevated)] p-5">
-          <p className="text-xs font-semibold text-[var(--muted-strong)]">
-            Case intelligence panel
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold">{demoCase.project}</h2>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-            {demoCase.subtitle}
-          </p>
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <Metric label="Sources" value={demoCase.evidenceBase.sourceRecords} />
-            <Metric label="Evidence" value={demoCase.evidenceBase.evidenceEntries} />
-            <Metric label="Findings" value={demoCase.evidenceBase.findings} />
-            <Metric
-              label="Recommendations"
-              value={demoCase.evidenceBase.recommendations}
-            />
-          </div>
-          <p className="mt-5 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-900">
-            {demoCase.safetyNote}
-          </p>
-        </div>
-      </div>
-    </header>
-  );
+function handleNavigationKeys(event: React.KeyboardEvent<HTMLDivElement>) {
+  const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
+  const index = buttons.indexOf(event.target as HTMLButtonElement);
+  if (index < 0 || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+  event.preventDefault();
+  const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
+  const forward = event.key === (rtl ? "ArrowLeft" : "ArrowRight");
+  const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (index + (forward ? 1 : -1) + buttons.length) % buttons.length;
+  buttons[next]?.focus();
+  buttons[next]?.click();
 }
 
 function WorkspaceTabs({
@@ -1590,93 +1357,51 @@ function WorkspaceTabs({
   const activeSpace = PRACTITIONER_SPACES.find((s) => s.id === activeSpaceId) || PRACTITIONER_SPACES[0];
 
   return (
-    <nav
-      aria-label="Field Learning Studio practitioner spaces"
-      className="sticky top-0 z-20 rounded-xl border border-[var(--border)] bg-[rgba(11,22,37,0.96)] p-2.5 shadow-lg backdrop-blur"
-    >
-      {/* Primary Row: 4 Practitioner Spaces */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="tablist" aria-label="Practitioner spaces">
+    <nav aria-label="Field Learning Studio practitioner spaces" className="fls-space-nav">
+      <div className="fls-primary-tabs" role="tablist" aria-label="Practitioner spaces" onKeyDown={handleNavigationKeys}>
         {PRACTITIONER_SPACES.map((space) => {
           const isActive = space.id === activeSpaceId;
-          let countBadge: string | null = null;
-          if (space.id === "field-material" && evidenceCount !== undefined) {
-            countBadge = `${evidenceCount} obs`;
-          } else if (space.id === "analysis" && findingsCount !== undefined) {
-            countBadge = `${findingsCount} claims`;
-          } else if (space.id === "deliverables" && recommendationsCount !== undefined) {
-            countBadge = `${recommendationsCount} recs`;
-          }
-
+          const count = space.id === "field-material" ? evidenceCount : space.id === "analysis" ? findingsCount : space.id === "deliverables" ? recommendationsCount : undefined;
           return (
             <button
               key={space.id}
               role="tab"
               aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
+              id={space.id === "study" ? "workspace-tab-overview" : `space-${space.id}`}
+              aria-controls="workspace-panel"
               data-space-id={space.id}
               type="button"
+              title={space.description}
               onClick={() => {
-                if (!isActive) {
-                  onTabChange(space.defaultTab);
-                }
+                if (!isActive) onTabChange(space.defaultTab);
               }}
-              className={`group flex flex-col justify-between rounded-lg p-2.5 text-left transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer border ${
-                isActive
-                  ? "border-[var(--accent)] bg-[var(--surface-elevated)] text-white shadow-sm ring-1 ring-[var(--accent)]/50"
-                  : "border-transparent bg-transparent text-[var(--muted)] hover:border-[var(--border)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
-              }`}
+              className="fls-space-tab"
             >
-              <div className="flex items-center justify-between w-full">
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                  isActive ? "text-[var(--trace)]" : "text-[var(--muted)]"
-                }`}>
-                  Space {space.stepNumber}
-                </span>
-                {countBadge && (
-                  <span className="rounded bg-slate-800/80 px-1.5 py-0.5 text-[9px] font-medium text-[var(--muted)] border border-[var(--border)]">
-                    {countBadge}
-                  </span>
-                )}
-              </div>
-              <div className="mt-1 flex items-center gap-1.5">
-                <span className="text-base select-none">{space.icon}</span>
-                <span className={`text-sm font-bold ${isActive ? "text-white" : "text-[var(--foreground)]"}`}>
-                  {space.label}
-                </span>
-              </div>
-              <span className="mt-0.5 text-[10px] text-[var(--muted)] line-clamp-1">
-                {space.description}
-              </span>
+              <span>{space.label}</span>
+              {count !== undefined && <span className="fls-nav-count" aria-hidden="true">{count}</span>}
             </button>
           );
         })}
       </div>
-
-      {/* Secondary Row: Sub-views for the Active Space */}
       {activeSpace.tabs.length > 1 && (
-        <div className="mt-2.5 flex items-center gap-1.5 border-t border-[var(--border)] pt-2 overflow-x-auto" role="tablist" aria-label={`${activeSpace.label} views`}>
-          <span className="mr-1 text-[11px] font-semibold text-[var(--muted)] uppercase tracking-wider pl-1 select-none">
-            {activeSpace.label} Views:
-          </span>
-          {activeSpace.tabs.map((tab) => {
-            const isTabActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                role="tab"
-                aria-selected={isTabActive}
-                data-tab-id={tab.id}
-                type="button"
-                onClick={() => onTabChange(tab.id)}
-                className={`min-h-8 rounded-md px-3 py-1 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer ${
-                  isTabActive
-                    ? "bg-[var(--accent)] text-white shadow-sm"
-                    : "text-[var(--muted)] hover:bg-[var(--surface-elevated)] hover:text-[var(--foreground)] border border-transparent hover:border-[var(--border)]"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
+        <div className="fls-secondary-tabs" role="tablist" aria-label={`${activeSpace.label} views`} onKeyDown={handleNavigationKeys}>
+          {activeSpace.tabs.map((tab) => (
+            <button
+              key={tab.id}
+              role="tab"
+              aria-selected={activeTab === tab.id}
+              tabIndex={activeTab === tab.id ? 0 : -1}
+              id={`workspace-tab-${tab.id}`}
+              aria-controls="workspace-panel"
+              data-tab-id={tab.id}
+              type="button"
+              onClick={() => onTabChange(tab.id)}
+              className="fls-view-tab"
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       )}
     </nav>
@@ -1801,175 +1526,61 @@ function OverviewTab({
     },
   ];
 
+  const nextAction = computeNextAction(currentStudy ?? null, demoCase);
+  const sources = currentStudy?.sources ?? demoCase.sources ?? [];
+  const evidence = currentStudy?.evidence ?? demoCase.evidence ?? [];
+  const findings = currentStudy?.findings ?? demoCase.findings ?? [];
+  const recommendations = currentStudy?.recommendations ?? demoCase.recommendations ?? [];
+  const limitations = currentStudy?.limitations ?? demoCase.limitations ?? [];
+  const sites = currentStudy?.scope?.targetSites ?? [];
+  const stakeholders = currentStudy?.scope?.targetStakeholderGroups ?? [];
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* 1. Resume Work / Next Action Hero Card */}
-      {(() => {
-        const nextAction = computeNextAction(currentStudy ?? null, demoCase);
-        const sources = currentStudy?.sources ?? demoCase.sources ?? [];
-        const evidence = currentStudy?.evidence ?? demoCase.evidence ?? [];
-        const findings = currentStudy?.findings ?? demoCase.findings ?? [];
-        const recommendations = currentStudy?.recommendations ?? demoCase.recommendations ?? [];
-
-        const reviewedEvidenceCount = evidence.filter(e => e.validationStatus === "Validated").length;
-        const validatedFindingsCount = findings.filter(f => f.validationStatus === "Validated").length;
-
-        return (
-          <section className="relative overflow-hidden rounded-xl border-2 border-[var(--trace)] bg-gradient-to-r from-[var(--surface-elevated)] via-[var(--surface)] to-[var(--surface-muted)] p-6 shadow-md">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="space-y-1.5 max-w-2xl">
-                <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider border ${nextAction.badgeColor}`}>
-                    {nextAction.badge}
-                  </span>
-                  <span className="text-xs font-semibold text-[var(--muted)]">
-                    Active Study: {currentStudy?.title ?? demoCase.project}
-                  </span>
-                </div>
-                <h2 className="text-xl font-bold tracking-tight text-[var(--foreground)] sm:text-2xl">
-                  {nextAction.title}
-                </h2>
-                <p className="text-sm leading-relaxed text-[var(--muted)]">
-                  {nextAction.description}
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:items-end gap-2 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={() => onTabChange(nextAction.targetTab)}
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-[var(--accent)] px-6 py-2.5 text-sm font-bold text-white shadow transition hover:bg-[var(--accent-strong)] hover:shadow-md focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer"
-                >
-                  <span>{nextAction.buttonText}</span>
-                </button>
-                {onOpenBackupRestore && (
-                  <button
-                    type="button"
-                    onClick={onOpenBackupRestore}
-                    className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] underline decoration-dotted cursor-pointer"
-                  >
-                    📦 Backup & Recovery Archives
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Quick Metrics Bar */}
-            <div className="mt-5 grid grid-cols-2 gap-3 border-t border-[var(--border)] pt-4 sm:grid-cols-4">
-              <div className="rounded-lg bg-[var(--surface)]/70 p-2.5 border border-[var(--border)]">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Sources</span>
-                <p className="text-lg font-bold text-[var(--foreground)]">{sources.length}</p>
-                <span className="text-[10px] text-[var(--muted)]">Field inventory</span>
-              </div>
-              <div className="rounded-lg bg-[var(--surface)]/70 p-2.5 border border-[var(--border)]">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Observations</span>
-                <p className="text-lg font-bold text-[var(--foreground)]">
-                  {reviewedEvidenceCount} <span className="text-xs font-normal text-[var(--muted)]">/ {evidence.length} approved</span>
-                </p>
-                <span className="text-[10px] text-[var(--muted)]">Evidence items</span>
-              </div>
-              <div className="rounded-lg bg-[var(--surface)]/70 p-2.5 border border-[var(--border)]">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Findings</span>
-                <p className="text-lg font-bold text-[var(--foreground)]">
-                  {validatedFindingsCount} <span className="text-xs font-normal text-[var(--muted)]">/ {findings.length} validated</span>
-                </p>
-                <span className="text-[10px] text-[var(--muted)]">Synthesized claims</span>
-              </div>
-              <div className="rounded-lg bg-[var(--surface)]/70 p-2.5 border border-[var(--border)]">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--muted)]">Recommendations</span>
-                <p className="text-lg font-bold text-[var(--foreground)]">{recommendations.length}</p>
-                <span className="text-[10px] text-[var(--muted)]">Programmatic actions</span>
-              </div>
-            </div>
-          </section>
-        );
-      })()}
-
-      {/* 2. Study Scope, Governance & Limitations */}
-      <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-sm">
-        <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--trace)]">
-              Study Space 1 · Scope & Governance
-            </span>
-            <h3 className="text-lg font-bold text-[var(--foreground)]">
-              {currentStudy?.title ?? demoCase.project}
-            </h3>
-          </div>
-          <span className="rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1 text-xs font-semibold text-[var(--foreground)]">
-            {currentStudy?.status ?? demoCase.status}
-          </span>
+    <div className="fls-study-overview">
+      <header className="fls-page-heading">
+        <div>
+          <p className="fls-eyebrow">Study overview</p>
+          <h1>{currentStudy?.title ?? demoCase.project}</h1>
+          <p>{currentStudy?.subtitle ?? demoCase.subtitle}</p>
         </div>
-
-        <div className="mt-4 grid gap-6 md:grid-cols-2">
-          {/* Left Column: Purpose & Questions */}
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
-                Evaluation Purpose & Context
-              </h4>
-              <p className="mt-1 text-xs leading-relaxed text-[var(--foreground)]">
-                {currentStudy?.context || demoCase.context}
-              </p>
-            </div>
-
-            {currentStudy?.questions && currentStudy.questions.length > 0 && (
-              <div>
-                <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
-                  Analytical Study Questions ({currentStudy.questions.length})
-                </h4>
-                <ul className="mt-2 space-y-1.5">
-                  {currentStudy.questions.map((q) => (
-                    <li key={q.id} className="flex items-start gap-2 text-xs text-[var(--foreground)]">
-                      <span className="font-mono text-[10px] font-bold text-[var(--trace)] shrink-0">
-                        {q.id}
-                      </span>
-                      <span>{q.question}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Intended Scope & Limitations */}
-          <div className="space-y-4">
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
-                Intended Scope Configuration
-              </h4>
-              <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded border border-[var(--border)] bg-[var(--surface-muted)] p-2">
-                  <span className="text-[10px] text-[var(--muted)] block">Target Sites</span>
-                  <span className="font-medium text-[var(--foreground)]">
-                    {currentStudy?.scope?.targetSites?.join(", ") || "Target Project Sites"}
-                  </span>
-                </div>
-                <div className="rounded border border-[var(--border)] bg-[var(--surface-muted)] p-2">
-                  <span className="text-[10px] text-[var(--muted)] block">Target Stakeholders</span>
-                  <span className="font-medium text-[var(--foreground)]">
-                    {currentStudy?.scope?.targetStakeholderGroups?.join(", ") || "Key Stakeholders"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--muted)]">
-                Contextual Limitations & Boundaries
-              </h4>
-              <ul className="mt-2 space-y-1 text-xs text-[var(--muted)]">
-                {(currentStudy?.limitations ?? demoCase.limitations ?? []).map((lim, idx) => (
-                  <li key={idx} className="flex items-start gap-2">
-                    <span className="text-amber-400 shrink-0">⚠️</span>
-                    <span>{lim}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
+        <span className="fls-status-label">{currentStudy?.status ?? demoCase.status}</span>
+      </header>
+      <section className="fls-resume-row" aria-label="Continue work">
+        <div>
+          <p className="fls-eyebrow">Continue work</p>
+          <h2>{nextAction.title}</h2>
+          <p>{nextAction.description}</p>
         </div>
+        <button type="button" onClick={() => onTabChange(nextAction.targetTab)} className="fls-button fls-button-primary">{nextAction.buttonText}</button>
       </section>
+      <dl className="fls-inventory-strip" aria-label="Study inventory">
+        <div><dt>Sources</dt><dd>{sources.length}</dd></div>
+        <div><dt>Observations</dt><dd>{evidence.length}<span>{evidence.filter((item) => item.validationStatus === "Validated").length} approved</span></dd></div>
+        <div><dt>Findings</dt><dd>{findings.length}<span>{findings.filter((item) => item.validationStatus === "Validated").length} validated</span></dd></div>
+        <div><dt>Recommendations</dt><dd>{recommendations.length}</dd></div>
+      </dl>
+      <div className="fls-study-context">
+        <section className="fls-context-section">
+          <h2>Purpose &amp; scope</h2>
+          <p>{currentStudy?.context || demoCase.context}</p>
+          <details className="fls-details">
+            <summary>Scope &amp; study questions <span>{sites.length} sites · {stakeholders.length} stakeholder groups</span></summary>
+            <dl className="fls-scope-details">
+              <div><dt>Target sites</dt><dd>{sites.join(", ") || "Target Project Sites"}</dd></div>
+              <div><dt>Target stakeholders</dt><dd>{stakeholders.join(", ") || "Key Stakeholders"}</dd></div>
+            </dl>
+            {(currentStudy?.questions?.length ?? 0) > 0 && <ul className="fls-question-list">{currentStudy!.questions!.map((question) => <li key={question.id}><span>{question.id}</span> {question.question}</li>)}</ul>}
+          </details>
+          {onOpenBackupRestore && <button type="button" className="fls-text-action" onClick={onOpenBackupRestore}>Manage study backup &amp; recovery →</button>}
+        </section>
+        <section className="fls-context-section fls-limitations">
+          <h2>Limitations to keep in view</h2>
+          {limitations.length > 0 ? <ul>{limitations.map((limitation, index) => <li key={index}>{limitation}</li>)}</ul> : <p>No study limitations recorded.</p>}
+        </section>
+      </div>
+      <details className="fls-details fls-demo-guide">
+        <summary>Demo guide &amp; local sandbox <span>Walkthrough, example field notes and traceability</span></summary>
+        <div className="space-y-5 pt-4">
       <section className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] p-6 sm:p-8">
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
@@ -2530,6 +2141,8 @@ function OverviewTab({
           </section>
         </div>
       </div>
+        </div>
+      </details>
     </div>
   );
 }
@@ -3861,43 +3474,15 @@ function LearningBriefSection({
       eyebrow="Draft for Professional Review"
       title="Professional Draft Preview"
     >
-      <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] p-5 sm:p-6 flex flex-col gap-6">
-        {/* Actionable Next Step Callout */}
-        <div className="rounded-md border border-[var(--accent-strong)]/30 bg-[var(--accent-wash)] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--accent-strong)]">
-            <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
-            <span>Actionable next step: Download draft for team review or formal clearance</span>
-          </div>
-          <span className="text-[11px] text-[var(--muted)]">Internal workspace draft &bull; Not for external distribution without clearance</span>
-        </div>
-
-        {/* Professional Export Action Area */}
-        <div className="flex flex-col gap-4 border-b border-[var(--border)] pb-5">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <span className="text-xs font-semibold text-[var(--trace)] uppercase tracking-wider">
-                Export Professional Draft
-              </span>
-              <p className="text-xs text-[var(--muted-soft)] mt-0.5">
-                Download structured documents generated from the active demo case. No data is uploaded.
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {exportStatus === "pdf-loading" && (
-                <span className="text-xs text-[var(--warning-text)] bg-[var(--accent-wash-strong)] px-3 py-1.5 rounded border border-[var(--warning)] font-mono animate-pulse">
-                  Preparing PDF…
-                </span>
-              )}
-              {exportStatus === "error" && (
-                <span className="text-xs text-[var(--danger-text)] bg-[rgba(248,113,113,0.1)] px-3 py-1.5 rounded border border-[var(--danger)] font-mono">
-                  Export failed. Please try again.
-                </span>
-              )}
-            </div>
+      <div className="flex flex-col gap-4">
+        <div className="fls-export-toolbar">
+          <div className="flex flex-wrap items-center gap-2" role="status">
+            {exportStatus === "pdf-loading" && <span className="text-xs text-[var(--warning-text)]">Preparing PDF…</span>}
+            {exportStatus === "error" && <span className="text-xs text-[var(--danger-text)]">Export failed. Please try again.</span>}
           </div>
           {/* Toggle sandbox inclusion */}
           {hasSandboxItems && (
-            <div className="rounded border border-amber-900/30 bg-amber-500/5 p-4 flex flex-col gap-2">
+            <div className="w-full rounded border border-amber-900/30 bg-amber-500/5 p-3 flex flex-col gap-2">
               <label className="inline-flex items-center gap-3 text-xs font-semibold text-amber-700 cursor-pointer select-none">
                 <input
                   type="checkbox"
@@ -3917,7 +3502,7 @@ function LearningBriefSection({
           )}
           <div className="flex flex-wrap items-center gap-3">
             <button
-              className="min-h-10 rounded-lg bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white px-5 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer disabled:opacity-50"
+              className="fls-button fls-button-primary"
               disabled={exportStatus !== "idle"}
               onClick={handleDownloadDocx}
               type="button"
@@ -3926,7 +3511,7 @@ function LearningBriefSection({
             </button>
 
             <button
-              className="min-h-10 rounded-lg bg-[var(--surface-soft)] hover:bg-[var(--surface-elevated)] border border-[var(--border-strong)] text-[var(--foreground)] px-5 text-xs font-bold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer disabled:opacity-50"
+              className="fls-button fls-button-quiet"
               disabled={exportStatus !== "idle"}
               onClick={handleDownloadPdf}
               type="button"
@@ -3935,7 +3520,7 @@ function LearningBriefSection({
             </button>
 
             <button
-              className="min-h-10 rounded-lg bg-transparent hover:bg-[var(--surface-muted)] border border-[var(--border)] text-[var(--muted)] px-5 text-xs font-semibold transition focus:outline-none focus:ring-2 focus:ring-[var(--trace)] cursor-pointer disabled:opacity-50"
+              className="fls-button fls-button-quiet"
               disabled={exportStatus !== "idle"}
               onClick={handleDownloadMarkdown}
               type="button"
@@ -3944,13 +3529,14 @@ function LearningBriefSection({
             </button>
 
             <button
-              className="min-h-10 rounded-lg bg-transparent hover:bg-[var(--accent-wash)] text-[var(--trace)] px-4 text-xs font-medium transition focus:outline-none cursor-pointer"
+              className="fls-button fls-button-quiet"
               onClick={onCopy}
               type="button"
             >
               {copyStatus === "copied" ? "✓ Copied Markdown draft" : "Copy Markdown draft"}
             </button>
           </div>
+          <p className="fls-export-note">Internal workspace draft · Review and clearance required before external distribution. Exports are generated locally.</p>
         </div>
 
         <StyledBriefPreview
@@ -3961,7 +3547,7 @@ function LearningBriefSection({
 
         <details className="mt-2 rounded-lg border border-[var(--border)] bg-[var(--surface-muted)]">
           <summary className="cursor-pointer px-4 py-3 text-xs font-semibold text-[var(--foreground)] select-none">
-            View raw Markdown payload source
+            View Markdown source
           </summary>
           <textarea
             className="h-[300px] w-full resize-y border-t border-[var(--border)] bg-[var(--surface)] p-4 font-mono text-xs leading-5 text-[var(--foreground)] outline-none focus:border-[var(--trace)]"
@@ -3994,7 +3580,7 @@ function StyledBriefPreview({
   const sandboxEvidence = model.sandboxEvidence || [];
 
   return (
-    <div className="bg-[rgba(148,163,184,0.08)] p-4 sm:p-8 rounded-lg border border-[var(--border)] mt-5">
+    <div className="fls-draft-canvas">
       <article className="brief-document mx-auto max-w-[820px] border border-[var(--document-border)] rounded-md overflow-hidden p-8 sm:p-12">
         <header className="border-b border-[var(--border)] pb-6 mb-8">
           <span className="text-[11px] font-semibold text-[var(--accent)] block mb-2 uppercase tracking-wide">
@@ -4325,17 +3911,13 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section role="tabpanel">
-      <div className="mb-4">
-        <p className="text-sm font-semibold text-[var(--muted-strong)]">
-          {eyebrow}
-        </p>
-        <h2 className="mt-2 text-2xl font-semibold tracking-normal sm:text-3xl">
-          {title}
-        </h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--muted)] sm:text-base sm:leading-7">
-          {description}
-        </p>
+    <section>
+      <div className="fls-page-heading mb-5">
+        <div>
+          <p className="fls-eyebrow">{eyebrow}</p>
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </div>
       </div>
       <div className="flex flex-col gap-4">{children}</div>
     </section>

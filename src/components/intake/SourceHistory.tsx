@@ -30,14 +30,11 @@ export function SourceHistory({
   }, [study.evidence]);
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
-      <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+    <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
         <div>
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--trace)]">
-            Study Inventory
-          </span>
-          <h3 className="text-base font-bold text-[var(--foreground)]">
-            Captured Sources ({study.sources.length})
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">
+            Sources ({study.sources.length})
           </h3>
         </div>
 
@@ -46,18 +43,18 @@ export function SourceHistory({
             <button
               type="button"
               onClick={onOpenBulkImport}
-              className="rounded border border-indigo-500/40 bg-indigo-950/20 px-2.5 py-1.5 text-xs font-semibold text-indigo-300 hover:bg-indigo-900/30 transition cursor-pointer"
+              className="fls-button fls-button-quiet"
               title="Bulk import multiple sources via structured text or CSV/TSV"
             >
-              ⚡ Bulk Import
+              Import
             </button>
           )}
           <button
             type="button"
             onClick={onStartNewSource}
-            className="rounded bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-600 transition cursor-pointer"
+            className="fls-button fls-button-quiet"
           >
-            + Capture New Note
+            + New note
           </button>
         </div>
       </div>
@@ -96,25 +93,27 @@ export function SourceHistory({
             const evCount = evidenceCountBySource.get(src.id) || 0;
 
             return (
-              <div
+              <button
+                type="button"
+                aria-pressed={isSelected}
                 key={src.id}
                 onClick={() => onSelectSource(src)}
-                className={`rounded-lg border p-3.5 transition cursor-pointer ${
+                className={`w-full text-start rounded-md border p-3 transition cursor-pointer ${
                   isSelected
                     ? "border-[var(--trace)] bg-[var(--surface-elevated)] ring-1 ring-[var(--trace)]"
                     : "border-[var(--border)] bg-[var(--surface-elevated)] hover:border-[var(--border-strong)]"
                 }`}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                <span className="flex flex-wrap items-start justify-between gap-2">
+                  <span className="flex items-center gap-2">
                     <span className="font-mono text-xs font-bold text-[var(--trace)]">
                       {src.id}
                     </span>
                     <span className="text-[11px] text-[var(--muted)]">•</span>
                     <span className="text-[11px] text-[var(--muted)]">{src.date}</span>
-                  </div>
+                  </span>
 
-                  <div className="flex items-center gap-1.5">
+                  <span className="flex items-center gap-1.5">
                     {src.sensitivityFlag && src.sensitivityFlag !== "None" && (
                       <span className="rounded bg-rose-950/40 px-1.5 py-0.5 text-[10px] font-semibold text-rose-300">
                         {src.sensitivityFlag} Sensitivity
@@ -123,21 +122,21 @@ export function SourceHistory({
                     <span className="rounded bg-[var(--surface-muted)] px-1.5 py-0.5 text-[10px] font-mono text-[var(--foreground)]">
                       {evCount} {evCount === 1 ? "obs" : "obs"}
                     </span>
-                  </div>
-                </div>
+                  </span>
+                </span>
 
-                <h4 className="mt-1.5 text-xs font-semibold text-[var(--foreground)] line-clamp-1">
+                <span className="block mt-1.5 text-[13px] leading-5 font-medium text-[var(--foreground)]">
                   {src.title}
-                </h4>
+                </span>
 
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
+                <span className="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-[var(--muted)]">
                   <span>{src.sourceType}</span>
                   <span>•</span>
                   <span>{src.stakeholderType}</span>
                   <span>•</span>
                   <span>{src.location || src.siteId}</span>
-                </div>
-              </div>
+                </span>
+              </button>
             );
           })}
         </div>

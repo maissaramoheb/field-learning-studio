@@ -2,7 +2,7 @@
 
 ## Current Status
 
-**Final Presentation Hardening Pass** is complete and verified on branch `feature/v0.9-field-sensemaking`:
+**Final UI/UX Integration Pass** is complete and verified on branch `feature/v0.9-field-sensemaking`:
 1. **Master Execution Plan (MEP) Alignment & Scope**:
    - **MEP-01 — Formal Claim Boundary** (Complete & Verified): Closes the formal claim boundary. Verified with real browser CDP acceptance tests against hosted preview. Structured trace from evidence to findings to draft recommendations with deterministic export eligibility predicates, immediate invalidation cascade on substantive edits, wrong-order approval block, deliberate human re-review restoration, and parent source deletion protection.
    - **MEP-02 — Recovery / Intake Write Safety** (Complete & Verified): Defined integrity and recovery scenarios passed. Enforces storage and write safety invariants across `studyStore.ts` and `studyBackup.ts` (duplicate ID rejection, cross-study ownership rejection, broken parent relationship rejection, atomic restore rollback, and collision detection guards). 15 tests in `tests/mep02SafetyBoundary.test.ts`.
@@ -10,10 +10,15 @@
    - **MEP-04 — Qualified Professional Draft / Reporting** (Active baseline): Clean professional draft preview and multi-format exports (Word .docx, PDF .pdf, Markdown .md) with deterministic safeguards against unanchored claims and actionable pre-draft review verification.
    - **MEP-05 — Shadow Pilot** (Planned): Controlled practitioner evaluation with real field notes under evaluator supervision.
    - **Strictly Deferred Scope**: All cross-study synthesis, advanced visual canvas, external AI APIs, cloud backend, authentication, and client portal features remain strictly deferred.
-2. **Methodological Framing & Standards**:
-   - Replaced all "donor-ready" assertions with "Professional Draft" and "Draft for Professional Review".
-   - Bounded language enforced throughout: defined integrity and recovery scenarios passed; structured trace from evidence to findings to draft recommendations; deterministic safeguards against unanchored claims; no claims of corruption-proofing or automated evaluative truth.
-   - Evidence coverage references "distinct source records" rather than assuming independent sources from IDs.
+2. **UI/UX Experience & Integration Pass**:
+   - **Compact Header & Above-the-Fold Elevation**: Tightened app bar to 48px, demo notice to 24px, and space navigation tabs to 42px (total header stack ~93px). Working content is elevated to ~260–300px from top on 1440×900 screens, completely eliminating visual spatial bloat.
+   - **Study Overview & Inventory Strip**: Compact Resume Work row (`.fls-resume-row`) with accurate next action and primary CTA, 4-item horizontal inventory strip (`.fls-inventory-strip`), 2-column purpose & scope / limitations section (`.fls-study-context`), and collapsible demo guide `<details className="fls-details fls-demo-guide">`.
+   - **Visible Demo Issue Resolved**: Fixed `computeNextAction` logic (`validationStatus === "Draft" || validationStatus === "Needs Review"`). When all evidence is approved, the study displays "Review Professional Draft →" matching the inventory strip ("20 approved"), removing the prior "3 awaiting review" conflict.
+   - **Native Accessible Dialogs (`WorkspaceDialog.tsx`)**: Standards-compliant `<dialog>` element with backdrop, focus trap, Escape key handling, and focus restoration to trigger element, integrated across `MinimalStudyModal` and `FindingAuthoringModal`.
+   - **Docked Field Material & Intake**: 2-column intake layout (`.fls-intake-grid`) with docked reading pane, source history (`aria-pressed`), observation extraction form, and compact evidence card grid.
+   - **Analysis Grid & Synthesis**: Structured two-column workbench (`.fls-analysis-grid`) with study question selector toolbar, comparative synthesis matrix, coverage summary for missing sites/stakeholders, and draft finding authoring.
+   - **Quiet Deliverables Canvas**: Centered document preview canvas (`.fls-draft-canvas`) and export toolbar (`.fls-export-toolbar`).
+   - **Responsive Verification**: Verified on 1440×900, 1280×800, and 1024×768 with clean typography, no horizontal scroll, and zero layout overflow.
 
 All 191 Vitest tests pass across 17 test files. Next.js production build compiles cleanly with zero errors (Turbopack), and ESLint passes with zero errors and zero warnings.
 

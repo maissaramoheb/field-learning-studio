@@ -132,6 +132,15 @@
   - [x] Turn QA review into Final Review with 7 actionable pre-draft verification cards (Eligible Findings, Linked Recommendations, Unresolved Items, Recorded Limitations, Challenging Material, Traceability Verified, Scope Confirmed).
   - [x] Eliminate overclaiming: use honest, bounded framing ("Defined integrity and recovery scenarios passed", "Structured trace from evidence to findings to draft recommendations", "Deterministic safeguards against unanchored claims").
   - [x] Restore documentation and MEP definitions (MEP-01 formal claim boundary, MEP-02 recovery/intake write safety, MEP-03 understandable core professional journey, MEP-04 qualified professional draft/reporting, MEP-05 shadow pilot; all cross-study/canvas/AI/cloud features remain deferred).
+- [x] Final UI/UX Integration Pass:
+  - [x] Compact Workspace Layout & Above-the-Fold Elevation: App bar (48px), space tabs (42px), header stack (~93px), elevating content to ~260–300px from top on 1440×900 screens.
+  - [x] Study Overview & Inventory Strip: Compact Continue Work row with primary CTA, 4-metric horizontal inventory strip, 2-column scope & limitations panel, and collapsible demo guide.
+  - [x] Native Accessible Workspace Dialogs: Standards-compliant HTML5 `<dialog>` (`WorkspaceDialog.tsx`) with focus trap, backdrop, Escape key handling, and focus restoration to trigger element.
+  - [x] Docked Intake & Field Material: Two-column intake layout with docked reading pane, source history (`aria-pressed`), observation extraction form, and compact card grid.
+  - [x] Analysis Grid & Synthesis: Two-column workbench with study question toolbar, comparative matrix, coverage summary for missing sites/stakeholders, and draft finding authoring.
+  - [x] Deliverables Canvas: Quiet, centered document preview canvas and compact export toolbar.
+  - [x] Resolve Demo Inconsistency: Fixed `computeNextAction` logic (`validationStatus === "Draft" || validationStatus === "Needs Review"`), perfectly aligning Resume Work ("Review Professional Draft →") with inventory strip ("20 approved").
+  - [x] Full Responsive Verification: Verified on 1440×900, 1280×800, and 1024×768 with clean typography, no horizontal scroll, and zero layout overflow. All 191 tests passing, TypeScript clean, ESLint clean, Next.js build clean.
 
 ## P1
 

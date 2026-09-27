@@ -29,14 +29,11 @@ export function StudyQuestionSelector({
   const currentQuestion = questions.find((q) => q.id === selectedQuestionId);
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-4">
+    <div className="fls-question-toolbar">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--trace)]">
-            Analytical Spine
-          </span>
-          <h2 className="text-base font-semibold text-[var(--foreground)]">
-            Study Questions & Analytical Focus
+          <h2 className="text-sm font-semibold text-[var(--foreground)]">
+            Study questions
           </h2>
           <p className="mt-0.5 text-xs text-[var(--muted)]">
             Select a question to filter and compare validated evidence across sites and stakeholders.
@@ -47,7 +44,7 @@ export function StudyQuestionSelector({
           <button
             type="button"
             onClick={onAddQuestion}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[var(--accent-strong)] transition"
+            className="fls-button fls-button-quiet"
           >
             <span>+</span> Add Study Question
           </button>
@@ -55,7 +52,7 @@ export function StudyQuestionSelector({
       </div>
 
       {/* Question Selector Tabs */}
-      <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => onSelectFilter("all")}

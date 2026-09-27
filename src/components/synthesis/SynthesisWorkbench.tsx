@@ -311,68 +311,54 @@ export function SynthesisWorkbench({
 
   return (
     <div className="space-y-6">
-      {/* Workbench Header & Study Context */}
-      <div className="rounded-xl border border-[var(--border)] bg-[rgba(11,22,37,0.7)] p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold uppercase tracking-wider text-[var(--trace)]">
-                Phase 6 Workbench
-              </span>
-              <span className="rounded bg-[var(--surface-muted)] border border-[var(--border)] px-2 py-0.5 text-[10px] font-semibold text-[var(--foreground)]">
-                {study.status}
-              </span>
-            </div>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-[var(--foreground)]">
-              Synthesis Workbench
-            </h1>
-            <p className="mt-1 text-xs text-[var(--muted)]">
-              Cross-site and cross-stakeholder evidence comparison for defensible finding synthesis.
-            </p>
-          </div>
+      <div className="fls-page-heading">
+        <div>
+          <p className="fls-eyebrow">Analysis</p>
+          <h1>Synthesis Workbench</h1>
+          <p>Compare evidence across sites and stakeholders, then develop supported findings.</p>
+        </div>
+        <span className="fls-status-label">{study.status}</span>
+      </div>
+      <details className="fls-details fls-output-options">
+        <summary>Deliverable options <span>Recommendations, lessons and good practices</span></summary>
+        {/* Study Type & Downstream Output Flags */}
+        <div className="py-3 text-xs">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={study.outputConfig?.includeRecommendations ?? true}
+                disabled={isDemo}
+                onChange={() => handleToggleOutputConfig("includeRecommendations")}
+                className="rounded border-[var(--border)] text-[var(--trace)] focus:ring-[var(--trace)]"
+              />
+              <span className="text-[11px] text-[var(--foreground)]">Recommendations</span>
+            </label>
 
-          {/* Study Type & Downstream Output Flags */}
-          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3 text-xs">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--muted-strong)] block mb-1.5">
-              Downstream Deliverables
-            </span>
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={study.outputConfig?.includeRecommendations ?? true}
-                  disabled={isDemo}
-                  onChange={() => handleToggleOutputConfig("includeRecommendations")}
-                  className="rounded border-[var(--border)] text-[var(--trace)] focus:ring-[var(--trace)]"
-                />
-                <span className="text-[11px] text-[var(--foreground)]">Recommendations</span>
-              </label>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={study.outputConfig?.includeLessons ?? true}
+                disabled={isDemo}
+                onChange={() => handleToggleOutputConfig("includeLessons")}
+                className="rounded border-[var(--border)] text-[var(--trace)] focus:ring-[var(--trace)]"
+              />
+              <span className="text-[11px] text-[var(--foreground)]">Lessons Learned</span>
+            </label>
 
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={study.outputConfig?.includeLessons ?? true}
-                  disabled={isDemo}
-                  onChange={() => handleToggleOutputConfig("includeLessons")}
-                  className="rounded border-[var(--border)] text-[var(--trace)] focus:ring-[var(--trace)]"
-                />
-                <span className="text-[11px] text-[var(--foreground)]">Lessons Learned</span>
-              </label>
-
-              <label className="flex items-center gap-1.5 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={study.outputConfig?.includeGoodPractices ?? true}
-                  disabled={isDemo}
-                  onChange={() => handleToggleOutputConfig("includeGoodPractices")}
-                  className="rounded border-[var(--border)] text-[var(--trace)] focus:ring-[var(--trace)]"
-                />
-                <span className="text-[11px] text-[var(--foreground)]">Good Practices</span>
-              </label>
-            </div>
+            <label className="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={study.outputConfig?.includeGoodPractices ?? true}
+                disabled={isDemo}
+                onChange={() => handleToggleOutputConfig("includeGoodPractices")}
+                className="rounded border-[var(--border)] text-[var(--trace)] focus:ring-[var(--trace)]"
+              />
+              <span className="text-[11px] text-[var(--foreground)]">Good Practices</span>
+            </label>
           </div>
         </div>
-      </div>
+      </details>
 
       {/* 1. Study Questions Analytical Framework */}
       <StudyQuestionSelector
@@ -394,9 +380,9 @@ export function SynthesisWorkbench({
       />
 
       {/* 2. Main Comparative Workspace */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="fls-analysis-grid">
         {/* Left Column: Synthesis Comparison View (8 cols) */}
-        <div className="space-y-6 lg:col-span-8">
+        <div className="min-w-0">
           <SynthesisComparisonView
             evidence={displayedEvidence}
             sources={study.sources}
@@ -412,11 +398,11 @@ export function SynthesisWorkbench({
         </div>
 
         {/* Right Column: Sensemaking & Deliverables (4 cols) */}
-        <div className="space-y-6 lg:col-span-4">
+        <div className="fls-analysis-sidebar">
           {/* Quick Finding Synthesizer CTA */}
-          <div className="rounded-xl border border-[var(--trace)]/30 bg-[var(--trace-wash)] p-4">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--trace)]">
-              Findings Authoring Desk
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+            <h4 className="text-sm font-semibold text-[var(--foreground)]">
+              Develop a finding
             </h4>
             <p className="mt-1 text-xs text-[var(--muted)]">
               Synthesize selected validated evidence into defensible findings with live Support Profiles.
@@ -425,35 +411,40 @@ export function SynthesisWorkbench({
               <button
                 type="button"
                 onClick={() => handleCreateFindingFromSelected(selectedEvidenceIds)}
-                className="w-full rounded-lg bg-[var(--accent)] px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[var(--accent-strong)] transition text-center"
+                className="fls-button fls-button-primary w-full"
               >
                 + Author Draft Finding {selectedEvidenceIds.length > 0 ? `(${selectedEvidenceIds.length} linked)` : ""}
               </button>
             </div>
           </div>
 
-          {/* Working Patterns Sensemaking Panel */}
-          <WorkingPatternsPanel
-            studyId={study.id}
-            patterns={patternNotes}
-            questions={studyQuestions}
-            validatedEvidence={validatedEvidence}
-            currentQuestionId={activeFilter === "question" ? selectedQuestionId : null}
-            isDemoCase={isDemo}
-            onSavePattern={handleSavePattern}
-            onDeletePattern={handleDeletePattern}
-            onPromoteToFinding={handlePromotePatternToFinding}
-            onInspectEvidence={onInspectTrace}
-          />
+          <details className="fls-details mt-0">
+            <summary>Working patterns & reflections <span>{patternNotes.length} patterns · {debriefs.length} debriefs</span></summary>
+            <div className="space-y-4 pt-4">
+              {/* Working Patterns Sensemaking Panel */}
+              <WorkingPatternsPanel
+                studyId={study.id}
+                patterns={patternNotes}
+                questions={studyQuestions}
+                validatedEvidence={validatedEvidence}
+                currentQuestionId={activeFilter === "question" ? selectedQuestionId : null}
+                isDemoCase={isDemo}
+                onSavePattern={handleSavePattern}
+                onDeletePattern={handleDeletePattern}
+                onPromoteToFinding={handlePromotePatternToFinding}
+                onInspectEvidence={onInspectTrace}
+              />
 
-          {/* Daily Debrief Context (Field Team Reflections) */}
-          <FieldTeamReflectionsCard
-            debriefs={debriefs}
-            onInspectDebrief={onInspectTrace}
-          />
+              {/* Daily Debrief Context (Field Team Reflections) */}
+              <FieldTeamReflectionsCard
+                debriefs={debriefs}
+                onInspectDebrief={onInspectTrace}
+              />
+            </div>
+          </details>
 
           {/* Existing Findings & Downstream Actions Card */}
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
             <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--foreground)]">
@@ -469,12 +460,12 @@ export function SynthesisWorkbench({
                   onClick={() => onOpenTab("findings")}
                   className="text-xs text-[var(--trace)] hover:underline font-semibold"
                 >
-                  View Tab
+                  Open ledger
                 </button>
               )}
             </div>
 
-            <div className="mt-3 space-y-3">
+            <div className="mt-3 space-y-3 max-h-[520px] overflow-y-auto pe-1">
               {study.findings.length === 0 ? (
                 <p className="text-xs italic text-[var(--muted)] py-3 text-center">
                   No findings created yet. Select validated evidence and click &quot;Author Draft Finding&quot; to begin.
@@ -514,7 +505,7 @@ export function SynthesisWorkbench({
                         </span>
                       </div>
 
-                      <p className="text-[11px] font-medium leading-4 text-[var(--foreground)]">
+                      <p className="text-xs font-medium leading-5 text-[var(--foreground)]">
                         {fnd.statement}
                       </p>
 

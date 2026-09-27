@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkspaceDialog } from "@/components/WorkspaceDialog";
 import React, { useState } from "react";
 import { saveStudyMeta } from "@/lib/storage/studyStore";
 import type { CollectionMethod, StudyMeta } from "@/lib/types";
@@ -116,150 +117,149 @@ export function MinimalStudyModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-xl rounded-xl border border-[var(--border-strong)] bg-[var(--surface)] p-6 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
-          <div>
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--trace)]">
-              Workspace Setup
-            </span>
-            <h3 className="mt-1 text-lg font-bold text-[var(--foreground)]">
-              Create New Field Study
-            </h3>
-          </div>
-          <button
-            onClick={onClose}
-            type="button"
-            className="rounded p-1 text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
-          >
-            ✕
-          </button>
+    <WorkspaceDialog labelledBy="new-study-title" onClose={onClose}>
+      <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
+        <div>
+          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--trace)]">
+            Workspace Setup
+          </span>
+          <h3 id="new-study-title" className="mt-1 text-lg font-bold text-[var(--foreground)]">
+            Create New Field Study
+          </h3>
+        </div>
+        <button
+          aria-label="Close"
+          onClick={onClose}
+          type="button"
+          className="rounded p-1 text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+        >
+          ✕
+        </button>
+      </div>
+
+      {errorMessage && (
+        <div className="mt-4 rounded border border-rose-500/40 bg-rose-950/30 p-3 text-xs text-rose-300">
+          {errorMessage}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <div>
+          <label className="block text-xs font-semibold text-[var(--foreground)]">
+            Study Title <span className="text-rose-400">*</span>
+          </label>
+          <input
+            type="text"
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. PARTAGE Field Evaluation Mission"
+            className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
+          />
         </div>
 
-        {errorMessage && (
-          <div className="mt-4 rounded border border-rose-500/40 bg-rose-950/30 p-3 text-xs text-rose-300">
-            {errorMessage}
-          </div>
-        )}
+        <div>
+          <label className="block text-xs font-semibold text-[var(--foreground)]">
+            Subtitle (Optional)
+          </label>
+          <input
+            type="text"
+            value={subtitle}
+            onChange={(e) => setSubtitle(e.target.value)}
+            placeholder="e.g. Mid-term synthesis and community feedback"
+            className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
+          />
+        </div>
 
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        <div>
+          <label className="block text-xs font-semibold text-[var(--foreground)]">
+            Context & Objective <span className="text-rose-400">*</span>
+          </label>
+          <textarea
+            required
+            rows={3}
+            value={context}
+            onChange={(e) => setContext(e.target.value)}
+            placeholder="Briefly describe the field evaluation purpose, geographical scope, and programmatic focus."
+            className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
+          />
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
           <div>
             <label className="block text-xs font-semibold text-[var(--foreground)]">
-              Study Title <span className="text-rose-400">*</span>
+              Target Sites <span className="text-rose-400">*</span>
             </label>
             <input
               type="text"
               required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. PARTAGE Field Evaluation Mission"
+              value={targetSites}
+              onChange={(e) => setTargetSites(e.target.value)}
+              placeholder="e.g. Minya, Assiut (comma-separated)"
               className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
             />
+            <p className="mt-1 text-[11px] text-[var(--muted)]">
+              Comma-separated list of field locations.
+            </p>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-[var(--foreground)]">
-              Subtitle (Optional)
+              Target Stakeholders <span className="text-rose-400">*</span>
             </label>
             <input
               type="text"
-              value={subtitle}
-              onChange={(e) => setSubtitle(e.target.value)}
-              placeholder="e.g. Mid-term synthesis and community feedback"
-              className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-[var(--foreground)]">
-              Context & Objective <span className="text-rose-400">*</span>
-            </label>
-            <textarea
               required
-              rows={3}
-              value={context}
-              onChange={(e) => setContext(e.target.value)}
-              placeholder="Briefly describe the field evaluation purpose, geographical scope, and programmatic focus."
+              value={targetStakeholders}
+              onChange={(e) => setTargetStakeholders(e.target.value)}
+              placeholder="e.g. Teachers, Parents, Children"
               className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
             />
+            <p className="mt-1 text-[11px] text-[var(--muted)]">
+              Key participant groups to engage.
+            </p>
           </div>
+        </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-semibold text-[var(--foreground)]">
-                Target Sites <span className="text-rose-400">*</span>
+        <div>
+          <label className="block text-xs font-semibold text-[var(--foreground)]">
+            Expected Collection Methods (Optional)
+          </label>
+          <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+            {AVAILABLE_METHODS.map((method) => (
+              <label
+                key={method}
+                className="flex items-center gap-2 rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1.5 text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedMethods.includes(method)}
+                  onChange={() => handleMethodToggle(method)}
+                  className="accent-[var(--trace)]"
+                />
+                <span>{method}</span>
               </label>
-              <input
-                type="text"
-                required
-                value={targetSites}
-                onChange={(e) => setTargetSites(e.target.value)}
-                placeholder="e.g. Minya, Assiut (comma-separated)"
-                className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
-              />
-              <p className="mt-1 text-[11px] text-[var(--muted)]">
-                Comma-separated list of field locations.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[var(--foreground)]">
-                Target Stakeholders <span className="text-rose-400">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={targetStakeholders}
-                onChange={(e) => setTargetStakeholders(e.target.value)}
-                placeholder="e.g. Teachers, Parents, Children"
-                className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
-              />
-              <p className="mt-1 text-[11px] text-[var(--muted)]">
-                Key participant groups to engage.
-              </p>
-            </div>
+            ))}
           </div>
+        </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-[var(--foreground)]">
-              Expected Collection Methods (Optional)
-            </label>
-            <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-              {AVAILABLE_METHODS.map((method) => (
-                <label
-                  key={method}
-                  className="flex items-center gap-2 rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1.5 text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedMethods.includes(method)}
-                    onChange={() => handleMethodToggle(method)}
-                    className="accent-[var(--trace)]"
-                  />
-                  <span>{method}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-6 flex justify-end gap-3 border-t border-[var(--border)] pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded px-4 py-2 text-xs font-semibold text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white hover:bg-blue-600 disabled:opacity-50"
-            >
-              {isSubmitting ? "Creating..." : "Create Study"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="fls-dialog-actions mt-6">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded px-4 py-2 text-xs font-semibold text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)]"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="rounded bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white hover:bg-blue-600 disabled:opacity-50"
+          >
+            {isSubmitting ? "Creating..." : "Create Study"}
+          </button>
+        </div>
+      </form>
+    </WorkspaceDialog>
   );
 }

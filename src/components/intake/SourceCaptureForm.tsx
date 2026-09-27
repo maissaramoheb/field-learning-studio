@@ -131,7 +131,7 @@ export function SourceCaptureForm({ study, onSourceSaved }: SourceCaptureFormPro
   };
 
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+    <div className="fls-source-form rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
         <div>
           <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--trace)]">
@@ -141,9 +141,6 @@ export function SourceCaptureForm({ study, onSourceSaved }: SourceCaptureFormPro
             Capture Narrative Field Note
           </h3>
         </div>
-        <span className="rounded bg-[var(--surface-muted)] px-2 py-1 text-xs font-mono text-[var(--muted)]">
-          Study: {study.title}
-        </span>
       </div>
 
       {saveSuccessMsg && (
@@ -176,7 +173,7 @@ export function SourceCaptureForm({ study, onSourceSaved }: SourceCaptureFormPro
         </div>
 
         {/* Provenance Row 1 */}
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="block text-xs font-semibold text-[var(--foreground)]">
               Collection Date <span className="text-rose-400">*</span>
@@ -248,7 +245,7 @@ export function SourceCaptureForm({ study, onSourceSaved }: SourceCaptureFormPro
         </div>
 
         {/* Provenance Row 2 */}
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <label className="block text-xs font-semibold text-[var(--foreground)]">
               Collection Method <span className="text-rose-400">*</span>

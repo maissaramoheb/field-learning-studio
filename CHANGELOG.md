@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.9.2 - Final UI/UX Integration Pass
+
+- **Compact Workspace Architecture & Above-the-Fold Elevation**:
+  - Tightened application header bar to 48px, demo notice to 24px, and practitioner space tabs to 42px. Total header footprint reduced to ~93px, elevating primary workspace content to ~260–300px from top on standard 1440×900 viewports.
+  - Implemented `.fls-study-overview` featuring a compact Continue Work row (`.fls-resume-row`), a 4-metric horizontal study inventory strip (`.fls-inventory-strip`), a balanced 2-column scope and limitations panel (`.fls-study-context`), and collapsible demo guide (`<details className="fls-details fls-demo-guide">`).
+- **Accessible Native Workspace Dialogs**:
+  - Authored `WorkspaceDialog.tsx` utilizing standards-compliant HTML5 `<dialog>` with focus trap, backdrop styling, Escape key handling, and focus restoration to the trigger element.
+  - Migrated `MinimalStudyModal` and `FindingAuthoringModal` to use `WorkspaceDialog`.
+- **Docked Intake & Field Material**:
+  - Implemented 2-column intake layout (`.fls-intake-grid`) with docked reading pane, source history (`aria-pressed`), and observation extraction form.
+  - Styled compact evidence card grid (`.fls-review-grid`) with semantic left-border interpretation styling.
+- **Analysis Grid & Synthesis**:
+  - Implemented two-column analysis workbench (`.fls-analysis-grid`) with study question selector toolbar, comparative matrix, missing coverage warning summary, and draft finding authoring.
+- **Deliverables Canvas**:
+  - Implemented centered quiet document preview canvas (`.fls-draft-canvas`) and compact export toolbar (`.fls-export-toolbar`).
+- **Visible Demo Inconsistency Resolved**:
+  - Fixed `computeNextAction` logic (`validationStatus === "Draft" || validationStatus === "Needs Review"`). When all evidence is approved, the study displays "Review Professional Draft →" matching the inventory strip ("20 approved"), removing the prior "3 awaiting review" conflict.
+- **Responsiveness**:
+  - Verified across 1440×900, 1280×800, and 1024×768 with clean typography, no horizontal scroll, and zero layout overflow. All 191 tests passing, TypeScript clean, ESLint clean, Next.js build clean.
+
 ## v0.9.1 - Presentation-Ready Execution Sprint
 
 - **Stage 1 — Real Browser MEP-01 Acceptance**:

@@ -157,9 +157,9 @@ export function SynthesisComparisonView({
   }, [activeItems]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Evidence Validation Tally & Dimension Controls */}
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3">
         <div className="flex flex-wrap items-center gap-2 text-xs">
           <span className="font-bold text-[var(--foreground)]">Evidence Base:</span>
           <span className="rounded-full bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-0.5 font-bold text-emerald-400">
@@ -196,7 +196,7 @@ export function SynthesisComparisonView({
           )}
 
           {/* Grouping Selector */}
-          <div className="flex items-center rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-1 text-xs">
+          <div className="flex flex-wrap items-center rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-1 text-xs">
             <span className="px-2 font-semibold text-[var(--muted)]">Compare by:</span>
             <button
               type="button"
@@ -259,7 +259,7 @@ export function SynthesisComparisonView({
 
       {/* Render Selected Dimension View */}
       {dimension === "site" && (
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Cross-Site Common Patterns Highlight */}
           {multiSiteThemes.length > 0 && (
             <div className="rounded-xl border border-indigo-900/40 bg-indigo-950/20 p-4">
@@ -286,17 +286,19 @@ export function SynthesisComparisonView({
           )}
 
           {/* Site Cards Grid */}
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            {Array.from(siteGroups.entries()).map(([site, items]) => {
-              const isValidatedEmpty = items.length === 0;
+          <div className="fls-comparison-groups">
+            {Array.from(siteGroups.values()).some((items) => items.length === 0) && (
+              <div className="fls-coverage-summary" role="note" aria-label="Sites without evidence">
+                <p className="font-semibold">Missing coverage: no validated evidence for these sites</p>
+                <p>{Array.from(siteGroups.entries()).filter(([, items]) => items.length === 0).map(([name]) => name).join(" · ")}</p>
+              </div>
+            )}
+
+            {Array.from(siteGroups.entries()).filter(([, items]) => items.length > 0).map(([site, items]) => {
               return (
                 <div
                   key={site}
-                  className={`rounded-xl border p-5 ${
-                    isValidatedEmpty
-                      ? "border-amber-900/40 bg-amber-950/10"
-                      : "border-[var(--border)] bg-[var(--surface)]"
-                  }`}
+                  className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
                 >
                   <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
                     <div>
@@ -324,32 +326,21 @@ export function SynthesisComparisonView({
                     )}
                   </div>
 
-                  {isValidatedEmpty ? (
-                    <div className="mt-4 rounded-lg border border-amber-900/30 bg-amber-950/20 p-4 text-center">
-                      <p className="text-xs font-semibold text-amber-300">
-                        Missing Coverage: No validated evidence for this site
-                      </p>
-                      <p className="mt-1 text-[11px] text-amber-200/70">
-                        Configured in study scope but no validated evidence has been collected yet.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="mt-4 space-y-3">
-                      {items.map((entry) => (
-                        <EvidenceRowCard
-                          key={entry.id}
-                          entry={entry}
-                          source={sourceMap.get(entry.sourceId)}
-                          isSelected={selectedEvidenceIds.includes(entry.id)}
-                          isDemoCase={isDemoCase}
-                          questions={questions}
-                          onToggleSelect={() => onToggleSelectEvidence(entry.id)}
-                          onInspect={() => onInspectEvidence(entry.id)}
-                          onAssignQuestion={(qId) => onAssignQuestionToEntry(entry.id, qId)}
-                        />
-                      ))}
-                    </div>
-                  )}
+                  <div className="mt-4 space-y-3">
+                    {items.map((entry) => (
+                      <EvidenceRowCard
+                        key={entry.id}
+                        entry={entry}
+                        source={sourceMap.get(entry.sourceId)}
+                        isSelected={selectedEvidenceIds.includes(entry.id)}
+                        isDemoCase={isDemoCase}
+                        questions={questions}
+                        onToggleSelect={() => onToggleSelectEvidence(entry.id)}
+                        onInspect={() => onInspectEvidence(entry.id)}
+                        onAssignQuestion={(qId) => onAssignQuestionToEntry(entry.id, qId)}
+                      />
+                    ))}
+                  </div>
                 </div>
               );
             })}
@@ -358,17 +349,19 @@ export function SynthesisComparisonView({
       )}
 
       {dimension === "stakeholder" && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-          {Array.from(stakeholderGroups.entries()).map(([sh, items]) => {
-            const isValidatedEmpty = items.length === 0;
+        <div className="fls-comparison-groups">
+          {Array.from(stakeholderGroups.values()).some((items) => items.length === 0) && (
+            <div className="fls-coverage-summary" role="note" aria-label="Stakeholder groups without evidence">
+              <p className="font-semibold">Unrepresented stakeholders: no validated evidence</p>
+              <p>{Array.from(stakeholderGroups.entries()).filter(([, items]) => items.length === 0).map(([name]) => name).join(" · ")}</p>
+            </div>
+          )}
+
+          {Array.from(stakeholderGroups.entries()).filter(([, items]) => items.length > 0).map(([sh, items]) => {
             return (
               <div
                 key={sh}
-                className={`rounded-xl border p-5 ${
-                  isValidatedEmpty
-                    ? "border-amber-900/40 bg-amber-950/10"
-                    : "border-[var(--border)] bg-[var(--surface)]"
-                }`}
+                className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
               >
                 <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
                   <div>
@@ -396,32 +389,21 @@ export function SynthesisComparisonView({
                   )}
                 </div>
 
-                {isValidatedEmpty ? (
-                  <div className="mt-4 rounded-lg border border-amber-900/30 bg-amber-950/20 p-4 text-center">
-                    <p className="text-xs font-semibold text-amber-300">
-                      Unrepresented Stakeholder: No validated evidence
-                    </p>
-                    <p className="mt-1 text-[11px] text-amber-200/70">
-                      This stakeholder group has not yet been consulted or documented in validated evidence.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="mt-4 space-y-3">
-                    {items.map((entry) => (
-                      <EvidenceRowCard
-                        key={entry.id}
-                        entry={entry}
-                        source={sourceMap.get(entry.sourceId)}
-                        isSelected={selectedEvidenceIds.includes(entry.id)}
-                        isDemoCase={isDemoCase}
-                        questions={questions}
-                        onToggleSelect={() => onToggleSelectEvidence(entry.id)}
-                        onInspect={() => onInspectEvidence(entry.id)}
-                        onAssignQuestion={(qId) => onAssignQuestionToEntry(entry.id, qId)}
-                      />
-                    ))}
-                  </div>
-                )}
+                <div className="mt-4 space-y-3">
+                  {items.map((entry) => (
+                    <EvidenceRowCard
+                      key={entry.id}
+                      entry={entry}
+                      source={sourceMap.get(entry.sourceId)}
+                      isSelected={selectedEvidenceIds.includes(entry.id)}
+                      isDemoCase={isDemoCase}
+                      questions={questions}
+                      onToggleSelect={() => onToggleSelectEvidence(entry.id)}
+                      onInspect={() => onInspectEvidence(entry.id)}
+                      onAssignQuestion={(qId) => onAssignQuestionToEntry(entry.id, qId)}
+                    />
+                  ))}
+                </div>
               </div>
             );
           })}
@@ -429,11 +411,11 @@ export function SynthesisComparisonView({
       )}
 
       {dimension === "method" && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="fls-comparison-groups">
           {Array.from(methodGroups.entries()).map(([method, items]) => (
             <div
               key={method}
-              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5"
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
             >
               <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
                 <div>
@@ -482,11 +464,11 @@ export function SynthesisComparisonView({
       )}
 
       {dimension === "theme" && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <div className="fls-comparison-groups">
           {Array.from(themeGroups.entries()).map(([theme, items]) => (
             <div
               key={theme}
-              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5"
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4"
             >
               <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
                 <div>
@@ -535,7 +517,7 @@ export function SynthesisComparisonView({
       )}
 
       {dimension === "matrix" && (
-        <div className="overflow-x-auto rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="overflow-x-auto rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-[var(--foreground)]">
               Cross-Tabulation Matrix: Stakeholders vs. Sites

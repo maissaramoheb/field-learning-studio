@@ -225,26 +225,12 @@ export function EvidenceReviewWorkspace({
         </div>
       )}
 
-      {/* Header Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] pb-4">
+      <div className="fls-page-heading">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-[var(--trace)]">
-              Phase 4 Evidence Workspace
-            </span>
-            <span className="text-xs text-[var(--muted)]">•</span>
-            <span className="text-xs text-[var(--muted)]">
-              {currentStudy?.title || "Field Study"}
-            </span>
-          </div>
-          <h2 className="mt-1 text-2xl font-bold text-[var(--foreground)]">
-            Evidence Review &amp; Human Validation Matrix
-          </h2>
-          <p className="mt-1 text-xs text-[var(--muted)] max-w-3xl leading-relaxed">
-            Human validation gate: Unvalidated observations remain in review. Only deliberately validated evidence forms the empirical foundation for defensible findings and deliverables.
-          </p>
+          <p className="fls-eyebrow">Field Material</p>
+          <h1>Evidence review</h1>
+          <p>Review observations before validation. Only validated evidence can support findings and deliverables.</p>
         </div>
-
         <div>
           {isDemoCase ? (
             <div className="rounded-lg border border-amber-500/40 bg-amber-950/20 px-3 py-1.5 text-xs font-semibold text-amber-300">

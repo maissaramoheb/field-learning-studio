@@ -141,9 +141,9 @@ export function ObservationCaptureForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Source Reading Pane with Quick-Select capability */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3 border-b border-[var(--border)] pb-3">
           <div>
             <div className="flex items-center gap-2">
@@ -155,7 +155,7 @@ export function ObservationCaptureForm({
               <span className="text-xs text-[var(--muted)]">•</span>
               <span className="text-xs text-[var(--muted)]">{activeSource.location}</span>
             </div>
-            <h3 className="mt-1 text-base font-bold text-[var(--foreground)]">
+            <h3 className="mt-1 text-sm font-semibold text-[var(--foreground)]">
               {activeSource.title}
             </h3>
             <p className="mt-0.5 text-xs text-[var(--muted)]">
@@ -168,9 +168,9 @@ export function ObservationCaptureForm({
             <button
               type="button"
               onClick={() => setIsBatchMode(true)}
-              className="rounded bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[var(--accent-strong)] transition cursor-pointer"
+              className="fls-button fls-button-quiet"
             >
-              ⚡ Extract Multiple Observations
+              Extract multiple observations
             </button>
             <button
               type="button"
@@ -178,13 +178,13 @@ export function ObservationCaptureForm({
               title="Highlight text in the note below and click to copy it into Raw Observation"
               className="rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs font-semibold text-[var(--trace)] hover:border-[var(--trace)]"
             >
-              ✂ Extract Selected Text
+              Extract Selected Text
             </button>
           </div>
         </div>
 
         {/* Narrative Box */}
-        <div className="mt-4 max-h-72 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-4 text-xs leading-relaxed text-[var(--foreground)] select-text">
+        <div className="mt-4 max-h-72 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-4 text-sm leading-relaxed text-[var(--foreground)] select-text">
           <p className="whitespace-pre-wrap font-sans">
             {activeSource.rawText || activeSource.summary}
           </p>
@@ -196,13 +196,10 @@ export function ObservationCaptureForm({
       </div>
 
       {/* Observation Extraction Form */}
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
         <div className="border-b border-[var(--border)] pb-3">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--trace)]">
-            Analytical Extraction
-          </span>
-          <h3 className="text-base font-bold text-[var(--foreground)]">
-            Extract Discrete Evidence Observation
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">
+            Extract an observation
           </h3>
           <p className="text-xs text-[var(--muted)]">
             Preserve what was specifically heard or observed before recording interpretive meaning.
@@ -345,7 +342,7 @@ export function ObservationCaptureForm({
 
       {/* Extracted Observations List for This Source */}
       {extractedEvidence.length > 0 && (
-        <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
           <h4 className="text-xs font-bold uppercase tracking-wider text-[var(--trace)]">
             Observations Extracted from {activeSource.id} ({extractedEvidence.length})
           </h4>
