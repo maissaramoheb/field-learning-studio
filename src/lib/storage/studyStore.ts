@@ -1,6 +1,15 @@
 import { getDb } from "./indexedDb";
 import { demoCases } from "@/data/cases";
 import { adaptDemoCaseToFieldStudy } from "./demoStudyAdapter";
+import {
+  assertEvidenceSourceIntegrity,
+  assertFindingEvidenceIntegrity,
+  assertRecommendationFindingIntegrity,
+  assertLessonEvidenceIntegrity,
+  assertGoodPracticeEvidenceIntegrity,
+  cascadeEvidenceInvalidationToFindings,
+} from "./integrity";
+import { isSubstantiveEvidenceChange } from "@/lib/validation/validationLifecycle";
 import type {
   StudyId,
   StudyMeta,
@@ -39,7 +48,16 @@ export async function getStudyMeta(studyId: StudyId): Promise<StudyMeta | undefi
 
 export async function saveStudyMeta(study: StudyMeta): Promise<void> {
   const db = await getDb();
-  await db.put("studies", study);
+  // Strip any accidental child collections to prevent stale child data duplication
+  const pureMeta = { ...(study as unknown as Record<string, unknown>) };
+  delete pureMeta.sources;
+  delete pureMeta.evidence;
+  delete pureMeta.debriefs;
+  delete pureMeta.findings;
+  delete pureMeta.lessons;
+  delete pureMeta.goodPractices;
+  delete pureMeta.recommendations;
+  await db.put("studies", pureMeta as unknown as StudyMeta);
 }
 
 export async function saveStudyQuestion(
@@ -283,6 +301,22 @@ export async function saveEvidence(
   evidence: EvidenceEntry & { studyId: StudyId }
 ): Promise<void> {
   const db = await getDb();
+  await assertEvidenceSourceIntegrity(db, evidence.studyId, evidence);
+
+  // If this evidence was previously validated and is now being downgraded or substantively edited
+  const existing = await db.get("evidence", [evidence.studyId, evidence.id]);
+  if (existing && existing.validationStatus === "Validated") {
+    const isSubstantive = isSubstantiveEvidenceChange(existing, evidence);
+    if (evidence.validationStatus !== "Validated" || isSubstantive) {
+      if (isSubstantive && evidence.validationStatus === "Validated") {
+        evidence.validationStatus = "Needs Review";
+        evidence.previousValidationStatus = "Validated";
+        evidence.revision = (existing.revision ?? 1) + 1;
+      }
+      await cascadeEvidenceInvalidationToFindings(db, evidence.studyId, evidence.id);
+    }
+  }
+
   await db.put("evidence", evidence);
 }
 
@@ -296,6 +330,11 @@ export async function saveEvidenceBatch(
       : evidenceOrStudyId;
   if (evidenceList.length === 0) return;
   const db = await getDb();
+
+  for (const ev of evidenceList) {
+    await assertEvidenceSourceIntegrity(db, ev.studyId, ev);
+  }
+
   const tx = db.transaction("evidence", "readwrite");
   const store = tx.objectStore("evidence");
   for (const ev of evidenceList) {
@@ -322,6 +361,12 @@ export async function deleteEvidence(
   evidenceId: EvidenceEntryId
 ): Promise<void> {
   const db = await getDb();
+  await cascadeEvidenceInvalidationToFindings(
+    db,
+    studyId,
+    evidenceId,
+    "Supporting evidence was removed after this Finding was reviewed. Review the Finding again before including it in a formal deliverable."
+  );
   await db.delete("evidence", [studyId, evidenceId]);
 }
 
@@ -363,6 +408,11 @@ export async function saveFinding(
   finding: Finding & { studyId: StudyId }
 ): Promise<void> {
   const db = await getDb();
+  await assertFindingEvidenceIntegrity(db, finding.studyId, finding);
+  // When validated, clear any stale dependency warning
+  if (finding.validationStatus === "Validated") {
+    finding.staleDependencyWarning = undefined;
+  }
   await db.put("findings", finding);
 }
 
@@ -395,6 +445,7 @@ export async function saveLesson(
   lesson: LessonLearned & { studyId: StudyId }
 ): Promise<void> {
   const db = await getDb();
+  await assertLessonEvidenceIntegrity(db, lesson.studyId, lesson);
   await db.put("lessons", lesson);
 }
 
@@ -427,6 +478,7 @@ export async function saveGoodPractice(
   practice: GoodPractice & { studyId: StudyId }
 ): Promise<void> {
   const db = await getDb();
+  await assertGoodPracticeEvidenceIntegrity(db, practice.studyId, practice);
   await db.put("goodPractices", practice);
 }
 
@@ -459,6 +511,7 @@ export async function saveRecommendation(
   recommendation: Recommendation & { studyId: StudyId }
 ): Promise<void> {
   const db = await getDb();
+  await assertRecommendationFindingIntegrity(db, recommendation.studyId, recommendation);
   await db.put("recommendations", recommendation);
 }
 

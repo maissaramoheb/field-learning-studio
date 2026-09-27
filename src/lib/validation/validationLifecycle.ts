@@ -592,12 +592,21 @@ export function applySubstantiveRecommendationEdit(
 
 export function isRecommendationExportEligible(
   recommendation: Recommendation,
-  linkedFinding?: Finding
+  linkedFinding?: Finding,
+  isLegacyDemo: boolean = false
 ): boolean {
-  const isRecValidated = (recommendation.validationStatus ?? "Validated") === "Validated";
+  const isRecValidated = isLegacyDemo
+    ? (recommendation.validationStatus ?? "Validated") === "Validated"
+    : recommendation.validationStatus === "Validated";
   if (!isRecValidated) return false;
   if (!linkedFinding) return false;
-  return (linkedFinding.validationStatus ?? "Validated") === "Validated";
+  if (linkedFinding.staleDependencyWarning && linkedFinding.staleDependencyWarning.trim().length > 0) {
+    return false;
+  }
+  const isFindingValidated = isLegacyDemo
+    ? (linkedFinding.validationStatus ?? "Validated") === "Validated"
+    : linkedFinding.validationStatus === "Validated";
+  return isFindingValidated;
 }
 
 export function getRecommendationDependencyWarning(
@@ -607,8 +616,10 @@ export function getRecommendationDependencyWarning(
   if (!linkedFinding) {
     return "Linked Finding not found";
   }
-  const findingStatus = linkedFinding.validationStatus ?? "Validated";
-  if (findingStatus !== "Validated") {
+  if (linkedFinding.staleDependencyWarning && linkedFinding.staleDependencyWarning.trim().length > 0) {
+    return linkedFinding.staleDependencyWarning;
+  }
+  if (linkedFinding.validationStatus !== "Validated") {
     return "Linked Finding requires re-validation";
   }
   return null;

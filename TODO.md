@@ -93,6 +93,16 @@
   - [x] Document bulk intake architecture in `docs/v0.9_bulk_intake_guide.md`.
   - [x] Add 20 Vitest unit/integration tests in `tests/bulkIntake.test.ts` (146 tests total).
   - [x] Conduct 7-step browser acceptance audit via CDP in headless Chrome with 11 verified screenshots.
+- [x] Codex Audit Resolution & Evidence Integrity Stabilization:
+  - [x] Enforce cross-study referential integrity in repository layer (`src/lib/storage/integrity.ts`).
+  - [x] Unify export boundary policies (`src/lib/exportPolicy.ts`) across brief preview, Markdown export, and download paths.
+  - [x] Implement stale dependency cascade on substantive finding edits with recommendation export blocking.
+  - [x] Harden `computeSupportProfile` for single-site studies, rejected evidence exclusion, and placeholder detection.
+  - [x] Implement deep structural validation and collision handling (`import_as_new`, `overwrite`) for `.fls.json` backups.
+  - [x] Cleanse manufactured placeholder prose from synthesis modals.
+  - [x] Restore QA baseline truth for sandbox-generated evidence.
+  - [x] Author UX Simplification Blueprint (`docs/ux_simplification_blueprint.md`).
+  - [x] Add dedicated regression suite in `tests/integrityAudit.test.ts` (10 tests, 156 total tests passing across 14 test files).
 
 ## P1
 

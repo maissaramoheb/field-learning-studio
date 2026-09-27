@@ -195,13 +195,13 @@ export function BatchObservationBuilder({
       return;
     }
 
-    // Validation: ensure raw observation and interpretation are filled
+    // Validation: ensure raw observation text is filled (interpretation is optional)
     const invalidRows = selectedRows.filter(
-      (r) => !r.rawObservation.trim() || !r.interpretation.trim()
+      (r) => !r.rawObservation.trim()
     );
     if (invalidRows.length > 0) {
       setErrorMsg(
-        `Cannot save: ${invalidRows.length} selected row(s) are missing required Raw Observation or Interpretation text.`
+        `Cannot save: ${invalidRows.length} selected row(s) are missing required Raw Observation text.`
       );
       return;
     }
@@ -221,12 +221,12 @@ export function BatchObservationBuilder({
           stakeholderType: activeSource.stakeholderType,
           rawEvidence: row.rawObservation.trim(),
           rawObservation: row.rawObservation.trim(),
-          interpretation: row.interpretation.trim(),
+          interpretation: row.interpretation.trim() || "",
           primaryTheme: row.primaryTheme.trim() || defaultTheme,
           secondaryTheme: row.secondaryTheme.trim() || "General",
           evidenceStrength: row.evidenceStrength,
           sensitivityFlag: row.sensitivityFlag,
-          potentialFinding: row.interpretation.trim(),
+          potentialFinding: row.interpretation.trim() || "",
           qaStatus: "Needs Review",
           validationStatus: "Draft",
           revision: 1,
@@ -598,7 +598,7 @@ export function BatchObservationBuilder({
 
                     <div>
                       <label className="block text-[10px] font-bold uppercase tracking-wider text-[var(--muted-strong)]">
-                        Analytical Meaning / Interpretation <span className="text-red-400">*</span>
+                        Analytical Meaning / Interpretation (Optional)
                       </label>
                       <textarea
                         rows={2}

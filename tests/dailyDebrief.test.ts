@@ -31,25 +31,16 @@ describe("Daily Field Debrief Studio - Domain & Persistence", () => {
     id: testStudyId,
     title: "Upper Egypt Education Field Evaluation",
     subtitle: "Community school resilience study across Minya and Assiut",
-    status: "Active",
+    status: "Active Fieldwork",
     context: "Field mission evaluating community school performance and governance.",
-    evidenceBase: {
-      sourceRecords: 1,
-      evidenceEntries: 1,
-      findings: 0,
-      lessonsLearned: 0,
-      goodPractices: 0,
-      recommendations: 0,
+    scope: {
+      targetSites: ["Minya Rural School A", "Assiut Community Hub B"],
+      isSingleSiteStudy: false,
+      targetStakeholderGroups: ["Teachers", "Parents", "Supervisors"],
     },
     executiveSummary: "Ongoing evaluation.",
     keyMessages: [],
     limitations: [],
-    targetThemes: ["Governance", "Access"],
-    targetStakeholders: ["Teachers", "Parents", "Supervisors"],
-    targetSites: [
-      { id: "site-minya-01", name: "Minya Rural School A", location: "Minya" },
-      { id: "site-assiut-02", name: "Assiut Community Hub B", location: "Assiut" },
-    ],
     createdAt: 1774500000000,
     updatedAt: 1774500000000,
     isDemoCase: false,
@@ -60,32 +51,31 @@ describe("Daily Field Debrief Studio - Domain & Persistence", () => {
     sourceType: "Key Informant Interview",
     stakeholderType: "Teachers",
     location: "Minya Rural School A",
+    siteId: "Minya Rural School A",
     date: "2026-09-26",
     title: "KII with Minya Head Teacher",
-    author: "M. Selim",
-    organization: "Field Evaluation Team",
     summary: "Teacher discusses governance bottlenecks and solar power instability.",
-    keyPoints: ["Solar battery fails afternoon classes", "Board meetings infrequent"],
-    methodology: "Semi-structured interview",
+    rawText: "Solar battery fails afternoon classes. Board meetings infrequent.",
+    consentStatus: "Oral",
+    anonymizationStatus: "Pseudonymized",
     sensitivityFlag: "Low",
-    anonymized: true,
   };
 
   const sampleEvidence: EvidenceEntry = {
     id: "EV-001",
     sourceId: "SRC-001",
     rawEvidence: "Teacher confirmed solar storage battery depletes by 12:30 PM, ending computer lab classes.",
-    interpretedMeaning: "Power unreliability halts digital curriculum daily.",
+    rawObservation: "Teacher confirmed solar storage battery depletes by 12:30 PM, ending computer lab classes.",
+    interpretation: "Power unreliability halts digital curriculum daily.",
     primaryTheme: "Access",
     secondaryTheme: "Governance",
     stakeholderType: "Teachers",
-    evidenceStrength: "Strong",
+    evidenceStrength: "High",
     sensitivityFlag: "Low",
-    qaStatus: "Verified",
+    qaStatus: "Reviewed",
     validationStatus: "Draft",
-    revision: 1,
-    revalidationRequired: false,
     contradictionIds: [],
+    revision: 1,
     potentialFinding: "Solar infrastructure failure impairs digital instruction.",
   };
 
@@ -371,7 +361,6 @@ describe("Daily Field Debrief Studio - Domain & Persistence", () => {
       const evidenceAfterDebrief = await getEvidence(testStudyId, "EV-001");
       expect(evidenceAfterDebrief?.validationStatus).toBe("Draft");
       expect(evidenceAfterDebrief?.revision).toBe(1);
-      expect(evidenceAfterDebrief?.revalidationRequired).toBe(false);
       expect(evidenceAfterDebrief?.rawEvidence).toBe(initialEvidence?.rawEvidence);
     });
 

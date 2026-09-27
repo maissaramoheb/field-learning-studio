@@ -223,16 +223,22 @@ function BulkSourceModalContent({
         updatedAt: now + idx,
       }));
 
-      // Update study scope if user approved additions
-      const newSitesToAdd = Object.keys(addSitesToScope).filter((k) => addSitesToScope[k]);
+      // Update study scope if user approved additions for non-skipped candidates
+      const selectedSites = new Set(selected.map((c) => c.siteId));
+      const selectedStakeholders = new Set(selected.map((c) => c.stakeholderType));
+      const newSitesToAdd = Object.keys(addSitesToScope).filter(
+        (k) => addSitesToScope[k] && selectedSites.has(k)
+      );
       const newStakeholdersToAdd = Object.keys(addStakeholdersToScope).filter(
-        (k) => addStakeholdersToScope[k]
+        (k) => addStakeholdersToScope[k] && selectedStakeholders.has(k)
       );
 
       if (newSitesToAdd.length > 0 || newStakeholdersToAdd.length > 0) {
+        const combinedSites = Array.from(new Set([...study.scope.targetSites, ...newSitesToAdd]));
         const updatedScope = {
           ...study.scope,
-          targetSites: Array.from(new Set([...study.scope.targetSites, ...newSitesToAdd])),
+          targetSites: combinedSites,
+          isSingleSiteStudy: combinedSites.length > 1 ? false : study.scope.isSingleSiteStudy,
           targetStakeholderGroups: Array.from(
             new Set([...study.scope.targetStakeholderGroups, ...newStakeholdersToAdd])
           ),

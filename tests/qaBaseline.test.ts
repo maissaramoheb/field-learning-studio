@@ -14,21 +14,31 @@ describe("v0.8 Baseline: QA Safeguards Characterization", () => {
       const statusCounts = {
         Pass: qaItems.filter((i) => i.status === "Pass").length,
         "Needs Review": qaItems.filter((i) => i.status === "Needs Review").length,
+        "Human Review Required": qaItems.filter((i) => i.status === "Human Review Required").length,
+        "Not Assessed": qaItems.filter((i) => i.status === "Not Assessed").length,
+        "Check Required": qaItems.filter((i) => i.status === "Check Required").length,
+        Informational: qaItems.filter((i) => i.status === "Informational").length,
         Warning: qaItems.filter((i) => i.status === "Warning").length,
       };
 
-      // In Community Bridges, 9 items pass, 4 need review, 0 warnings
-      expect(statusCounts.Pass).toBe(9);
-      expect(statusCounts["Needs Review"]).toBe(4);
+      // In Community Bridges: 4 Pass, 2 Needs Review, 3 Human Review Required, 2 Not Assessed, 1 Check Required, 1 Informational, 0 Warning
+      expect(statusCounts.Pass).toBe(4);
+      expect(statusCounts["Needs Review"]).toBe(2);
+      expect(statusCounts["Human Review Required"]).toBe(3);
+      expect(statusCounts["Not Assessed"]).toBe(2);
+      expect(statusCounts["Check Required"]).toBe(1);
+      expect(statusCounts.Informational).toBe(1);
       expect(statusCounts.Warning).toBe(0);
 
       // Verify specific key check IDs and titles
       expect(qaItems.find((i) => i.id === "QA-001")?.status).toBe("Pass"); // Evidence Traceability
       expect(qaItems.find((i) => i.id === "QA-002")?.status).toBe("Needs Review"); // Triangulation
-      expect(qaItems.find((i) => i.id === "QA-003")?.status).toBe("Pass"); // Overclaiming
+      expect(qaItems.find((i) => i.id === "QA-003")?.status).toBe("Human Review Required"); // Overclaiming - no false pass
       expect(qaItems.find((i) => i.id === "QA-004")?.status).toBe("Pass"); // Contradictions
       expect(qaItems.find((i) => i.id === "QA-005")?.title).toBe("Conflict Sensitivity");
-      expect(qaItems.find((i) => i.id === "QA-005")?.status).toBe("Needs Review");
+      expect(qaItems.find((i) => i.id === "QA-005")?.status).toBe("Human Review Required");
+      expect(qaItems.find((i) => i.id === "QA-006")?.status).toBe("Not Assessed");
+      expect(qaItems.find((i) => i.id === "QA-007")?.status).toBe("Not Assessed");
       expect(qaItems.find((i) => i.id === "QA-013")?.status).toBe("Pass"); // Actionability
     });
   });
@@ -41,14 +51,15 @@ describe("v0.8 Baseline: QA Safeguards Characterization", () => {
 
       const qa005 = qaItems.find((i) => i.id === "QA-005");
       expect(qa005?.title).toBe("Protection & Safeguarding Safety");
-      expect(qa005?.status).toBe("Needs Review"); // Due to sensitive entries in nutrition case
+      expect(qa005?.status).toBe("Human Review Required"); // Due to sensitive entries requiring human review
 
       const qa007 = qaItems.find((i) => i.id === "QA-007");
       expect(qa007?.title).toBe("Child-Centred Sensitivity");
-      expect(qa007?.status).toBe("Pass");
+      expect(qa007?.status).toBe("Not Assessed"); // Contextual review required - no false pass
 
       const qa003 = qaItems.find((i) => i.id === "QA-003");
-      expect(qa003?.notes).toContain("focusing on local acceptability and constraints rather than long-term nutritional changes");
+      expect(qa003?.status).toBe("Human Review Required");
+      expect(qa003?.notes).toContain("analytical verification by evaluators");
     });
   });
 

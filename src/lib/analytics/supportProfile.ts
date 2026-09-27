@@ -61,7 +61,10 @@ export function computeSupportProfile(
   }
 
   const supportingEvidenceIds = new Set(finding.supportingEvidenceIds || []);
-  const supportingEvidence = allEvidence.filter((e) => supportingEvidenceIds.has(e.id));
+  // Reject ineligible/rejected evidence from contributing to support profile
+  const supportingEvidence = allEvidence.filter(
+    (e) => supportingEvidenceIds.has(e.id) && e.validationStatus !== "Rejected"
+  );
 
   // Map sources for fast lookup
   const sourceMap = new Map<string, SourceRecord>();
@@ -69,11 +72,14 @@ export function computeSupportProfile(
     sourceMap.set(s.id, s);
   }
 
-  // 1. Source Independence Rule: count distinct sourceId values
+  // 1. Source Independence Rule: count distinct valid sourceId values that exist in this study
   const uniqueSourceIds = new Set<string>();
   for (const ev of supportingEvidence) {
     if (ev.sourceId && ev.sourceId.trim()) {
-      uniqueSourceIds.add(ev.sourceId.trim());
+      const trimmedSourceId = ev.sourceId.trim();
+      if (sourceMap.has(trimmedSourceId)) {
+        uniqueSourceIds.add(trimmedSourceId);
+      }
     }
   }
   const independentSourceCount = uniqueSourceIds.size;
@@ -148,10 +154,18 @@ export function computeSupportProfile(
 
   if (isSingleSiteStudy) {
     isCrossSite = false;
-    if (sitesFound.length === 0 && scope.targetSites && scope.targetSites.length > 0) {
-      missingSites = [...scope.targetSites];
+    const targetSite = scope.targetSites?.[0];
+    if (targetSite) {
+      const targetMatches = sitesFound.some(
+        (sf) => sf.toLowerCase() === targetSite.toLowerCase()
+      );
+      if (!targetMatches) {
+        missingSites = [targetSite];
+      } else {
+        missingSites = [];
+      }
     } else {
-      missingSites = [];
+      missingSites = sitesFound.length === 0 ? ["Configured Site"] : [];
     }
   } else {
     isCrossSite = sitesFound.length >= 2;
@@ -174,11 +188,15 @@ export function computeSupportProfile(
     ""
   ).trim();
 
-  const textHasSubstance =
-    contradictionText.length > 0 &&
-    !/^none(\s+noted)?\.?$/i.test(contradictionText) &&
-    !/^n\/a$/i.test(contradictionText) &&
-    !/^no contradictory evidence/i.test(contradictionText);
+  // Robust placeholder detection (do not infer contradiction from placeholder text)
+  const isPlaceholder =
+    !contradictionText ||
+    /^none(\s+documented|\s+noted)?\.?$/i.test(contradictionText) ||
+    /^no(\s+contradictory\s+evidence|\s+contradictions)?(\s+documented|\s+found|\s+noted)?\.?$/i.test(contradictionText) ||
+    /^n\/a$/i.test(contradictionText) ||
+    /^nil\.?$/i.test(contradictionText);
+
+  const textHasSubstance = !isPlaceholder;
 
   let unresolvedCount = allContradictionIds.length;
   if (unresolvedCount === 0 && textHasSubstance) {
@@ -209,11 +227,13 @@ export function computeSupportProfile(
   } else {
     const hasAdequateSources = independentSourceCount >= 3;
     const hasMultiMethod = isMultiMethod;
-    const hasNoContradictions = !hasContradictions;
 
     let hasAdequateSite = false;
     if (isSingleSiteStudy) {
-      hasAdequateSite = sitesFound.length >= 1;
+      const targetSite = scope.targetSites?.[0];
+      hasAdequateSite = targetSite
+        ? sitesFound.some((sf) => sf.toLowerCase() === targetSite.toLowerCase())
+        : sitesFound.length >= 1;
     } else {
       hasAdequateSite = isCrossSite && missingSites.length === 0;
     }
@@ -228,7 +248,6 @@ export function computeSupportProfile(
     if (
       hasAdequateSources &&
       hasMultiMethod &&
-      hasNoContradictions &&
       hasAdequateSite &&
       hasAdequateStakeholder
     ) {

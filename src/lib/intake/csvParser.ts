@@ -247,15 +247,35 @@ export function convertTabularRowsToSourceCandidates(
     });
 
     const title = fieldMap.title || `Row ${rowIndex + 1}`;
-    const date = fieldMap.date || defaultDate;
+
+    // Explicit date validation & handling
+    const rawDate = (fieldMap.date || "").trim();
+    let date = rawDate;
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (!rawDate) {
+      date = defaultDate || "";
+      if (!defaultDate) {
+        warnings.push("Date is missing; recorded with empty date.");
+      } else {
+        warnings.push(`Date omitted in tabular data; applied default date ${defaultDate}.`);
+      }
+    } else if (isNaN(Date.parse(rawDate))) {
+      warnings.push(`Date "${rawDate}" is not a recognized date format.`);
+    }
+
     const siteId = fieldMap.siteId || "Unspecified Site";
     const stakeholderType = fieldMap.stakeholderType || "Unspecified Stakeholder";
     const collectorName = fieldMap.collectorName || undefined;
     const narrative = fieldMap.narrative || "";
 
-    // Method normalization
+    // Method normalization: Unknown metadata remains unknown (no silent KII default)
     const rawMethod = (fieldMap.collectionMethod || "").toLowerCase().trim();
-    const collectionMethod = KNOWN_METHODS[rawMethod] || (rawMethod ? fieldMap.collectionMethod! : "Key Informant Interview");
+    const collectionMethod = KNOWN_METHODS[rawMethod] || (rawMethod ? fieldMap.collectionMethod! : "Unspecified Method");
+    if (!rawMethod) {
+      warnings.push("Collection method omitted; recorded as 'Unspecified Method'.");
+    }
 
     // Ethics defaults: Missing consent/anonymization NEVER assumed oral/written/anonymized!
     const rawConsent = (fieldMap.consentStatus || "").toLowerCase().trim();
@@ -266,9 +286,6 @@ export function convertTabularRowsToSourceCandidates(
 
     const rawSens = (fieldMap.sensitivityFlag || "").toLowerCase().trim();
     const sensitivityFlag: SensitivityFlag = KNOWN_SENSITIVITY[rawSens] || "None";
-
-    const errors: string[] = [];
-    const warnings: string[] = [];
 
     if (!fieldMap.title) {
       errors.push("Missing required field: Title");

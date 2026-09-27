@@ -40,6 +40,20 @@ export function ObservationCaptureForm({
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // Reset form fields on study or active source change to prevent cross-study state leakage
+  const prevContextRef = React.useRef(`${study.id}:${activeSource.id}`);
+  React.useEffect(() => {
+    const currentContext = `${study.id}:${activeSource.id}`;
+    if (prevContextRef.current !== currentContext) {
+      prevContextRef.current = currentContext;
+      setRawObservation("");
+      setInterpretation("");
+      setSecondaryTheme("");
+      setSuccessMsg(null);
+      setIsBatchMode(false);
+    }
+  }, [study.id, activeSource.id]);
+
   // Existing evidence extracted from this source
   const extractedEvidence = study.evidence.filter(
     (e) => e.sourceId === activeSource.id
@@ -54,7 +68,13 @@ export function ObservationCaptureForm({
 
   const handleSaveObservation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rawObservation.trim() || !interpretation.trim() || !primaryTheme.trim()) {
+    if (!rawObservation.trim() || !primaryTheme.trim()) {
+      return;
+    }
+
+    // Explicit domain guard against cross-study contamination
+    if (activeSource.studyId && activeSource.studyId !== study.id) {
+      alert(`Cannot save observation: Source "${activeSource.id}" belongs to study "${activeSource.studyId}", but active study is "${study.id}".`);
       return;
     }
 
@@ -74,12 +94,12 @@ export function ObservationCaptureForm({
         stakeholderType: activeSource.stakeholderType,
         rawEvidence: rawObservation.trim(),
         rawObservation: rawObservation.trim(),
-        interpretation: interpretation.trim(),
+        interpretation: interpretation.trim() || "",
         primaryTheme: primaryTheme.trim(),
         secondaryTheme: secondaryTheme.trim() || "General",
         evidenceStrength,
         sensitivityFlag,
-        potentialFinding: interpretation.trim(),
+        potentialFinding: interpretation.trim() || "",
         qaStatus: "Needs Review",
         validationStatus: "Draft",
         revision: 1,
@@ -224,14 +244,13 @@ export function ObservationCaptureForm({
           <div className="rounded-lg border border-[var(--border-strong)] bg-slate-900/40 p-3.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-sky-300">
-                Analytical Interpretation (What might this mean) <span className="text-rose-400">*</span>
+                Analytical Interpretation (Provisional / Optional during intake)
               </label>
               <span className="rounded bg-sky-950/60 px-2 py-0.5 text-[10px] font-medium text-sky-400">
                 Draft sensemaking
               </span>
             </div>
             <textarea
-              required
               rows={3}
               value={interpretation}
               onChange={(e) => setInterpretation(e.target.value)}

@@ -2,9 +2,29 @@
 
 ## Current Status
 
-v0.9 Phase 7 (Bulk Intake & Structured Import Engine) is fully implemented on branch `feature/v0.9-field-sensemaking`. The engine eliminates the manual data-entry bottleneck for realistic field missions through three deterministic, pure client-side intake routes: **Route A** (Batch Observation Builder with 2-column workbench, deterministic paragraph/bullet segmentation helper, highlight capture, compact review table with inline text editing, bulk theme and reliability setters, and atomic Draft evidence batch persistence), **Route B** (Multi-Source Structured Paste ingesting `---` delimited notes with automated header parsing, conservative ethics defaults, narrative safety scan, scope mismatch reconciliation, and exact duplicate detection), and **Route C** (Tabular CSV/TSV Import featuring zero-dependency RFC 4180 parsing, delimiter auto-detection, smart column mapping suggester, and preview reconciliation). Every imported observation strictly enters as `validationStatus: "Draft"`, `revision: 1`, preserving the evidence-to-learning provenance chain. Triangulation invariance is strictly enforced: multiple observations from a single source note represent exactly one independent source in analytical support profiles. All 146 Vitest tests pass across 13 test files. Next.js production build and ESLint pass with zero errors and zero warnings. Complete 7-step browser acceptance audit verified across 11 CDP screenshots.
+Codex Audit Resolution & Evidence Integrity Stabilization is fully implemented and verified on branch `feature/v0.9-field-sensemaking`. All critical and high-priority findings from the independent Codex audit have been independently reproduced, hardened, and verified across all application layers. Evidence-to-learning integrity is secured through:
+1. **Cross-Study Isolation**: Repository-level referential integrity checks (`src/lib/storage/integrity.ts`) guaranteeing that evidence, findings, and recommendations strictly reference parent entities within the same study scope, rejecting foreign keys.
+2. **Export Parity & Boundary Enforcement**: Unified export policy (`src/lib/exportPolicy.ts`, `src/lib/buildBriefExportModel.ts`) ensuring unvalidated artifacts (Draft, Needs Review, Rejected) and invalid recommendations are strictly excluded from preview models, Markdown generation, and document downloads.
+3. **Stale Dependency Propagation**: Substantive edits to validated findings automatically revert validation status to `Needs Review`, increment revisions, log to audit history, and immediately flag downstream recommendations as export-ineligible with clear dependency alerts.
+4. **Support Profile Hardening**: `computeSupportProfile` strictly excludes rejected evidence and foreign sources, correctly handles single-site study scopes without requiring cross-site triangulation, and reliably differentiates genuine contradictions from placeholder text.
+5. **Forensic Backup & Recovery**: `.fls.json` backup archives undergo structural validation and referential integrity checks upon inspection, with full collision support (`import_as_new` re-keying and `overwrite`).
+6. **Cleansed Synthesis Modals**: Eliminated synthetic default prose ("None documented.", "Observed during implementation") across finding, lesson, and good practice authoring modals.
+7. **UX Simplification Blueprint**: Authored `docs/ux_simplification_blueprint.md` defining the target 4-space architecture (Study, Field Material, Analysis, Deliverables) and terminology normalization for v1.0.
+
+All 156 Vitest tests pass across 14 test files (including the dedicated `tests/integrityAudit.test.ts` suite). Next.js production build compiles with zero errors, and ESLint passes with zero errors and zero warnings.
 
 ## Completed Items
+
+- **Codex Audit Resolution & Evidence Integrity Stabilization**:
+  - Implemented referential integrity validator in `src/lib/storage/integrity.ts` enforcing same-study source, evidence, and finding parentage.
+  - Implemented unified export eligibility predicates in `src/lib/exportPolicy.ts` and updated `buildBriefExportModel.ts` and `generateMarkdownFromModel.ts`.
+  - Hardened `computeSupportProfile.ts` for single-site targets, foreign source exclusion, and robust placeholder detection.
+  - Hardened `inspectStudyBackup` in `src/lib/storage/studyBackup.ts` with deep structural validation, array schema checking, and collision handling.
+  - Cleansed synthetic placeholder fallbacks from `FindingAuthoringModal.tsx` and `OptionalOutputsModal.tsx`.
+  - Restored QA baseline review requirements for sandbox-generated items in `src/lib/qa.ts`.
+  - Authored future UX simplification blueprint in `docs/ux_simplification_blueprint.md`.
+  - Created dedicated regression test suite in `tests/integrityAudit.test.ts` (10 tests). Total test suite: 156 passing tests across 14 test files.
+
 
 - **v0.9 Phase 7: Bulk Field Intake & Structured Import Engine**:
   - Implemented `getNextSequenceOfIds`, `getNextSequenceOfEvidenceIds`, and `getNextSequenceOfSourceIds` in `src/lib/idGenerator.ts`.
@@ -192,14 +212,15 @@ git diff --check
 
 ## Validation Results
 
+- `npx tsc --noEmit --incremental false`: passed (0 errors across `src/` and `tests/`).
 - `npm run lint`: passed (0 errors, 0 warnings).
 - `npm run build`: passed (Next.js production static bundle generated).
-- `npm test`: passed (12 test files, 122 passing tests: 27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics + 7 ID generator + 5 Field Intake + 19 Validation Lifecycle + 12 Daily Debrief + 19 Synthesis Workbench).
+- `npm test`: passed (14 test files, 156 passing tests: 27 Phase 0 regression + 16 Phase 1 storage + 17 Phase 2 analytics + 7 ID generator + 5 Field Intake + 19 Validation Lifecycle + 12 Daily Debrief + 20 Synthesis Workbench + 20 Bulk Intake + 3 QA Baseline + 10 Codex Audit Integrity Suite).
 - `python3 -m json.tool OPS_UPDATE.json`: passed.
-- `git diff --check`: passed.
-- Local preview/browser smoke: 18-step automated CDP audit passed with 14 screenshots verified.
+- `git diff --check`: passed (0 whitespace errors).
+- Local HTTP dev server smoke: passed (HTTP 200 OK).
 - Live Vercel Production deployment: https://field-learning-studio.vercel.app/ (not changed by this branch; pending merge of feature/v0.9-field-sensemaking).
 
 ## Last Update
 
-2026-09-26: Implemented v0.9 Modified Phase 6 Study Framework + Synthesis Workbench on branch `feature/v0.9-field-sensemaking`. All 122 tests pass. Production build, ESLint, and 18-step browser acceptance audit pass with zero errors.
+2026-09-27: Implemented Codex Audit Resolution & Evidence Integrity Stabilization on branch `feature/v0.9-field-sensemaking`. All 156 tests pass across 14 test files. Zero TypeScript errors, zero ESLint warnings, and production build cleanly verified. Authored UX Simplification Blueprint in `docs/ux_simplification_blueprint.md`.

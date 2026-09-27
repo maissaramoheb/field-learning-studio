@@ -147,7 +147,24 @@ export function parseStructuredSourceBlocks(
 
     const narrative = narrativeLines.join("\n").trim();
     const title = headers["title"] || headers["sourcetitle"] || headers["name"] || "";
-    const date = headers["date"] || defaultDate;
+
+    // Explicit date validation & handling
+    const rawDate = (headers["date"] || "").trim();
+    let date = rawDate;
+    const errors: string[] = [];
+    const warnings: string[] = [];
+
+    if (!rawDate) {
+      date = defaultDate || "";
+      if (!defaultDate) {
+        warnings.push("Date is missing; recorded with empty date.");
+      } else {
+        warnings.push(`Date omitted in source text; applied default date ${defaultDate}.`);
+      }
+    } else if (isNaN(Date.parse(rawDate))) {
+      warnings.push(`Date "${rawDate}" is not a recognized date format.`);
+    }
+
     const siteId = headers["site"] || headers["siteid"] || headers["location"] || "Unspecified Site";
     const stakeholderType =
       headers["stakeholder"] ||
@@ -157,9 +174,12 @@ export function parseStructuredSourceBlocks(
       "Unspecified Stakeholder";
     const collectorName = headers["collector"] || headers["interviewer"] || headers["researcher"] || undefined;
 
-    // Normalizing method
+    // Normalizing method: Unknown metadata remains unknown (no silent KII default)
     const rawMethod = (headers["method"] || headers["sourcetype"] || headers["type"] || "").toLowerCase().trim();
-    const collectionMethod = KNOWN_METHODS[rawMethod] || (rawMethod ? headers["method"] : "Key Informant Interview");
+    const collectionMethod = KNOWN_METHODS[rawMethod] || (rawMethod ? headers["method"] : "Unspecified Method");
+    if (!rawMethod) {
+      warnings.push("Collection method omitted; recorded as 'Unspecified Method'.");
+    }
 
     // Ethics defaults: Do not assume oral/written or anonymized!
     const rawConsent = (headers["consent"] || headers["consentstatus"] || "").toLowerCase().trim();
@@ -170,10 +190,6 @@ export function parseStructuredSourceBlocks(
 
     const rawSens = (headers["sensitivity"] || headers["sensitivityflag"] || "").toLowerCase().trim();
     const sensitivityFlag: SensitivityFlag = KNOWN_SENSITIVITY[rawSens] || "None";
-
-    // Validation errors & warnings
-    const errors: string[] = [];
-    const warnings: string[] = [];
 
     if (!title) {
       errors.push("Missing required field: Title");

@@ -10,6 +10,7 @@ import type {
   LessonLearned,
   GoodPractice,
   Recommendation,
+  ValidationStatus,
 } from "@/lib/types";
 
 export const BACKUP_FORMAT_IDENTIFIER = "field-learning-studio-backup";
@@ -34,57 +35,84 @@ export interface StudyBackupEnvelope {
 
 export type ImportStrategy = "reject_collision" | "overwrite" | "import_as_new";
 
-export interface ValidationResult {
+export interface BackupInspectionResult {
   valid: boolean;
-  error?: string;
+  errors: string[];
+  warnings: string[];
   envelope?: StudyBackupEnvelope;
+  preview?: {
+    studyId: string;
+    studyTitle: string;
+    exportedAt: number;
+    sourceCount: number;
+    evidenceCount: number;
+    findingCount: number;
+    recommendationCount: number;
+    debriefCount: number;
+    lessonCount: number;
+    goodPracticeCount: number;
+    collisionDetected: boolean;
+  };
 }
 
-export function validateStudyBackupEnvelope(data: unknown): ValidationResult {
+const VALID_VALIDATION_STATUSES = new Set<ValidationStatus>([
+  "Draft",
+  "Needs Review",
+  "Validated",
+  "Rejected",
+]);
+
+/**
+ * Validates the structural envelope, entity completeness, required fields,
+ * and same-study referential relationships for a study backup archive.
+ */
+export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
   if (typeof data !== "object" || data === null) {
-    return { valid: false, error: "Backup data must be a non-null object." };
+    return {
+      valid: false,
+      errors: ["Backup data must be a valid non-null JSON object."],
+      warnings: [],
+    };
   }
 
   const obj = data as Record<string, unknown>;
 
   if (obj.format !== BACKUP_FORMAT_IDENTIFIER) {
-    return {
-      valid: false,
-      error: `Invalid format identifier. Expected "${BACKUP_FORMAT_IDENTIFIER}", got "${String(
+    errors.push(
+      `Invalid format identifier. Expected "${BACKUP_FORMAT_IDENTIFIER}", got "${String(
         obj.format
-      )}".`,
-    };
+      )}".`
+    );
   }
 
   if (obj.version !== BACKUP_FORMAT_VERSION) {
-    return {
-      valid: false,
-      error: `Unsupported backup version. Expected ${BACKUP_FORMAT_VERSION}, got "${String(
+    errors.push(
+      `Unsupported backup version. Expected ${BACKUP_FORMAT_VERSION}, got "${String(
         obj.version
-      )}".`,
-    };
+      )}".`
+    );
   }
 
   if (typeof obj.exportedAt !== "number" || isNaN(obj.exportedAt)) {
-    return { valid: false, error: "Backup must contain a valid numeric exportedAt timestamp." };
-  }
-
-  if (typeof obj.warning !== "string") {
-    return { valid: false, error: "Backup must contain an unencrypted-data warning string." };
+    errors.push("Backup must contain a valid numeric exportedAt timestamp.");
   }
 
   if (typeof obj.study !== "object" || obj.study === null) {
-    return { valid: false, error: "Backup must contain a valid study metadata object." };
+    errors.push("Backup must contain a valid study metadata object.");
   }
 
-  const study = obj.study as Record<string, unknown>;
+  const study = (obj.study || {}) as Record<string, unknown>;
   if (typeof study.id !== "string" || !study.id.trim()) {
-    return { valid: false, error: "Study metadata must have a non-empty string ID." };
+    errors.push("Study metadata is missing a valid string ID.");
   }
   if (typeof study.title !== "string" || !study.title.trim()) {
-    return { valid: false, error: "Study metadata must have a non-empty string title." };
+    errors.push("Study metadata is missing a valid string title.");
   }
 
+  // Check array sections
   const arrayFields = [
     "sources",
     "evidence",
@@ -97,31 +125,209 @@ export function validateStudyBackupEnvelope(data: unknown): ValidationResult {
 
   for (const field of arrayFields) {
     if (!Array.isArray(obj[field])) {
-      return { valid: false, error: `Backup section "${field}" must be an array.` };
-    }
-
-    const items = obj[field] as unknown[];
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-      if (typeof item !== "object" || item === null) {
-        return {
-          valid: false,
-          error: `Item at index ${i} in "${field}" must be a non-null object.`,
-        };
-      }
-      const itemObj = item as Record<string, unknown>;
-      if (typeof itemObj.id !== "string" || !itemObj.id.trim()) {
-        return {
-          valid: false,
-          error: `Item at index ${i} in "${field}" is missing a valid string ID.`,
-        };
-      }
+      errors.push(`Backup section "${field}" must be an array.`);
     }
   }
 
+  if (errors.length > 0) {
+    return { valid: false, errors, warnings };
+  }
+
+  const sources = (obj.sources || []) as SourceRecord[];
+  const evidence = (obj.evidence || []) as EvidenceEntry[];
+  const debriefs = (obj.debriefs || []) as DailyDebrief[];
+  const findings = (obj.findings || []) as Finding[];
+  const lessons = (obj.lessons || []) as LessonLearned[];
+  const goodPractices = (obj.goodPractices || []) as GoodPractice[];
+  const recommendations = (obj.recommendations || []) as Recommendation[];
+
+  // 1. Validate Sources
+  const sourceIdSet = new Set<string>();
+  sources.forEach((s, idx) => {
+    if (!s || typeof s !== "object") {
+      errors.push(`Source at index ${idx} is not an object.`);
+      return;
+    }
+    if (!s.id || typeof s.id !== "string" || !s.id.trim()) {
+      errors.push(`Source at index ${idx} has missing or invalid ID.`);
+      return;
+    }
+    if (!s.title || typeof s.title !== "string" || !s.title.trim()) {
+      errors.push(`Source "${s.id}" is missing required title.`);
+    }
+    sourceIdSet.add(s.id);
+  });
+
+  // 2. Validate Evidence
+  const evidenceIdSet = new Set<string>();
+  evidence.forEach((e, idx) => {
+    if (!e || typeof e !== "object") {
+      errors.push(`Evidence at index ${idx} is not an object.`);
+      return;
+    }
+    if (!e.id || typeof e.id !== "string" || !e.id.trim()) {
+      errors.push(`Evidence at index ${idx} has missing or invalid ID.`);
+      return;
+    }
+    const obsText = e.rawEvidence || e.rawObservation;
+    if (!obsText || typeof obsText !== "string" || !obsText.trim()) {
+      errors.push(`Evidence "${e.id}" is missing required observation content.`);
+    }
+    if (!e.sourceId || !sourceIdSet.has(e.sourceId)) {
+      errors.push(
+        `Relationship violation: Evidence "${e.id}" references missing or foreign Source "${e.sourceId}".`
+      );
+    }
+    if (e.validationStatus && !VALID_VALIDATION_STATUSES.has(e.validationStatus)) {
+      errors.push(
+        `Evidence "${e.id}" has invalid validationStatus "${String(e.validationStatus)}".`
+      );
+    }
+    evidenceIdSet.add(e.id);
+  });
+
+  // 3. Validate Findings
+  const findingIdSet = new Set<string>();
+  findings.forEach((f, idx) => {
+    if (!f || typeof f !== "object") {
+      errors.push(`Finding at index ${idx} is not an object.`);
+      return;
+    }
+    if (!f.id || typeof f.id !== "string" || !f.id.trim()) {
+      errors.push(`Finding at index ${idx} has missing or invalid ID.`);
+      return;
+    }
+    if (!f.statement || typeof f.statement !== "string" || !f.statement.trim()) {
+      errors.push(`Finding "${f.id}" is missing required statement.`);
+    }
+    if (f.validationStatus && !VALID_VALIDATION_STATUSES.has(f.validationStatus)) {
+      errors.push(
+        `Finding "${f.id}" has invalid validationStatus "${String(f.validationStatus)}".`
+      );
+    }
+    for (const evId of f.supportingEvidenceIds || []) {
+      if (!evidenceIdSet.has(evId)) {
+        errors.push(
+          `Relationship violation: Finding "${f.id}" references missing Evidence "${evId}".`
+        );
+      }
+    }
+    for (const evId of f.contradictoryEvidenceIds || []) {
+      if (!evidenceIdSet.has(evId)) {
+        errors.push(
+          `Relationship violation: Finding "${f.id}" references missing contradictory Evidence "${evId}".`
+        );
+      }
+    }
+    findingIdSet.add(f.id);
+  });
+
+  // 4. Validate Recommendations
+  recommendations.forEach((r, idx) => {
+    if (!r || typeof r !== "object") {
+      errors.push(`Recommendation at index ${idx} is not an object.`);
+      return;
+    }
+    if (!r.id || typeof r.id !== "string" || !r.id.trim()) {
+      errors.push(`Recommendation at index ${idx} has missing or invalid ID.`);
+      return;
+    }
+    if (!r.recommendation || typeof r.recommendation !== "string" || !r.recommendation.trim()) {
+      errors.push(`Recommendation "${r.id}" is missing required recommendation text.`);
+    }
+    if (r.linkedFindingId && !findingIdSet.has(r.linkedFindingId)) {
+      errors.push(
+        `Relationship violation: Recommendation "${r.id}" references missing parent Finding "${r.linkedFindingId}".`
+      );
+    }
+    if (r.validationStatus && !VALID_VALIDATION_STATUSES.has(r.validationStatus)) {
+      errors.push(
+        `Recommendation "${r.id}" has invalid validationStatus "${String(r.validationStatus)}".`
+      );
+    }
+  });
+
+  // 5. Validate Lessons & Good Practices
+  lessons.forEach((l) => {
+    for (const evId of l.evidenceBase || []) {
+      if (!evidenceIdSet.has(evId)) {
+        warnings.push(`Lesson "${l.id}" references evidence "${evId}" not found in backup.`);
+      }
+    }
+  });
+
+  goodPractices.forEach((gp) => {
+    for (const evId of gp.evidenceBase || []) {
+      if (!evidenceIdSet.has(evId)) {
+        warnings.push(`Good Practice "${gp.id}" references evidence "${evId}" not found in backup.`);
+      }
+    }
+  });
+
+  // 6. Validate Debriefs
+  debriefs.forEach((d, idx) => {
+    if (!d || typeof d !== "object") {
+      errors.push(`Debrief at index ${idx} is not an object.`);
+      return;
+    }
+    if (!d.id || typeof d.id !== "string" || !d.id.trim()) {
+      errors.push(`Debrief at index ${idx} has missing or invalid ID.`);
+      return;
+    }
+  });
+
+  const envelope = obj as unknown as StudyBackupEnvelope;
+
   return {
-    valid: true,
-    envelope: obj as unknown as StudyBackupEnvelope,
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    envelope: errors.length === 0 ? envelope : undefined,
+  };
+}
+
+/**
+ * Inspects a backup JSON string, runs deep structural validation,
+ * and produces a preview with collision status.
+ */
+export async function inspectStudyBackup(
+  jsonString: string,
+  existingStudyIds: string[] = []
+): Promise<BackupInspectionResult> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(jsonString);
+  } catch {
+    return {
+      valid: false,
+      errors: ["Not valid JSON format: File is not valid JSON."],
+      warnings: [],
+    };
+  }
+
+  const result = validateStudyBackupEnvelope(parsed);
+  if (!result.valid || !result.envelope) {
+    return result;
+  }
+
+  const env = result.envelope;
+  const collisionDetected = existingStudyIds.includes(env.study.id);
+
+  return {
+    ...result,
+    preview: {
+      studyId: env.study.id,
+      studyTitle: env.study.title,
+      exportedAt: env.exportedAt,
+      sourceCount: env.sources.length,
+      evidenceCount: env.evidence.length,
+      findingCount: env.findings.length,
+      recommendationCount: env.recommendations.length,
+      debriefCount: env.debriefs.length,
+      lessonCount: env.lessons.length,
+      goodPracticeCount: env.goodPractices.length,
+      collisionDetected,
+    },
   };
 }
 
@@ -161,24 +367,22 @@ export async function exportStudyBackup(studyId: StudyId): Promise<string> {
 }
 
 export async function importStudyBackup(
-  jsonString: string,
+  envelopeOrJson: StudyBackupEnvelope | string,
   strategy: ImportStrategy = "reject_collision"
 ): Promise<{ success: boolean; studyId: StudyId; message?: string }> {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(jsonString);
-  } catch {
-    throw new Error("Invalid backup file: Not valid JSON format.");
+  let envelope: StudyBackupEnvelope;
+
+  if (typeof envelopeOrJson === "string") {
+    const inspection = await inspectStudyBackup(envelopeOrJson);
+    if (!inspection.valid || !inspection.envelope) {
+      throw new Error(`Invalid backup archive: ${inspection.errors.join("; ")}`);
+    }
+    envelope = inspection.envelope;
+  } else {
+    envelope = envelopeOrJson;
   }
 
-  const validation = validateStudyBackupEnvelope(parsed);
-  if (!validation.valid || !validation.envelope) {
-    throw new Error(`Invalid backup archive: ${validation.error}`);
-  }
-
-  const envelope = validation.envelope;
   const originalStudyId = envelope.study.id;
-
   const existingMeta = await getStudyMeta(originalStudyId);
 
   if (existingMeta && strategy === "reject_collision") {
@@ -320,6 +524,6 @@ export async function importStudyBackup(
   return {
     success: true,
     studyId: targetStudyId,
-    message: `Study successfully imported with ID "${targetStudyId}".`,
+    message: `Study successfully restored as "${targetStudyId}".`,
   };
 }

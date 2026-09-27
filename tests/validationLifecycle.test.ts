@@ -16,6 +16,7 @@ import {
 import {
   clearAllStores,
   saveStudyMeta,
+  saveSource,
   saveEvidence,
   getEvidence,
   assembleStudy,
@@ -298,6 +299,23 @@ describe("Validation Lifecycle Domain Logic (v0.9 Phase 4)", () => {
         updatedAt: 1000,
       };
       await saveStudyMeta(meta);
+      await saveSource({
+        id: "SRC-TEST-001",
+        studyId,
+        title: "Test Source",
+        date: "2026-09-20",
+        location: "Minya",
+        siteId: "Minya",
+        stakeholderType: "Teachers",
+        sourceType: "Key Informant Interview",
+        consentStatus: "Oral",
+        anonymizationStatus: "Pseudonymized",
+        sensitivityFlag: "None",
+        summary: "Test source summary",
+        rawText: "Test source notes",
+        createdAt: 1000,
+        updatedAt: 1000,
+      });
     });
 
     it("persists full lifecycle: Draft -> Needs Review -> Validated -> Edit (Requires Re-validation) -> Re-validated", async () => {

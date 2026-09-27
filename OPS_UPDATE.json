@@ -1,30 +1,30 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "v0.9_phase_7_bulk_intake_implemented",
+  "status": "codex_audit_resolved_evidence_integrity_stabilized",
   "priority": "high",
-  "current_phase": "v0.9 Phase 7: Bulk Intake & Structured Import",
-  "next_action": "Review Phase 7 Bulk Intake & Structured Import implementation report and decide on strategic product progression.",
+  "current_phase": "Audit Resolution: Evidence Integrity & Recovery Stabilization",
+  "next_action": "Review Audit Resolution report and approve readiness for shadow pilot.",
   "blocker": null,
-  "decision_needed": "Approval of Phase 7 Bulk Intake & Structured Import before proceeding to next milestone.",
+  "decision_needed": "Approval of Audit Resolution & Evidence Integrity Stabilization before executing UX Simplification Blueprint.",
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
   "preview_url": "https://field-learning-studio-pleg1fc7s-delta4ce20-5830s-projects.vercel.app",
   "production_url": "https://field-learning-studio.vercel.app/",
   "validation_results": {
     "primary": "passed",
-    "lint": "passed",
-    "build": "passed",
+    "tsc": "0_errors_whole_repo",
+    "lint": "0_errors_0_warnings",
+    "build": "passed_turbopack",
     "json": "passed",
     "diff_check": "passed",
-    "local_http": "passed_browser_acceptance_audit",
-    "tests": "146_passed_13_files"
+    "local_http": "passed_status_200",
+    "tests": "156_passed_14_files"
   },
   "remaining_risks": [
     "PDF/Word client-side downloads rely on browser-level file generation APIs (Blob, URL.createObjectURL, and react-pdf iframe/blob streams). Browser-specific download policies may apply.",
     "Scope creep before target-user validation remains a risk.",
-    "Overbuilding into SaaS features too early remains a risk.",
     "Automated safeguarding scan is heuristic and practitioners must independently review content for sensitive field details."
   ],
-  "recommended_next_step": "Conduct practitioner usability evaluation of the three intake routes (Batch Observation Builder, Structured Text Paste, Tabular CSV/TSV Import).",
-  "notion_page_update": "Implemented v0.9 Phase 7 Bulk Intake & Structured Import Engine on branch feature/v0.9-field-sensemaking. Solved manual data-entry friction by introducing three deterministic, client-side intake routes: Route A (Batch Observation Builder with narrative reader, bullet/paragraph segmentation helper, compact review table with inline text editing, bulk theme and reliability controls, and atomic Draft evidence batch persistence), Route B (Multi-Source Structured Paste ingesting '---' delimited blocks with automated header parsing, conservative ethics defaults, narrative safety scan, scope mismatch reconciliation, and exact duplicate detection), and Route C (Tabular CSV/TSV Import featuring zero-dependency RFC 4180 parsing, delimiter auto-detection, smart column mapping suggester, and preview reconciliation). Enforced provenance integrity and triangulation invariance (multiple observations from 1 source count as 1 independent source). Added 20 new Vitest tests (146 total tests passing across 13 files), technical documentation in docs/v0.9_bulk_intake_guide.md, and complete 7-step browser acceptance audit via CDP in headless Chrome across 11 screenshots. ESLint and Next.js production build pass cleanly."
+  "recommended_next_step": "Proceed to shadow pilot with real qualitative evaluation field data under the hardened evidence-to-learning provenance model.",
+  "notion_page_update": "Resolved Codex audit findings and stabilized evidence integrity and recovery on branch feature/v0.9-field-sensemaking. Enforced repository-level cross-study isolation in src/lib/storage/integrity.ts, guaranteed export parity across preview model and Markdown export in src/lib/exportPolicy.ts, enabled automated stale dependency cascading and recommendation export blocking on substantive finding edits, hardened computeSupportProfile for single-site studies and rejected-evidence filtering, enabled deep structural validation and collision handling for .fls.json backup archives, removed synthetic placeholder prose from synthesis modals, and restored QA baseline truth for sandbox items. Authored docs/ux_simplification_blueprint.md defining the target 4-space architecture. Added 10 new regression tests in tests/integrityAudit.test.ts (156 total tests passing across 14 files). Zero TypeScript errors, zero ESLint warnings, and Next.js production build pass cleanly."
 }

@@ -33,6 +33,7 @@ import { downloadBriefMarkdown } from "@/lib/exportMarkdown";
 import { runSandboxSafetyCheck, parseSandboxInput } from "@/lib/sandboxParser";
 import { FieldIntakeView } from "@/components/intake/FieldIntakeView";
 import { MinimalStudyModal } from "@/components/studies/MinimalStudyModal";
+import { BackupRestoreModal } from "@/components/studies/BackupRestoreModal";
 import { EvidenceReviewWorkspace } from "@/components/evidence";
 import { DailyDebriefView } from "@/components/debrief";
 import { SynthesisWorkbench } from "@/components/synthesis";
@@ -125,6 +126,7 @@ export function FieldLearningStudioApp({
   const [allStudies, setAllStudies] = useState<StudyMeta[]>([]);
   const [currentStudy, setCurrentStudy] = useState<FieldStudy | null>(null);
   const [isNewStudyModalOpen, setIsNewStudyModalOpen] = useState(false);
+  const [isBackupRestoreModalOpen, setIsBackupRestoreModalOpen] = useState(false);
 
   const refreshStudiesList = async (targetId?: string) => {
     try {
@@ -899,6 +901,7 @@ export function FieldLearningStudioApp({
         onSelect={handleSelectCase}
         editableStudies={allStudies.filter((s) => !s.isDemoCase)}
         onCreateNewStudy={() => setIsNewStudyModalOpen(true)}
+        onOpenBackupRestore={() => setIsBackupRestoreModalOpen(true)}
       />
 
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
@@ -1055,6 +1058,20 @@ export function FieldLearningStudioApp({
           setActiveTab("intake");
         }}
       />
+
+      <BackupRestoreModal
+        isOpen={isBackupRestoreModalOpen}
+        onClose={() => setIsBackupRestoreModalOpen(false)}
+        currentStudy={currentStudy}
+        allStudies={allStudies}
+        onStudyRestored={async (studyId) => {
+          if (typeof window !== "undefined") {
+            localStorage.setItem("fls_active_study_id", studyId);
+          }
+          await refreshStudiesList(studyId);
+          setActiveTab("intake");
+        }}
+      />
     </main>
   );
 }
@@ -1086,11 +1103,13 @@ function CaseSelector({
   onSelect,
   editableStudies = [],
   onCreateNewStudy,
+  onOpenBackupRestore,
 }: {
   selectedId: string;
   onSelect: (id: string) => void;
   editableStudies?: StudyMeta[];
   onCreateNewStudy?: () => void;
+  onOpenBackupRestore?: () => void;
 }) {
   return (
     <div
@@ -1111,6 +1130,16 @@ function CaseSelector({
             <p className="hidden max-w-xl text-sm leading-6 text-[var(--muted)] sm:block">
               Choose a pristine demo case or an active local field study with persistent narrative intake.
             </p>
+            {onOpenBackupRestore && (
+              <button
+                type="button"
+                onClick={onOpenBackupRestore}
+                className="inline-flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3.5 py-2 text-xs font-semibold text-[var(--foreground)] shadow-sm hover:border-[var(--trace)] transition cursor-pointer"
+                title="Backup or restore study archives (.fls.json)"
+              >
+                <span>📦</span> Backup / Restore
+              </button>
+            )}
             {onCreateNewStudy && (
               <button
                 type="button"
@@ -3022,28 +3051,43 @@ function QAReviewSection({
 }) {
   const stats = {
     pass: qaItems.filter((i) => i.status === "Pass").length,
-    needsReview: qaItems.filter((i) => i.status === "Needs Review").length,
-    warning: qaItems.filter((i) => i.status === "Warning").length,
+    needsReview: qaItems.filter((i) => i.status === "Needs Review" || i.status === "Human Review Required").length,
+    warning: qaItems.filter((i) => i.status === "Warning" || i.status === "Check Required" || i.status === "Evidence Missing").length,
+    notAssessed: qaItems.filter((i) => i.status === "Not Assessed" || i.status === "Informational").length,
   };
 
   const sortedQaItems = [...qaItems].sort((a, b) => {
-    const score = { "Warning": 3, "Needs Review": 2, "Pass": 1 };
+    const score: Record<string, number> = {
+      "Warning": 4,
+      "Check Required": 4,
+      "Evidence Missing": 4,
+      "Needs Review": 3,
+      "Human Review Required": 3,
+      "Not Assessed": 2,
+      "Informational": 1,
+      "Pass": 0,
+    };
     return (score[b.status] || 0) - (score[a.status] || 0);
   });
   const qaGroups: Array<{ status: QAReviewStatus; label: string; items: QAReviewItem[] }> = [
     {
       status: "Warning",
-      label: "Warnings",
-      items: sortedQaItems.filter((item) => item.status === "Warning"),
+      label: "Warnings & Checks Required",
+      items: sortedQaItems.filter((item) => ["Warning", "Check Required", "Evidence Missing"].includes(item.status)),
     },
     {
       status: "Needs Review",
-      label: "Needs review",
-      items: sortedQaItems.filter((item) => item.status === "Needs Review"),
+      label: "Human Review Required",
+      items: sortedQaItems.filter((item) => ["Needs Review", "Human Review Required"].includes(item.status)),
+    },
+    {
+      status: "Not Assessed",
+      label: "Not Assessed / Informational",
+      items: sortedQaItems.filter((item) => ["Not Assessed", "Informational"].includes(item.status)),
     },
     {
       status: "Pass",
-      label: "Passed checks",
+      label: "Passed Verified Checks",
       items: sortedQaItems.filter((item) => item.status === "Pass"),
     },
   ];
@@ -3825,12 +3869,16 @@ function PriorityBadge({ value }: { value: RecommendationPriority }) {
 }
 
 function QAStatusBadge({ value }: { value: QAReviewStatus }) {
-  const className =
-    value === "Pass"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-      : value === "Needs Review"
-        ? "border-amber-200 bg-amber-50 text-amber-800"
-        : "border-red-200 bg-red-50 text-red-800";
+  let className = "border-slate-500/30 bg-slate-800/40 text-slate-300";
+  if (value === "Pass") {
+    className = "border-emerald-500/40 bg-emerald-950/40 text-emerald-300";
+  } else if (value === "Needs Review" || value === "Human Review Required") {
+    className = "border-amber-500/40 bg-amber-950/40 text-amber-300";
+  } else if (value === "Warning" || value === "Check Required" || value === "Evidence Missing") {
+    className = "border-rose-500/40 bg-rose-950/40 text-rose-300";
+  } else if (value === "Not Assessed" || value === "Informational") {
+    className = "border-sky-500/40 bg-sky-950/40 text-sky-300";
+  }
 
   return (
     <span

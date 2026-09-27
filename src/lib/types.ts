@@ -13,7 +13,15 @@ export type EvidenceStrength = "High" | "Medium" | "Low";
 export type SensitivityFlag = "None" | "Low" | "Medium" | "High";
 export type QAStatus = "Reviewed" | "Needs Review" | "Warning";
 export type RecommendationPriority = "High" | "Medium" | "Low";
-export type QAReviewStatus = "Pass" | "Needs Review" | "Warning";
+export type QAReviewStatus =
+  | "Pass"
+  | "Needs Review"
+  | "Warning"
+  | "Human Review Required"
+  | "Not Assessed"
+  | "Check Required"
+  | "Evidence Missing"
+  | "Informational";
 
 export type ValidationStatus = "Draft" | "Needs Review" | "Validated" | "Rejected";
 
@@ -235,6 +243,7 @@ export interface Finding {
   lastValidatedAt?: number;
   lastValidatedBy?: string;
   previousValidationStatus?: ValidationStatus;
+  staleDependencyWarning?: string;
   createdAt?: number;
   updatedAt?: number;
 }

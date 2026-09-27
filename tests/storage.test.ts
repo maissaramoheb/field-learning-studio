@@ -70,7 +70,7 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
       ];
 
       for (const store of expectedStores) {
-        expect(db.objectStoreNames.contains(store)).toBe(true);
+        expect(Array.from(db.objectStoreNames)).toContain(store);
       }
     });
 
@@ -166,6 +166,42 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
         validationStatus: "Draft",
         revision: 1,
       };
+
+      await saveSource({
+        id: "SRC-001",
+        studyId: "study-alpha",
+        title: "Alpha Source",
+        date: "2026-09-20",
+        location: "Minya",
+        siteId: "Minya",
+        stakeholderType: "Teachers",
+        sourceType: "Key Informant Interview",
+        consentStatus: "Oral",
+        anonymizationStatus: "Pseudonymized",
+        sensitivityFlag: "None",
+        summary: "Alpha summary",
+        rawText: "Alpha notes",
+        createdAt: 1000,
+        updatedAt: 1000,
+      });
+
+      await saveSource({
+        id: "SRC-001",
+        studyId: "study-beta",
+        title: "Beta Source",
+        date: "2026-09-20",
+        location: "Assiut",
+        siteId: "Assiut",
+        stakeholderType: "Farmers",
+        sourceType: "Key Informant Interview",
+        consentStatus: "Oral",
+        anonymizationStatus: "Pseudonymized",
+        sensitivityFlag: "None",
+        summary: "Beta summary",
+        rawText: "Beta notes",
+        createdAt: 1000,
+        updatedAt: 1000,
+      });
 
       await saveEvidence(evA);
       await saveEvidence(evB);
@@ -324,6 +360,45 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
         validationStatus: "Needs Review",
         revision: 1,
       };
+
+      await saveSource({
+        id: "SRC-001",
+        studyId,
+        title: "Test Source",
+        date: "2026-09-20",
+        location: "Minya",
+        siteId: "Minya",
+        stakeholderType: "Teachers",
+        sourceType: "Key Informant Interview",
+        consentStatus: "Oral",
+        anonymizationStatus: "Pseudonymized",
+        sensitivityFlag: "None",
+        summary: "Test summary",
+        rawText: "Notes",
+        createdAt: 1000,
+        updatedAt: 1000,
+      });
+
+      await saveEvidence({
+        id: "EV-001",
+        studyId,
+        sourceId: "SRC-001",
+        siteId: "Minya",
+        stakeholderType: "Teachers",
+        rawEvidence: "Community consultations were held regularly.",
+        rawObservation: "Community consultations were held regularly.",
+        interpretation: "Engagement builds ownership.",
+        potentialFinding: "Community engagement increased program ownership.",
+        primaryTheme: "Engagement",
+        secondaryTheme: "Participation",
+        evidenceStrength: "High",
+        sensitivityFlag: "None",
+        qaStatus: "Reviewed",
+        validationStatus: "Validated",
+        revision: 1,
+        createdAt: 1000,
+        updatedAt: 1000,
+      });
 
       await saveFinding(finding);
       await saveLesson(lesson);

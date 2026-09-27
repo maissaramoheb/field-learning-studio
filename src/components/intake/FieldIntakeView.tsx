@@ -28,15 +28,27 @@ export function FieldIntakeView({
   const [isBulkSourceModalOpen, setIsBulkSourceModalOpen] = useState(false);
   const [isCloning, setIsCloning] = useState(false);
 
+  // Reset selected source on study switch to prevent cross-study contamination
+  const prevStudyIdRef = React.useRef(study.id);
+  React.useEffect(() => {
+    if (prevStudyIdRef.current !== study.id) {
+      prevStudyIdRef.current = study.id;
+      setSelectedSourceId(null);
+      setIsCapturingNewSource(study.sources.length === 0);
+    }
+  }, [study.id, study.sources.length]);
+
   // Derive active source from study.sources and selectedSourceId without an effect
   const activeSource: SourceRecord | null = React.useMemo(() => {
     if (study.sources.length === 0) return null;
     if (selectedSourceId) {
-      const found = study.sources.find((s) => s.id === selectedSourceId);
+      const found = study.sources.find(
+        (s) => s.id === selectedSourceId && (s.studyId === study.id || !s.studyId)
+      );
       if (found) return found;
     }
     return study.sources[0];
-  }, [study.sources, selectedSourceId]);
+  }, [study.sources, selectedSourceId, study.id]);
 
   const handleSourceSaved = (newSource: SourceRecord) => {
     setSelectedSourceId(newSource.id);

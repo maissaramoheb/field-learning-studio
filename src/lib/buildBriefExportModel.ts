@@ -1,4 +1,10 @@
-import type { DemoCase } from "@/lib/types";
+import type { DemoCase, FieldStudy } from "@/lib/types";
+import {
+  isFindingExportEligible,
+  isRecommendationExportEligible,
+  isLessonExportEligible,
+  isGoodPracticeExportEligible,
+} from "./exportPolicy";
 
 export interface ExportFinding {
   id: string;
@@ -85,7 +91,10 @@ export interface BriefExportModel {
   sandboxEvidence?: ExportSandboxEvidence[];
 }
 
-export function buildBriefExportModel(demoCase: DemoCase, includeSandbox: boolean = false): BriefExportModel {
+export function buildBriefExportModel(
+  demoCase: DemoCase | FieldStudy,
+  includeSandbox: boolean = false
+): BriefExportModel {
   const safetyNote = demoCase.id === "school-nutrition"
     ? "This case is a sanitized demo derived from prior fieldwork. No raw identifiable field data is included."
     : "This case uses fictional demo data for product validation.";
@@ -102,47 +111,27 @@ export function buildBriefExportModel(demoCase: DemoCase, includeSandbox: boolea
     day: "numeric",
   });
 
-  const filteredFindings = demoCase.findings.filter((f) => {
-    if (f.id.includes("SBX") || f.id.includes("TEMP")) return false;
-    if (f.validationStatus !== undefined && f.validationStatus !== "Validated") {
-      return false;
-    }
-    return true;
-  });
+  const isLegacyDemo = Boolean(
+    (demoCase as unknown as { isDemoCase?: boolean }).isDemoCase ||
+    demoCase.id === "school-nutrition" ||
+    demoCase.id === "community-bridges"
+  );
 
-  const filteredRecs = demoCase.recommendations.filter((r) => {
-    if (r.id.includes("SBX") || r.id.includes("TEMP")) return false;
-    if (r.validationStatus !== undefined && r.validationStatus !== "Validated") {
-      return false;
-    }
-    if (r.linkedFindingId) {
-      const linked = demoCase.findings.find((f) => f.id === r.linkedFindingId);
-      if (
-        linked &&
-        linked.validationStatus !== undefined &&
-        linked.validationStatus !== "Validated"
-      ) {
-        return false;
-      }
-    }
-    return true;
-  });
+  const filteredFindings = demoCase.findings.filter((f) =>
+    isFindingExportEligible(f, isLegacyDemo)
+  );
 
-  const filteredLessons = demoCase.lessons.filter((l) => {
-    if (l.id.includes("SBX") || l.id.includes("TEMP")) return false;
-    if (l.validationStatus !== undefined && l.validationStatus !== "Validated") {
-      return false;
-    }
-    return true;
-  });
+  const filteredRecs = demoCase.recommendations.filter((r) =>
+    isRecommendationExportEligible(r, demoCase.findings, isLegacyDemo)
+  );
 
-  const filteredGoodPractices = demoCase.goodPractices.filter((g) => {
-    if (g.id.includes("SBX") || g.id.includes("TEMP")) return false;
-    if (g.validationStatus !== undefined && g.validationStatus !== "Validated") {
-      return false;
-    }
-    return true;
-  });
+  const filteredLessons = demoCase.lessons.filter((l) =>
+    isLessonExportEligible(l, isLegacyDemo)
+  );
+
+  const filteredGoodPractices = demoCase.goodPractices.filter((g) =>
+    isGoodPracticeExportEligible(g, isLegacyDemo)
+  );
 
   const sandboxEvidence: ExportSandboxEvidence[] = [];
   if (includeSandbox) {
@@ -166,14 +155,16 @@ export function buildBriefExportModel(demoCase: DemoCase, includeSandbox: boolea
       });
   }
 
+  const projectTitle = "project" in demoCase ? demoCase.project : demoCase.title;
+
   return {
     caseId: demoCase.id,
-    title: `${demoCase.project}: Learning Brief`,
+    title: `${projectTitle}: Learning Brief`,
     subtitle: demoCase.subtitle,
     executiveSummary: demoCase.executiveSummary,
     keyMessages: demoCase.keyMessages,
-    purposeAndScope: demoCase.purposeAndScope,
-    keyThemes: demoCase.keyThemes,
+    purposeAndScope: "purposeAndScope" in demoCase ? demoCase.purposeAndScope : undefined,
+    keyThemes: "keyThemes" in demoCase ? demoCase.keyThemes : undefined,
     findings: filteredFindings.map((f) => ({
       id: f.id,
       statement: f.statement,
@@ -213,7 +204,7 @@ export function buildBriefExportModel(demoCase: DemoCase, includeSandbox: boolea
       expectedBenefit: r.expectedBenefit,
       successIndicator: r.successIndicator,
     })),
-    safeguardingNotes: demoCase.safeguardingNotes,
+    safeguardingNotes: "safeguardingNotes" in demoCase ? demoCase.safeguardingNotes : undefined,
     limitations: demoCase.limitations,
     traceability: filteredFindings.map((f) => ({
       findingId: f.id,

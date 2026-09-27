@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.9.0-audit-resolution - Evidence Integrity & Recovery Stabilization
+
+- **Cross-Study Referential Integrity & Isolation**:
+  - Implemented `assertEvidenceSourceIntegrity`, `assertFindingEvidenceIntegrity`, and `assertRecommendationFindingIntegrity` in `src/lib/storage/integrity.ts`.
+  - Enforced repository-level foreign-key rejection preventing observations, findings, and recommendations from referencing entities from other studies.
+- **Strict Export Parity & Boundary Enforcement**:
+  - Centralized export eligibility logic in `src/lib/exportPolicy.ts`.
+  - Updated `buildBriefExportModel.ts` and `generateMarkdownFromModel.ts` to guarantee that unvalidated artifacts (Draft, Needs Review, Rejected) and recommendations linked to unvalidated findings are strictly excluded from preview models, Markdown export, and document downloads.
+- **Stale Dependency Propagation**:
+  - Enforced that substantive edits to validated findings revert validation status to `Needs Review`, increment revision count, and log to `invalidationHistory`.
+  - Downstream recommendations immediately display dependency warning banners and become ineligible for export until human revalidation of the parent finding.
+- **Support Profile Hardening & Context Realism**:
+  - Hardened `computeSupportProfile` to exclude rejected evidence entries and foreign sources.
+  - Added full support for single-site study scopes, satisfying site coverage without penalizing single-site studies.
+  - Robust placeholder detection preventing default phrases ("None documented", etc.) from being counted as substantive contradictions.
+- **Forensic Backup Archive Inspection & Collision Management**:
+  - Deep structural validation of `.fls.json` backup envelopes in `inspectStudyBackup`, enforcing required entity schemas and referential integrity.
+  - Implemented `import_as_new` re-keying and `overwrite` collision resolution strategies.
+- **Cleansed Synthetic Defaults**:
+  - Removed manufactured placeholder text from `FindingAuthoringModal.tsx` and `OptionalOutputsModal.tsx`.
+- **Restored QA Baseline Truth**:
+  - Restored requirement in `src/lib/qa.ts` that sandbox-generated evidence must be reviewed before donor-facing use.
+- **UX Simplification Blueprint**:
+  - Created `docs/ux_simplification_blueprint.md` detailing the 4-Space Architecture (Study, Field Material, Analysis, Deliverables), terminology normalization, and modal reduction roadmap.
+- **Regression Suite**:
+  - Added dedicated test suite in `tests/integrityAudit.test.ts`. Total test suite: 156 passing tests across 14 test files.
+
 ## v0.9.0-phase7 - Bulk Intake & Structured Import
 
 - Implemented **Route A: Batch Observation Builder**:

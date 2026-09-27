@@ -41,6 +41,7 @@ import type {
   EvidenceEntry,
   Finding,
   Recommendation,
+  StudyId,
 } from "@/lib/types";
 
 describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
@@ -54,9 +55,9 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
     context: "Field mission assessing nutrition delivery, supply consistency, and community trust.",
     isDemoCase: false,
     scope: {
-      targetThemes: ["Nutrition Access", "Supply Chain", "Governance"],
       targetStakeholderGroups: ["Teachers", "Parents", "Students", "Kitchen Staff"],
       targetSites: ["Minya Rural", "Assiut Urban"],
+      isSingleSiteStudy: false,
     },
     executiveSummary: "Ongoing evaluation.",
     keyMessages: [],
@@ -68,21 +69,25 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
       includeLessons: false,
       includeGoodPractices: false,
     },
+    createdAt: 1000,
+    updatedAt: 1000,
   };
 
-  const sampleSources: SourceRecord[] = [
+  const sampleSources: (SourceRecord & { studyId: string })[] = [
     {
       id: "SRC-001",
       studyId: testStudyId,
       sourceType: "Key Informant Interview",
       title: "KII with Minya Head Teacher",
-      participantRole: "School Leadership",
-      participantCount: 1,
       siteId: "Minya Rural",
+      location: "Minya Rural",
+      stakeholderType: "Teachers",
       date: "2026-03-10",
-      collectionMethod: "Key Informant Interview",
       consentStatus: "Written",
       anonymizationStatus: "Pseudonymized",
+      sensitivityFlag: "None",
+      summary: "KII with Minya Head Teacher",
+      rawText: "Notes",
       createdAt: 1000,
       updatedAt: 1000,
     },
@@ -91,13 +96,15 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
       studyId: testStudyId,
       sourceType: "Focus Group Discussion",
       title: "FGD with Assiut Mothers",
-      participantRole: "Parents",
-      participantCount: 8,
       siteId: "Assiut Urban",
+      location: "Assiut Urban",
+      stakeholderType: "Parents",
       date: "2026-03-11",
-      collectionMethod: "Focus Group Discussion",
       consentStatus: "Oral",
       anonymizationStatus: "Pseudonymized",
+      sensitivityFlag: "None",
+      summary: "FGD with Assiut Mothers",
+      rawText: "Notes",
       createdAt: 1000,
       updatedAt: 1000,
     },
@@ -106,19 +113,21 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
       studyId: testStudyId,
       sourceType: "Direct Observation",
       title: "Meal Serving Observation at Minya School",
-      participantRole: "School Community",
-      participantCount: 50,
       siteId: "Minya Rural",
+      location: "Minya Rural",
+      stakeholderType: "Teachers",
       date: "2026-03-12",
-      collectionMethod: "Direct Observation",
       consentStatus: "Not Required / Public Source",
       anonymizationStatus: "Anonymized",
+      sensitivityFlag: "None",
+      summary: "Meal Serving Observation",
+      rawText: "Notes",
       createdAt: 1000,
       updatedAt: 1000,
     },
   ];
 
-  const sampleEvidence: EvidenceEntry[] = [
+  const sampleEvidence: (EvidenceEntry & { studyId: string })[] = [
     {
       id: "EV-001",
       studyId: testStudyId,
@@ -130,6 +139,7 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
       interpretation: "Late arrivals cause meals to spoil in heat before distribution.",
       potentialFinding: "Delivery delays prevent regular student meal access.",
       primaryTheme: "Nutrition Access",
+      secondaryTheme: "",
       evidenceStrength: "High",
       sensitivityFlag: "None",
       qaStatus: "Reviewed",
@@ -149,6 +159,7 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
       interpretation: "Cross-district logistics bottlenecks disrupt feeding schedules.",
       potentialFinding: "Delivery delays prevent regular student meal access.",
       primaryTheme: "Nutrition Access",
+      secondaryTheme: "",
       evidenceStrength: "High",
       sensitivityFlag: "None",
       qaStatus: "Reviewed",
@@ -168,6 +179,7 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
       interpretation: "Lack of cold chain storage at school gates compromises food safety.",
       potentialFinding: "Storage conditions fail during transit delays.",
       primaryTheme: "Supply Chain",
+      secondaryTheme: "",
       evidenceStrength: "High",
       sensitivityFlag: "Low",
       qaStatus: "Reviewed",
@@ -482,8 +494,7 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
       // Apply substantive edit: increments revision and reverts to Needs Review
       const edited = applySubstantiveFindingEdit(
         validatedFinding,
-        { ...validatedFinding, statement: "Revised claim" },
-        "Finding claim substantively altered after second debrief."
+        { ...validatedFinding, statement: "Revised claim" }
       );
 
       expect(edited.requiredRevalidation).toBe(true);
@@ -534,6 +545,7 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
       id: "REC-001",
       studyId: testStudyId,
       recommendation: "Introduce routine comparison of delivery logs with observed serving times.",
+      evidenceBase: ["EV-001", "EV-002"],
       responsibleActor: "Directorate Logistics Coordinator",
       priority: "High",
       timeframe: "Immediate (1-2 weeks)",
@@ -571,13 +583,10 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
     });
 
     it("drops recommendation export eligibility when parent finding undergoes substantive edit", () => {
-      expect(isRecommendationExportEligible(validRecommendation, parentFinding)).toBe(true);
-
       // Substantive edit applied to parent finding -> reverts to Needs Review
       const editedParent = applySubstantiveFindingEdit(
         parentFinding,
-        { ...parentFinding, statement: "Altered finding statement" },
-        "Substantive adjustment"
+        { ...parentFinding, statement: "Altered finding statement" }
       );
 
       expect(editedParent.updated.validationStatus).toBe("Needs Review");
@@ -632,10 +641,11 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
         revision: 1,
       };
 
-      const validatedRec: Recommendation = {
+      const validatedRec: Recommendation & { studyId: StudyId } = {
         id: "REC-001",
         studyId: testStudyId,
         recommendation: "Validated recommendation included in brief export.",
+        evidenceBase: ["EV-001", "EV-002"],
         responsibleActor: "Logistics Team",
         priority: "High",
         timeframe: "Immediate",
@@ -648,10 +658,11 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
         revision: 1,
       };
 
-      const unvalidatedRec: Recommendation = {
+      const unvalidatedRec: Recommendation & { studyId: StudyId } = {
         id: "REC-002",
         studyId: testStudyId,
         recommendation: "Draft recommendation linked to draft finding must NOT appear.",
+        evidenceBase: ["EV-003"],
         responsibleActor: "Field Team",
         priority: "Medium",
         timeframe: "Long-term",

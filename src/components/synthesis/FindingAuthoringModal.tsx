@@ -158,7 +158,7 @@ function FindingAuthoringModalContent({
       statement: statement.trim(),
       explanation: explanation.trim(),
       programmeImplication: programmeImplication.trim(),
-      contradictoryEvidence: contradictoryEvidence.trim() || "None documented.",
+      contradictoryEvidence: contradictoryEvidence.trim() || "",
       supportingEvidenceIds,
       studyQuestionId: studyQuestionId || undefined,
       limitationNote: limitationNote.trim() || undefined,
