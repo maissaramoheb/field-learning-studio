@@ -2,10 +2,22 @@
 
 ## Current Status
 
-**Coherent Visual Product Redesign Pass** is complete and verified on branch `feature/v0.9-field-sensemaking`:
-1. **Design System & Intentional Aesthetic Language**:
-   - Replaced generic SaaS/admin dashboard styling (dark monochrome, repetitive bordered boxes, unused space) with a calm, precise, editorial research tool aesthetic inspired by **Mobbin**, **Layers.to**, **Godly**, and **shadcn/ui**.
-   - Established deep analytical slate canvas (`#050b14` / `#07111f`), restrained surface depth over heavy borders (`#101b2c` / `#162338`), hairline translucent borders (`rgba(148, 163, 184, 0.22)`), purposeful blue accent (`#2563eb` / `#3b82f6`), and editorial monospace metadata accents (`font-mono text-[11px]`).
+**Public Landing Page Implementation** is complete and verified on branch `feature/public-landing-page`:
+1. **Public-Facing Landing Page (`src/components/landing/LandingPage.tsx`)**:
+   - Built a premium, methodology-first landing page communicating value to evaluators, MEL teams, consultancies, and NGOs (Partage, F3E, Annick, donor-facing teams).
+   - Core positioning: "From field material to a defensible professional draft."
+   - Structured into 11 narrative sections: Navigation with logo & direct Studio CTA, Hero with framed active workspace viewport, The Real Problem (Fragmentation, Buried Contradictions, Broken Traceability), 4-Space Sequential Stepper with synchronized descriptions & real screenshots, Traceability Diagram (unbroken lineage from SRC-001 to Brief Draft), Human Judgment vs FLS Matrix, Field Material Word/DOCX Intake, Analytical Workbench Comparative Matrix, Editorial Deliverables & Export, Trust & Methodological Principles, Who It Is For, and Final Clearance CTA & Footer.
+2. **Routing Architecture**:
+   - `/` renders `LandingPage` for public visitors.
+   - `/studio` mounts `FieldLearningStudioApp` with `communityBridgesCase` and full IndexedDB workspace.
+   - `/welcome` provides an explicit landing page alias.
+   - Zero modifications to core workspace logic, MEP safeguards, or local storage keys.
+3. **Responsive & Quality Verification**:
+   - Verified on 1440×900, 1280×800, 1024×768, and 390×844 with zero horizontal overflow (`bodyScrollWidth` === `vw`).
+   - All 191 Vitest tests pass across 17 test files.
+   - TypeScript is clean (`tsc --noEmit` exits 0).
+   - ESLint is clean (0 errors, 0 warnings).
+   - Next.js Turbopack production build succeeds.
 2. **Space 1 — Study Overview Redesign**:
    - Replaced oversized Continue Work card and KPI tiles with an integrated horizontal action band (`.fls-action-band`, ~46px) and an inline tabular status rail (`.fls-status-rail`).
    - Implemented a 60/40 asymmetrical editorial grid (`.fls-editorial-grid`) with left-side Purpose & Scope parameter chips and right-side amber-tinted Methodological Boundaries & Limitations panel and Governance panel.
