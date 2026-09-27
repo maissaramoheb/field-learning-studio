@@ -46,6 +46,13 @@ interface EvidenceReviewWorkspaceProps {
     onTraceSelect: (id: string) => void;
   };
   onRefreshStudy: () => Promise<void> | void;
+  onOpenDocxModal?: () => void;
+  docxReceipt?: {
+    sourcesCount: number;
+    evidenceCount: number;
+    needsReviewCount: number;
+  } | null;
+  onDismissReceipt?: () => void;
 }
 
 export function EvidenceReviewWorkspace({
@@ -62,6 +69,9 @@ export function EvidenceReviewWorkspace({
   sensitivityFlags,
   traceHandlers,
   onRefreshStudy,
+  onOpenDocxModal,
+  docxReceipt,
+  onDismissReceipt,
 }: EvidenceReviewWorkspaceProps) {
   const isDemoCase = currentStudy?.isDemoCase ?? false;
 
@@ -252,7 +262,17 @@ export function EvidenceReviewWorkspace({
           <h1>Evidence review</h1>
           <p>Review observations before validation. Only validated evidence can support findings and deliverables.</p>
         </div>
-        <div>
+        <div className="flex items-center gap-2.5">
+          {onOpenDocxModal && (
+            <button
+              type="button"
+              onClick={onOpenDocxModal}
+              className="fls-button fls-button-quiet text-xs"
+              title="Import field notes from Word (.docx) documents"
+            >
+              📄 Import Word (.docx) Notes
+            </button>
+          )}
           {isDemoCase ? (
             <div className="rounded-lg border border-amber-500/40 bg-amber-950/20 px-3 py-1.5 text-xs font-semibold text-amber-300">
               Reference Demo Case (Read-Only)
@@ -264,6 +284,32 @@ export function EvidenceReviewWorkspace({
           )}
         </div>
       </div>
+
+      {/* Intake Receipt Banner */}
+      {docxReceipt && (
+        <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-4 flex items-center justify-between text-xs animate-fade-in">
+          <div className="flex items-center gap-3">
+            <span className="text-xl">📥</span>
+            <div>
+              <strong className="block font-semibold text-emerald-200">
+                Word Material Intake Receipt
+              </strong>
+              <p className="mt-0.5 text-emerald-300">
+                Imported: <strong>{docxReceipt.sourcesCount}</strong> Sources · <strong>{docxReceipt.evidenceCount}</strong> Draft Observations · Needs practitioner review: <strong className="text-amber-300">{docxReceipt.needsReviewCount}</strong>
+              </p>
+            </div>
+          </div>
+          {onDismissReceipt && (
+            <button
+              type="button"
+              onClick={onDismissReceipt}
+              className="text-emerald-400 hover:text-emerald-200 font-medium px-2 py-1 rounded"
+            >
+              Dismiss ✕
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Reviewer Identity Bar (for non-demo editable study) */}
       {!isDemoCase && (

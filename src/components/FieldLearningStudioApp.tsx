@@ -32,6 +32,8 @@ import { downloadBriefPdf } from "@/lib/exportPdf";
 import { downloadBriefMarkdown } from "@/lib/exportMarkdown";
 import { runSandboxSafetyCheck, parseSandboxInput } from "@/lib/sandboxParser";
 import { FieldIntakeView } from "@/components/intake/FieldIntakeView";
+import { DocxIntakeModal } from "@/components/intake/DocxIntakeModal";
+import type { DocxImportResult } from "@/lib/intake";
 import { MinimalStudyModal } from "@/components/studies/MinimalStudyModal";
 import { BackupRestoreModal } from "@/components/studies/BackupRestoreModal";
 import { EvidenceReviewWorkspace } from "@/components/evidence";
@@ -292,6 +294,12 @@ export function FieldLearningStudioApp({
   const [currentStudy, setCurrentStudy] = useState<FieldStudy | null>(null);
   const [isNewStudyModalOpen, setIsNewStudyModalOpen] = useState(false);
   const [isBackupRestoreModalOpen, setIsBackupRestoreModalOpen] = useState(false);
+  const [isDocxModalOpen, setIsDocxModalOpen] = useState(false);
+  const [docxReceipt, setDocxReceipt] = useState<{
+    sourcesCount: number;
+    evidenceCount: number;
+    needsReviewCount: number;
+  } | null>(null);
 
   const refreshStudiesList = async (targetId?: string) => {
     try {
@@ -455,6 +463,24 @@ export function FieldLearningStudioApp({
         console.error("Failed to refresh study:", err);
       }
     }
+  };
+
+  const handleDocxImportComplete = async (result: DocxImportResult) => {
+    if (result.studyId && result.studyId !== selectedCaseId) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("fls_active_study_id", result.studyId);
+      }
+      setSelectedCaseId(result.studyId);
+      await refreshStudiesList(result.studyId);
+    } else {
+      await handleRefreshCurrentStudy();
+    }
+    setDocxReceipt({
+      sourcesCount: result.sourcesCount,
+      evidenceCount: result.evidenceCount,
+      needsReviewCount: result.needsReviewCount,
+    });
+    setActiveTab("evidence");
   };
 
   // Derived dynamic active case data mapping
@@ -1119,6 +1145,7 @@ export function FieldLearningStudioApp({
                 study={currentStudy}
                 onStudyChange={handleSelectCase}
                 onRefreshStudy={handleRefreshCurrentStudy}
+                onOpenDocxModal={() => setIsDocxModalOpen(true)}
               />
             ) : (
               <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center text-xs text-[var(--muted)]">
@@ -1141,6 +1168,9 @@ export function FieldLearningStudioApp({
               traceHandlers={traceHandlers}
               currentStudy={currentStudy}
               onRefreshStudy={handleRefreshCurrentStudy}
+              onOpenDocxModal={() => setIsDocxModalOpen(true)}
+              docxReceipt={docxReceipt}
+              onDismissReceipt={() => setDocxReceipt(null)}
             />
           ) : null}
           {activeTab === "debrief" ? (
@@ -1250,6 +1280,15 @@ export function FieldLearningStudioApp({
           setActiveTab("intake");
         }}
       />
+
+      {currentStudy && (
+        <DocxIntakeModal
+          isOpen={isDocxModalOpen}
+          study={currentStudy}
+          onClose={() => setIsDocxModalOpen(false)}
+          onImportComplete={handleDocxImportComplete}
+        />
+      )}
     </main>
   );
 }
@@ -2308,6 +2347,9 @@ function EvidenceTab({
   traceHandlers,
   currentStudy,
   onRefreshStudy,
+  onOpenDocxModal,
+  docxReceipt,
+  onDismissReceipt,
 }: {
   evidence: EvidenceEntry[];
   rawEvidenceList: EvidenceEntry[];
@@ -2322,6 +2364,13 @@ function EvidenceTab({
   traceHandlers: TraceHandlers;
   currentStudy: FieldStudy | null;
   onRefreshStudy: () => Promise<void> | void;
+  onOpenDocxModal?: () => void;
+  docxReceipt?: {
+    sourcesCount: number;
+    evidenceCount: number;
+    needsReviewCount: number;
+  } | null;
+  onDismissReceipt?: () => void;
 }) {
   return (
     <div className="grid gap-8">
@@ -2339,6 +2388,9 @@ function EvidenceTab({
         traceHandlers={traceHandlers}
         currentStudy={currentStudy}
         onRefreshStudy={onRefreshStudy}
+        onOpenDocxModal={onOpenDocxModal}
+        docxReceipt={docxReceipt}
+        onDismissReceipt={onDismissReceipt}
       />
       <SourceInventory sources={sources} traceHandlers={traceHandlers} />
     </div>

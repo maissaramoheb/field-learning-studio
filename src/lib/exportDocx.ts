@@ -44,7 +44,7 @@ function createParagraph(
   });
 }
 
-export function downloadBriefDocx(model: BriefExportModel): void {
+export function buildBriefDocxDocument(model: BriefExportModel): Document {
   const children: (Paragraph | Table)[] = [];
 
   // Title
@@ -458,7 +458,7 @@ export function downloadBriefDocx(model: BriefExportModel): void {
   children.push(createParagraph(model.safetyNote, { italic: true, color: "b45309" }));
 
   // Create the Document
-  const doc = new Document({
+  return new Document({
     sections: [
       {
         properties: {},
@@ -466,6 +466,10 @@ export function downloadBriefDocx(model: BriefExportModel): void {
       },
     ],
   });
+}
+
+export function downloadBriefDocx(model: BriefExportModel): void {
+  const doc = buildBriefDocxDocument(model);
 
   // Pack and Download
   Packer.toBlob(doc).then(blob => {
