@@ -157,21 +157,34 @@ export async function bulkAssignEvidenceToQuestion(
   const db = await getDb();
   const tx = db.transaction("evidence", "readwrite");
   const store = tx.objectStore("evidence");
+  const cascadeIds: EvidenceEntryId[] = [];
+
   for (const evId of evidenceIds) {
     const entry = await store.get([studyId, evId]);
     if (entry) {
       const currentQuestions = entry.studyQuestionIds ? [...entry.studyQuestionIds] : [];
       if (!currentQuestions.includes(questionId)) {
         currentQuestions.push(questionId);
+        const isSubstantive = entry.validationStatus === "Validated";
+        await store.put({
+          ...entry,
+          studyQuestionIds: currentQuestions,
+          validationStatus: isSubstantive ? "Needs Review" : entry.validationStatus,
+          previousValidationStatus: isSubstantive ? "Validated" : entry.previousValidationStatus,
+          revision: isSubstantive ? (entry.revision ?? 1) + 1 : entry.revision,
+          updatedAt: Date.now(),
+        });
+        if (isSubstantive) {
+          cascadeIds.push(evId);
+        }
       }
-      await store.put({
-        ...entry,
-        studyQuestionIds: currentQuestions,
-        updatedAt: Date.now(),
-      });
     }
   }
   await tx.done;
+
+  for (const id of cascadeIds) {
+    await cascadeEvidenceInvalidationToFindings(db, studyId, id);
+  }
 }
 
 export async function bulkAssignEvidenceTheme(
@@ -182,17 +195,32 @@ export async function bulkAssignEvidenceTheme(
   const db = await getDb();
   const tx = db.transaction("evidence", "readwrite");
   const store = tx.objectStore("evidence");
+  const cascadeIds: EvidenceEntryId[] = [];
+
   for (const evId of evidenceIds) {
     const entry = await store.get([studyId, evId]);
     if (entry) {
-      await store.put({
-        ...entry,
-        primaryTheme: theme,
-        updatedAt: Date.now(),
-      });
+      if (entry.primaryTheme !== theme) {
+        const isSubstantive = entry.validationStatus === "Validated";
+        await store.put({
+          ...entry,
+          primaryTheme: theme,
+          validationStatus: isSubstantive ? "Needs Review" : entry.validationStatus,
+          previousValidationStatus: isSubstantive ? "Validated" : entry.previousValidationStatus,
+          revision: isSubstantive ? (entry.revision ?? 1) + 1 : entry.revision,
+          updatedAt: Date.now(),
+        });
+        if (isSubstantive) {
+          cascadeIds.push(evId);
+        }
+      }
     }
   }
   await tx.done;
+
+  for (const id of cascadeIds) {
+    await cascadeEvidenceInvalidationToFindings(db, studyId, id);
+  }
 }
 
 export async function deleteStudy(studyId: StudyId): Promise<void> {
@@ -290,6 +318,13 @@ export async function deleteSource(
   sourceId: SourceRecordId
 ): Promise<void> {
   const db = await getDb();
+  const evidenceList = await listEvidence(studyId);
+  const dependentEvidence = evidenceList.filter((e) => e.sourceId === sourceId);
+  if (dependentEvidence.length > 0) {
+    throw new Error(
+      `Cannot delete Source "${sourceId}": ${dependentEvidence.length} Evidence entry/entries currently depend on this Source. Deleting a parent Source while dependent Evidence exists would create invalid orphan claims. Remove or reassign the dependent Evidence first.`
+    );
+  }
   await db.delete("sources", [studyId, sourceId]);
 }
 
@@ -335,12 +370,33 @@ export async function saveEvidenceBatch(
     await assertEvidenceSourceIntegrity(db, ev.studyId, ev);
   }
 
+  const cascadeEvidenceIds: { studyId: StudyId; id: EvidenceEntryId }[] = [];
+
+  for (const ev of evidenceList) {
+    const existing = await db.get("evidence", [ev.studyId, ev.id]);
+    if (existing && existing.validationStatus === "Validated") {
+      const isSubstantive = isSubstantiveEvidenceChange(existing, ev);
+      if (ev.validationStatus !== "Validated" || isSubstantive) {
+        if (isSubstantive && ev.validationStatus === "Validated") {
+          ev.validationStatus = "Needs Review";
+          ev.previousValidationStatus = "Validated";
+          ev.revision = (existing.revision ?? 1) + 1;
+        }
+        cascadeEvidenceIds.push({ studyId: ev.studyId, id: ev.id });
+      }
+    }
+  }
+
   const tx = db.transaction("evidence", "readwrite");
   const store = tx.objectStore("evidence");
   for (const ev of evidenceList) {
     store.put(ev);
   }
   await tx.done;
+
+  for (const item of cascadeEvidenceIds) {
+    await cascadeEvidenceInvalidationToFindings(db, item.studyId, item.id);
+  }
 }
 
 export async function getEvidence(
@@ -409,10 +465,6 @@ export async function saveFinding(
 ): Promise<void> {
   const db = await getDb();
   await assertFindingEvidenceIntegrity(db, finding.studyId, finding);
-  // When validated, clear any stale dependency warning
-  if (finding.validationStatus === "Validated") {
-    finding.staleDependencyWarning = undefined;
-  }
   await db.put("findings", finding);
 }
 

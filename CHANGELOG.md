@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.9.0-mep01 - Formal Claim Boundary & Export Parity Closure
+
+- **Formal Claim Eligibility & Export Parity**:
+  - Implemented unified canonical formal eligibility contract in `src/lib/exportPolicy.ts` (`isFindingExportEligible`, `isRecommendationExportEligible`, `isLessonExportEligible`, `isGoodPracticeExportEligible`).
+  - Refactored `StyledBriefPreview` in `src/components/FieldLearningStudioApp.tsx` to derive directly from `buildBriefExportModel`, establishing 100% parity across Styled Brief Preview, Copy Markdown, Download Markdown, DOCX, and PDF.
+- **Finding Approval Prerequisite Guard**:
+  - Hardened `validateArtifact` in `src/lib/validation/validationLifecycle.ts` to block wrong-order approvals when supporting evidence is in `Draft` or `Needs Review`, has active stale warnings, or is missing.
+- **Bi-directional Invalidation Cascading**:
+  - Extended `cascadeEvidenceInvalidationToFindings` in `src/lib/storage/integrity.ts` to cascade invalidation when either supporting evidence or challenging/contradictory evidence is substantively modified.
+- **Parent Deletion Guard**:
+  - Enforced deletion guard in `src/lib/storage/studyStore.ts` preventing deletion of Source records that have active dependent Evidence records.
+- **Batch Mutation Lifecycle Equivalence**:
+  - Updated `saveEvidenceBatch`, `bulkAssignEvidenceTheme`, and `bulkAssignEvidenceToQuestion` in `src/lib/storage/studyStore.ts` to detect substantive changes on validated evidence and run the invalidation cascade.
+- **Deliberate Review Semantics**:
+  - Enforced that re-reviewing an evidence item clears evidence-level alerts but leaves dependent findings in `Needs Review` until an analyst deliberately re-reviews and approves the finding.
+- **Legacy Demo Compatibility Isolation**:
+  - Isolated the legacy demo adapter to ensure demo compatibility policies never validate editable live-study artifacts.
+- **Regression Test Suites**:
+  - Added `tests/mep01ClaimBoundaryReproduction.test.ts` (6 tests reproducing audit defects) and `tests/claimBoundary.test.ts` (14 comprehensive regression tests covering all 11 invariant areas). All 176 tests passing.
+
 ## v0.9.0-audit-resolution - Evidence Integrity & Recovery Stabilization
 
 - **Cross-Study Referential Integrity & Isolation**:

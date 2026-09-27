@@ -4,7 +4,24 @@ import type {
   Recommendation,
   EvidenceSupportProfile,
   ValidationStatus,
+  SourceRecord,
 } from "@/lib/types";
+import {
+  isFindingExportEligible,
+  isRecommendationExportEligible,
+  getRecommendationDependencyWarning,
+  isLessonExportEligible,
+  isGoodPracticeExportEligible,
+  type CanonicalExportContext,
+} from "@/lib/exportPolicy";
+export {
+  isFindingExportEligible,
+  isRecommendationExportEligible,
+  getRecommendationDependencyWarning,
+  isLessonExportEligible,
+  isGoodPracticeExportEligible,
+  type CanonicalExportContext,
+};
 
 /**
  * Normalizes text for substantive change comparison by trimming and collapsing
@@ -155,8 +172,18 @@ export function validateArtifact<
     rejectionReason?: string;
     updatedAt?: number;
     limitationNote?: string;
+    staleDependencyWarning?: string;
   }
->(artifact: T, reviewerName: string, validationNote?: string): T {
+>(
+  artifact: T,
+  reviewerName: string,
+  validationNote?: string,
+  context?: {
+    sources?: SourceRecord[];
+    evidence?: EvidenceEntry[];
+    findings?: Finding[];
+  }
+): T {
   const trimmedReviewer = reviewerName?.trim();
   if (!trimmedReviewer) {
     throw new Error("Validation requires a non-empty reviewer name.");
@@ -172,6 +199,113 @@ export function validateArtifact<
     );
   }
 
+  const anyArtifact = artifact as unknown as Record<string, unknown>;
+
+  // Finding Approval Guard
+  if (Array.isArray(anyArtifact.supportingEvidenceIds)) {
+    const suppIds = anyArtifact.supportingEvidenceIds as string[];
+    if (suppIds.length === 0) {
+      throw new Error(
+        "Cannot approve Finding: A formal Finding must have at least one supporting Evidence link."
+      );
+    }
+    if (context?.evidence) {
+      const evMap = new Map<string, EvidenceEntry>(context.evidence.map((e) => [e.id, e]));
+      for (const evId of suppIds) {
+        const ev = evMap.get(evId);
+        if (!ev) {
+          throw new Error(
+            `Cannot approve Finding: Supporting evidence "${evId}" is missing from this study.`
+          );
+        }
+        if (ev.validationStatus !== "Validated") {
+          throw new Error(
+            `Cannot approve Finding: Supporting evidence "${evId}" is not yet validated (status: "${ev.validationStatus}"). All supporting evidence must be Validated before a Finding can be approved.`
+          );
+        }
+        if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
+          throw new Error(
+            `Cannot approve Finding: Supporting evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
+          );
+        }
+        if (context.sources && ev.sourceId) {
+          const src = context.sources.find((s) => s.id === ev.sourceId);
+          if (!src) {
+            throw new Error(
+              `Cannot approve Finding: Parent Source "${ev.sourceId}" for supporting evidence "${evId}" is missing from this study.`
+            );
+          }
+        }
+      }
+
+      if (Array.isArray(anyArtifact.contradictoryEvidenceIds)) {
+        const contraIds = anyArtifact.contradictoryEvidenceIds as string[];
+        for (const evId of contraIds) {
+          const ev = evMap.get(evId);
+          if (!ev) {
+            throw new Error(
+              `Cannot approve Finding: Challenging evidence "${evId}" is missing from this study.`
+            );
+          }
+          if (ev.validationStatus === "Rejected") {
+            throw new Error(
+              `Cannot approve Finding: Challenging evidence "${evId}" has been marked as Rejected. Reconsider the challenging evidence before approving this Finding.`
+            );
+          }
+          if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
+            throw new Error(
+              `Cannot approve Finding: Challenging evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
+            );
+          }
+        }
+      }
+    } else if (artifact.staleDependencyWarning && artifact.staleDependencyWarning.trim().length > 0) {
+      throw new Error(
+        `Cannot approve: ${artifact.staleDependencyWarning}`
+      );
+    }
+  } else if (artifact.staleDependencyWarning && artifact.staleDependencyWarning.trim().length > 0) {
+    throw new Error(
+      `Cannot approve: ${artifact.staleDependencyWarning}`
+    );
+  }
+
+  // Recommendation Approval Guard
+  if (typeof anyArtifact.linkedFindingId === "string") {
+    const linkedId = anyArtifact.linkedFindingId.trim();
+    if (!linkedId) {
+      throw new Error("Cannot approve Recommendation: Linked Finding ID is required.");
+    }
+    if (context?.findings) {
+      const linkedFinding = context.findings.find((f) => f.id === linkedId);
+      if (!linkedFinding) {
+        throw new Error(`Cannot approve Recommendation: Linked Finding "${linkedId}" was not found in this study.`);
+      }
+      if (linkedFinding.validationStatus !== "Validated") {
+        throw new Error(
+          `Cannot approve Recommendation: Linked Finding "${linkedId}" is not validated (current status: "${linkedFinding.validationStatus}"). Parent Finding must be Validated first.`
+        );
+      }
+      if (linkedFinding.staleDependencyWarning && linkedFinding.staleDependencyWarning.trim().length > 0) {
+        throw new Error(
+          `Cannot approve Recommendation: Linked Finding "${linkedId}" has an active stale dependency warning.`
+        );
+      }
+    }
+  }
+
+  // Lesson & Good Practice Approval Guard
+  if (Array.isArray(anyArtifact.evidenceBase) && context?.evidence) {
+    const evIds = anyArtifact.evidenceBase as string[];
+    const evMap = new Map<string, EvidenceEntry>(context.evidence.map((e) => [e.id, e]));
+    for (const evId of evIds) {
+      const ev = evMap.get(evId);
+      if (!ev || ev.validationStatus !== "Validated") {
+        throw new Error("Cannot approve: All referenced evidence must be Validated first.");
+      }
+    }
+  }
+
   const now = Date.now();
   return {
     ...artifact,
@@ -179,6 +313,7 @@ export function validateArtifact<
     lastValidatedBy: trimmedReviewer,
     lastValidatedAt: now,
     rejectionReason: undefined,
+    staleDependencyWarning: undefined,
     ...(validationNote?.trim() ? { limitationNote: validationNote.trim() } : {}),
     updatedAt: now,
   };
@@ -588,39 +723,4 @@ export function applySubstantiveRecommendationEdit(
     updated,
     requiredRevalidation: false,
   };
-}
-
-export function isRecommendationExportEligible(
-  recommendation: Recommendation,
-  linkedFinding?: Finding,
-  isLegacyDemo: boolean = false
-): boolean {
-  const isRecValidated = isLegacyDemo
-    ? (recommendation.validationStatus ?? "Validated") === "Validated"
-    : recommendation.validationStatus === "Validated";
-  if (!isRecValidated) return false;
-  if (!linkedFinding) return false;
-  if (linkedFinding.staleDependencyWarning && linkedFinding.staleDependencyWarning.trim().length > 0) {
-    return false;
-  }
-  const isFindingValidated = isLegacyDemo
-    ? (linkedFinding.validationStatus ?? "Validated") === "Validated"
-    : linkedFinding.validationStatus === "Validated";
-  return isFindingValidated;
-}
-
-export function getRecommendationDependencyWarning(
-  recommendation: Recommendation,
-  linkedFinding?: Finding
-): string | null {
-  if (!linkedFinding) {
-    return "Linked Finding not found";
-  }
-  if (linkedFinding.staleDependencyWarning && linkedFinding.staleDependencyWarning.trim().length > 0) {
-    return linkedFinding.staleDependencyWarning;
-  }
-  if (linkedFinding.validationStatus !== "Validated") {
-    return "Linked Finding requires re-validation";
-  }
-  return null;
 }

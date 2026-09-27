@@ -2,18 +2,31 @@
 
 ## Current Status
 
-Codex Audit Resolution & Evidence Integrity Stabilization is fully implemented and verified on branch `feature/v0.9-field-sensemaking`. All critical and high-priority findings from the independent Codex audit have been independently reproduced, hardened, and verified across all application layers. Evidence-to-learning integrity is secured through:
-1. **Cross-Study Isolation**: Repository-level referential integrity checks (`src/lib/storage/integrity.ts`) guaranteeing that evidence, findings, and recommendations strictly reference parent entities within the same study scope, rejecting foreign keys.
-2. **Export Parity & Boundary Enforcement**: Unified export policy (`src/lib/exportPolicy.ts`, `src/lib/buildBriefExportModel.ts`) ensuring unvalidated artifacts (Draft, Needs Review, Rejected) and invalid recommendations are strictly excluded from preview models, Markdown generation, and document downloads.
-3. **Stale Dependency Propagation**: Substantive edits to validated findings automatically revert validation status to `Needs Review`, increment revisions, log to audit history, and immediately flag downstream recommendations as export-ineligible with clear dependency alerts.
-4. **Support Profile Hardening**: `computeSupportProfile` strictly excludes rejected evidence and foreign sources, correctly handles single-site study scopes without requiring cross-site triangulation, and reliably differentiates genuine contradictions from placeholder text.
-5. **Forensic Backup & Recovery**: `.fls.json` backup archives undergo structural validation and referential integrity checks upon inspection, with full collision support (`import_as_new` re-keying and `overwrite`).
-6. **Cleansed Synthesis Modals**: Eliminated synthetic default prose ("None documented.", "Observed during implementation") across finding, lesson, and good practice authoring modals.
-7. **UX Simplification Blueprint**: Authored `docs/ux_simplification_blueprint.md` defining the target 4-space architecture (Study, Field Material, Analysis, Deliverables) and terminology normalization for v1.0.
+**MEP-01 — Close the Formal Claim Boundary** is fully implemented and verified on branch `feature/v0.9-field-sensemaking`. The core invariant is strictly enforced: *"A formal Finding must depend on complete, current, deliberately reviewed material, and every formal output path must apply the same eligibility rules."*
 
-All 156 Vitest tests pass across 14 test files (including the dedicated `tests/integrityAudit.test.ts` suite). Next.js production build compiles with zero errors, and ESLint passes with zero errors and zero warnings.
+Integrity and parity are guaranteed through:
+1. **Canonical Formal Eligibility Contract**: Unified in `src/lib/exportPolicy.ts` and consumed identically by `buildBriefExportModel`, `StyledBriefPreview`, Copy Markdown, Download Markdown, DOCX, and PDF. Ineligible, unreviewed, stale, orphan, or cross-study claims are strictly excluded from all formal deliverable projections.
+2. **Approval Action Guard**: `validateArtifact` in `src/lib/validation/validationLifecycle.ts` enforces prerequisites before allowing approval. Wrong-order approval is blocked with clear, plain-language feedback if supporting evidence is unreviewed or stale.
+3. **Bi-directional Invalidation Cascading**: `src/lib/storage/integrity.ts` cascades invalidations on substantive edits to supporting evidence as well as challenging/contradictory evidence, marking dependent findings `Needs Review` with plain-language guidance.
+4. **Source Deletion Guard**: `deleteSource` in `src/lib/storage/studyStore.ts` explicitly blocks deleting parent sources while active dependent evidence records exist, preventing orphan claim chains.
+5. **Batch Mutation Integrity**: `saveEvidenceBatch`, `bulkAssignEvidenceTheme`, and `bulkAssignEvidenceToQuestion` route through the same substantive update detection and invalidation cascades as individual edits.
+6. **Deliberate Review Restoration**: Re-validating evidence does not automatically restore finding or recommendation approvals; analytical ownership requires explicit, deliberate human re-review.
+7. **Legacy Demo Isolation**: The legacy demo compatibility adapter is strictly isolated from live editable studies.
+
+All 176 Vitest tests pass across 16 test files (including `tests/claimBoundary.test.ts` and `tests/mep01ClaimBoundaryReproduction.test.ts`). Next.js production build compiles with zero errors, and ESLint passes with zero errors and zero warnings.
 
 ## Completed Items
+
+- **MEP-01 — Close the Formal Claim Boundary**:
+  - Implemented canonical export eligibility predicates in `src/lib/exportPolicy.ts` (`isFindingExportEligible`, `isRecommendationExportEligible`, `isLessonExportEligible`, `isGoodPracticeExportEligible`) with full referential context support.
+  - Refactored `StyledBriefPreview` in `src/components/FieldLearningStudioApp.tsx` to directly consume `BriefExportModel`, establishing 100% parity across preview and exports.
+  - Added approval prerequisites in `validateArtifact` (`src/lib/validation/validationLifecycle.ts`) blocking wrong-order approvals when evidence is unreviewed, stale, or missing.
+  - Hardened `deleteSource` in `src/lib/storage/studyStore.ts` to block deleting parent sources that have active dependent evidence records.
+  - Extended invalidation cascade in `src/lib/storage/integrity.ts` to cover both supporting and challenging evidence changes with plain-language alerts.
+  - Hardened batch mutation methods (`saveEvidenceBatch`, `bulkAssignEvidenceTheme`, `bulkAssignEvidenceToQuestion`) in `src/lib/storage/studyStore.ts` to detect substantive changes and trigger invalidation cascades.
+  - Created 6-test defect reproduction suite in `tests/mep01ClaimBoundaryReproduction.test.ts`.
+  - Created 14-test regression test suite in `tests/claimBoundary.test.ts` covering all 11 required invariant areas.
+  - Authored comprehensive architecture documentation in `docs/mep01_formal_claim_boundary.md`.
 
 - **Codex Audit Resolution & Evidence Integrity Stabilization**:
   - Implemented referential integrity validator in `src/lib/storage/integrity.ts` enforcing same-study source, evidence, and finding parentage.

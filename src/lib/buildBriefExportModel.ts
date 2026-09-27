@@ -4,6 +4,7 @@ import {
   isRecommendationExportEligible,
   isLessonExportEligible,
   isGoodPracticeExportEligible,
+  type CanonicalExportContext,
 } from "./exportPolicy";
 
 export interface ExportFinding {
@@ -117,20 +118,27 @@ export function buildBriefExportModel(
     demoCase.id === "community-bridges"
   );
 
+  const context: CanonicalExportContext = {
+    sources: demoCase.sources,
+    evidence: demoCase.evidence,
+    findings: demoCase.findings,
+    isLegacyDemo,
+  };
+
   const filteredFindings = demoCase.findings.filter((f) =>
-    isFindingExportEligible(f, isLegacyDemo)
+    isFindingExportEligible(f, context)
   );
 
   const filteredRecs = demoCase.recommendations.filter((r) =>
-    isRecommendationExportEligible(r, demoCase.findings, isLegacyDemo)
+    isRecommendationExportEligible(r, context)
   );
 
   const filteredLessons = demoCase.lessons.filter((l) =>
-    isLessonExportEligible(l, isLegacyDemo)
+    isLessonExportEligible(l, context)
   );
 
   const filteredGoodPractices = demoCase.goodPractices.filter((g) =>
-    isGoodPracticeExportEligible(g, isLegacyDemo)
+    isGoodPracticeExportEligible(g, context)
   );
 
   const sandboxEvidence: ExportSandboxEvidence[] = [];

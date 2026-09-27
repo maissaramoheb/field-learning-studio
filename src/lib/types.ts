@@ -197,6 +197,7 @@ export interface EvidenceEntry {
   lastValidatedAt?: number;
   lastValidatedBy?: string;
   previousValidationStatus?: ValidationStatus;
+  staleDependencyWarning?: string;
   createdAt?: number;
   updatedAt?: number;
 }

@@ -2279,7 +2279,11 @@ function FindingsSection({
     }
 
     try {
-      const updated = validateArtifact(finding, reviewerName.trim(), limitationNote);
+      const updated = validateArtifact(finding, reviewerName.trim(), limitationNote, {
+        evidence: currentStudy.evidence,
+        sources: currentStudy.sources,
+        findings: currentStudy.findings,
+      });
       await saveFinding({ ...updated, studyId: currentStudy.id });
       await onRefreshStudy();
     } catch (err: unknown) {
@@ -2695,7 +2699,11 @@ function RecommendationsSection({
       localStorage.setItem("fls_reviewer_name", reviewerName.trim());
     }
     try {
-      const updated = validateArtifact(rec, reviewerName.trim());
+      const updated = validateArtifact(rec, reviewerName.trim(), undefined, {
+        findings: currentStudy.findings,
+        evidence: currentStudy.evidence,
+        sources: currentStudy.sources,
+      });
       await saveRecommendation({ ...updated, studyId: currentStudy.id });
       await onRefreshStudy();
     } catch (err: unknown) {
@@ -3428,11 +3436,15 @@ function StyledBriefPreview({
   traceHandlers: TraceHandlers;
   includeSandbox: boolean;
 }) {
-  const mainFindings = demoCase.findings.filter((finding) => !isSandboxRecordId(finding.id));
-  const mainLessons = demoCase.lessons.filter((lesson) => !isSandboxRecordId(lesson.id));
-  const mainGoodPractices = demoCase.goodPractices.filter((practice) => !isSandboxRecordId(practice.id));
-  const mainRecommendations = demoCase.recommendations.filter((recommendation) => !isSandboxRecordId(recommendation.id));
-  const sandboxEvidence = demoCase.evidence.filter((evidence) => isSandboxRecordId(evidence.id));
+  const model = useMemo(
+    () => buildBriefExportModel(demoCase, includeSandbox),
+    [demoCase, includeSandbox]
+  );
+  const mainFindings = model.findings;
+  const mainLessons = model.lessons;
+  const mainGoodPractices = model.goodPractices;
+  const mainRecommendations = model.recommendations;
+  const sandboxEvidence = model.sandboxEvidence || [];
 
   return (
     <div className="bg-[rgba(148,163,184,0.08)] p-4 sm:p-8 rounded-lg border border-[var(--border)] mt-5">
@@ -3476,12 +3488,12 @@ function StyledBriefPreview({
           </div>
 
           <dl className="mt-6 grid gap-4 grid-cols-2 sm:grid-cols-4 text-xs sm:text-sm">
-            <BriefMetric label="Sources" value={demoCase.evidenceBase.sourceRecords} />
-            <BriefMetric label="Evidence entries" value={demoCase.evidenceBase.evidenceEntries} />
-            <BriefMetric label="Findings" value={demoCase.evidenceBase.findings} />
+            <BriefMetric label="Sources" value={demoCase.evidenceBase?.sourceRecords ?? demoCase.sources.length} />
+            <BriefMetric label="Evidence entries" value={demoCase.evidenceBase?.evidenceEntries ?? demoCase.evidence.length} />
+            <BriefMetric label="Findings" value={mainFindings.length} />
             <BriefMetric
               label="Recommendations"
-              value={demoCase.evidenceBase.recommendations}
+              value={mainRecommendations.length}
             />
           </dl>
 
@@ -3504,10 +3516,10 @@ function StyledBriefPreview({
 
         <BriefSection title="Evidence Base">
           <p>
-            This brief is generated from {demoCase.evidenceBase.sourceRecords} source records,
-            {" "}{demoCase.evidenceBase.evidenceEntries} evidence entries,
-            {" "}{demoCase.evidenceBase.findings} findings, and
-            {" "}{demoCase.evidenceBase.recommendations} recommendations in the selected demo case.
+            This brief is generated from {demoCase.sources.length} source records,
+            {" "}{demoCase.evidence.length} evidence entries,
+            {" "}{mainFindings.length} eligible findings, and
+            {" "}{mainRecommendations.length} eligible recommendations in the selected case.
           </p>
         </BriefSection>
 
@@ -3538,28 +3550,34 @@ function StyledBriefPreview({
         ) : null}
 
         <BriefSection title="Main Findings">
-          <div className="space-y-4">
-            {mainFindings.map((finding) => (
-              <div
-                className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
-                key={finding.id}
-              >
-                <TraceButton
-                  id={finding.id}
-                  onSelect={traceHandlers.onTraceSelect}
-                />
-                <h4 className="mt-3 font-semibold text-[var(--foreground)]">
-                  {finding.statement}
-                </h4>
-                <p className="mt-2">{finding.explanation}</p>
-                <TraceIdList
-                  ids={finding.supportingEvidenceIds}
-                  label="Evidence base"
-                  onTraceSelect={traceHandlers.onTraceSelect}
-                />
-              </div>
-            ))}
-          </div>
+          {mainFindings.length === 0 ? (
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-6 text-center text-xs text-[var(--muted)]">
+              No formally eligible findings. Only approved findings with verified, current supporting evidence appear in the formal Learning Brief deliverable.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {mainFindings.map((finding) => (
+                <div
+                  className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
+                  key={finding.id}
+                >
+                  <TraceButton
+                    id={finding.id}
+                    onSelect={traceHandlers.onTraceSelect}
+                  />
+                  <h4 className="mt-3 font-semibold text-[var(--foreground)]">
+                    {finding.statement}
+                  </h4>
+                  <p className="mt-2">{finding.explanation}</p>
+                  <TraceIdList
+                    ids={finding.evidenceBase || []}
+                    label="Evidence base"
+                    onTraceSelect={traceHandlers.onTraceSelect}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </BriefSection>
 
         <BriefSection title="Lessons Learned">
@@ -3603,49 +3621,56 @@ function StyledBriefPreview({
         </BriefSection>
 
         <BriefSection title="Recommendations">
-          <div className="space-y-3">
-            {priorityOrder.map((priority) => {
-              const recommendations = mainRecommendations.filter(
-                (recommendation) => recommendation.priority === priority,
-              );
+          {mainRecommendations.length === 0 ? (
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-6 text-center text-xs text-[var(--muted)]">
+              No formally eligible recommendations. Only recommendations linked to eligible, approved findings appear in the formal Learning Brief deliverable.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {priorityOrder.map((priority) => {
+                const recommendations = mainRecommendations.filter(
+                  (recommendation) => recommendation.priority === priority,
+                );
+                if (recommendations.length === 0) return null;
 
-              return (
-                <div
-                  className="rounded-lg border border-[var(--border)] p-4"
-                  key={priority}
-                >
-                  <h4 className="font-semibold text-[var(--foreground)]">
-                    {priority} Priority
-                  </h4>
-                  <div className="mt-3 space-y-3">
-                    {recommendations.map((recommendation) => (
-                      <div
-                        className="border-t border-[var(--border)] pt-3 first:border-t-0 first:pt-0"
-                        key={recommendation.id}
-                      >
-                        <TraceButton
-                          id={recommendation.id}
-                          onSelect={traceHandlers.onTraceSelect}
-                        />
-                        <p className="mt-2 font-semibold text-[var(--foreground)]">
-                          {recommendation.recommendation}
-                        </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                          <span className="text-[var(--muted)]">
-                            Linked finding
-                          </span>
+                return (
+                  <div
+                    className="rounded-lg border border-[var(--border)] p-4"
+                    key={priority}
+                  >
+                    <h4 className="font-semibold text-[var(--foreground)]">
+                      {priority} Priority
+                    </h4>
+                    <div className="mt-3 space-y-3">
+                      {recommendations.map((recommendation) => (
+                        <div
+                          className="border-t border-[var(--border)] pt-3 first:border-t-0 first:pt-0"
+                          key={recommendation.id}
+                        >
                           <TraceButton
-                            id={recommendation.linkedFindingId}
+                            id={recommendation.id}
                             onSelect={traceHandlers.onTraceSelect}
                           />
+                          <p className="mt-2 font-semibold text-[var(--foreground)]">
+                            {recommendation.recommendation}
+                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                            <span className="text-[var(--muted)]">
+                              Linked finding
+                            </span>
+                            <TraceButton
+                              id={recommendation.linkedFindingId}
+                              onSelect={traceHandlers.onTraceSelect}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </BriefSection>
 
         {(demoCase.safeguardingNotes || demoCase.safetyNote) ? (
@@ -3661,7 +3686,7 @@ function StyledBriefPreview({
             </div>
             <div className="space-y-4">
               {sandboxEvidence.map((e) => {
-                const fnd = demoCase.findings.find((f) => f.supportingEvidenceIds.includes(e.id));
+                const fnd = demoCase.findings.find((f) => f.supportingEvidenceIds.includes(e.id as EvidenceEntryId));
                 const rec = fnd ? demoCase.recommendations.find((r) => r.linkedFindingId === fnd.id) : null;
                 return (
                   <div key={e.id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4 flex flex-col gap-3">
@@ -3706,30 +3731,33 @@ function StyledBriefPreview({
 
         <BriefSection title="Annex: Traceability Summary">
           <div className="space-y-3">
-            {mainFindings.map((finding) => (
-              <div
-                className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
-                key={finding.id}
-              >
-                <TraceButton
-                  id={finding.id}
-                  onSelect={traceHandlers.onTraceSelect}
-                />
-                <p className="mt-3 text-sm font-semibold text-[var(--foreground)]">
-                  {finding.statement}
-                </p>
-                <TraceIdList
-                  ids={finding.supportingEvidenceIds}
-                  label="Evidence"
-                  onTraceSelect={traceHandlers.onTraceSelect}
-                />
-                <TraceIdList
-                  ids={finding.linkedRecommendationIds}
-                  label="Recommendations"
-                  onTraceSelect={traceHandlers.onTraceSelect}
-                />
-              </div>
-            ))}
+            {model.traceability.map((item) => {
+              const finding = mainFindings.find((f) => f.id === item.findingId);
+              return (
+                <div
+                  className="rounded-lg border border-[var(--border)] bg-[var(--background)] p-4"
+                  key={item.findingId}
+                >
+                  <TraceButton
+                    id={item.findingId}
+                    onSelect={traceHandlers.onTraceSelect}
+                  />
+                  <p className="mt-3 text-sm font-semibold text-[var(--foreground)]">
+                    {finding?.statement || item.findingId}
+                  </p>
+                  <TraceIdList
+                    ids={item.evidenceIds}
+                    label="Evidence"
+                    onTraceSelect={traceHandlers.onTraceSelect}
+                  />
+                  <TraceIdList
+                    ids={item.recommendationIds}
+                    label="Recommendations"
+                    onTraceSelect={traceHandlers.onTraceSelect}
+                  />
+                </div>
+              );
+            })}
           </div>
         </BriefSection>
       </div>

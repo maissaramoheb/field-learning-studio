@@ -1,12 +1,12 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "codex_audit_resolved_evidence_integrity_stabilized",
+  "status": "mep01_formal_claim_boundary_closed",
   "priority": "high",
-  "current_phase": "Audit Resolution: Evidence Integrity & Recovery Stabilization",
-  "next_action": "Review Audit Resolution report and approve readiness for shadow pilot.",
+  "current_phase": "MEP-01: Close the Formal Claim Boundary",
+  "next_action": "Perform required manual browser acceptance checklist and submit MEP-01 for independent verification.",
   "blocker": null,
-  "decision_needed": "Approval of Audit Resolution & Evidence Integrity Stabilization before executing UX Simplification Blueprint.",
+  "decision_needed": "Independent verification of MEP-01 before authorizing MEP-02.",
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
   "preview_url": "https://field-learning-studio-pleg1fc7s-delta4ce20-5830s-projects.vercel.app",
   "production_url": "https://field-learning-studio.vercel.app/",
@@ -17,14 +17,13 @@
     "build": "passed_turbopack",
     "json": "passed",
     "diff_check": "passed",
-    "local_http": "passed_status_200",
-    "tests": "156_passed_14_files"
+    "local_http": "not_run",
+    "tests": "176_passed_16_files"
   },
   "remaining_risks": [
     "PDF/Word client-side downloads rely on browser-level file generation APIs (Blob, URL.createObjectURL, and react-pdf iframe/blob streams). Browser-specific download policies may apply.",
-    "Scope creep before target-user validation remains a risk.",
-    "Automated safeguarding scan is heuristic and practitioners must independently review content for sensitive field details."
+    "Manual download file inspection required to verify that browser download pipeline produces binary files matching canonical BriefExportModel."
   ],
-  "recommended_next_step": "Proceed to shadow pilot with real qualitative evaluation field data under the hardened evidence-to-learning provenance model.",
-  "notion_page_update": "Resolved Codex audit findings and stabilized evidence integrity and recovery on branch feature/v0.9-field-sensemaking. Enforced repository-level cross-study isolation in src/lib/storage/integrity.ts, guaranteed export parity across preview model and Markdown export in src/lib/exportPolicy.ts, enabled automated stale dependency cascading and recommendation export blocking on substantive finding edits, hardened computeSupportProfile for single-site studies and rejected-evidence filtering, enabled deep structural validation and collision handling for .fls.json backup archives, removed synthetic placeholder prose from synthesis modals, and restored QA baseline truth for sandbox items. Authored docs/ux_simplification_blueprint.md defining the target 4-space architecture. Added 10 new regression tests in tests/integrityAudit.test.ts (156 total tests passing across 14 files). Zero TypeScript errors, zero ESLint warnings, and Next.js production build pass cleanly."
+  "recommended_next_step": "Submit MEP-01 for independent review; do not proceed to MEP-02 until authorized.",
+  "notion_page_update": "Completed MEP-01 (Close the Formal Claim Boundary) on branch feature/v0.9-field-sensemaking. Enforced unified canonical export eligibility contract across Styled Brief Preview, Copy Markdown, Download Markdown, DOCX, and PDF. Hardened validateArtifact to block wrong-order approvals when supporting evidence is unreviewed or stale. Extended bi-directional invalidation cascades to both supporting and challenging evidence edits. Enforced parent deletion guard blocking removal of sources with active dependent evidence. Harmonized batch mutation routes (batch updates, theme assignment, question linkage) to cascade invalidations. Preserved deliberate review semantics where re-reviewing evidence leaves findings in Needs Review pending explicit human approval. 176 Vitest tests passing across 16 files (including 6 defect reproduction tests and 14 regression tests). Zero TypeScript errors, zero ESLint warnings, Next.js production build clean."
 }

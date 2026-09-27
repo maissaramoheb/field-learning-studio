@@ -103,6 +103,17 @@
   - [x] Restore QA baseline truth for sandbox-generated evidence.
   - [x] Author UX Simplification Blueprint (`docs/ux_simplification_blueprint.md`).
   - [x] Add dedicated regression suite in `tests/integrityAudit.test.ts` (10 tests, 156 total tests passing across 14 test files).
+- [x] MEP-01 — Close the Formal Claim Boundary:
+  - [x] Implement canonical formal eligibility contract in `src/lib/exportPolicy.ts` (`isFindingExportEligible`, `isRecommendationExportEligible`, `isLessonExportEligible`, `isGoodPracticeExportEligible`).
+  - [x] Establish 100% parity across Styled Brief Preview, Copy Markdown, Download Markdown, DOCX, and PDF via shared `BriefExportModel`.
+  - [x] Implement finding approval prerequisite guards in `validateArtifact` (`src/lib/validation/validationLifecycle.ts`) blocking wrong-order approvals when supporting evidence is unreviewed or stale.
+  - [x] Implement bi-directional invalidation cascading in `src/lib/storage/integrity.ts` for both supporting and challenging/contradictory evidence edits.
+  - [x] Implement source deletion guard in `src/lib/storage/studyStore.ts` blocking deletion of parent sources with active dependent evidence.
+  - [x] Harmonize batch mutation routes (`saveEvidenceBatch`, `bulkAssignEvidenceTheme`, `bulkAssignEvidenceToQuestion`) to trigger invalidation cascades on substantive edits.
+  - [x] Enforce deliberate review semantics: re-validating evidence clears evidence alerts while leaving dependent findings in `Needs Review` until deliberate analyst re-approval.
+  - [x] Maintain strict isolation between legacy demo compatibility adapter and editable live-study artifacts.
+  - [x] Add reproduction suite (`tests/mep01ClaimBoundaryReproduction.test.ts`, 6 tests) and regression suite (`tests/claimBoundary.test.ts`, 14 tests) covering all 11 required invariant areas. All 176 tests passing across 16 files.
+  - [x] Author technical architecture document in `docs/mep01_formal_claim_boundary.md`.
 
 ## P1
 

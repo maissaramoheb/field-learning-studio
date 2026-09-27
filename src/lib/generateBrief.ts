@@ -1,4 +1,4 @@
-import type { DemoCase } from "@/lib/types";
+import type { DemoCase, FieldStudy } from "@/lib/types";
 import { buildBriefExportModel } from "./buildBriefExportModel";
 import { generateMarkdownFromModel } from "./exportMarkdown";
 
@@ -7,7 +7,7 @@ import { generateMarkdownFromModel } from "./exportMarkdown";
  * Ensures 100% parity between the in-app preview, clipboard copy, and all downloadable formats.
  */
 export function generateLearningBriefMarkdown(
-  demoCase: DemoCase,
+  demoCase: DemoCase | FieldStudy,
   includeSandbox: boolean = false
 ): string {
   const model = buildBriefExportModel(demoCase, includeSandbox);
