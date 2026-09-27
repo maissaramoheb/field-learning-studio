@@ -2,16 +2,18 @@
 
 ## Current Status
 
-**Presentation-Ready Execution Sprint** is complete and verified on branch `feature/v0.9-field-sensemaking`:
-1. **Stage 1 (Close MEP-01)**: Real browser acceptance audit completed against hosted Vercel preview via CDP. Formal claim boundary strictly verified: initial chain export eligibility, immediate invalidation cascade on substantive edits, wrong-order approval block, deliberate human re-review restoration, and parent source deletion protection.
-2. **Stage 2 (Close Minimum MEP-02 Safety Boundary)**: Enforced storage invariants across `studyStore.ts` and `studyBackup.ts` (duplicate ID rejection, cross-study ownership rejection, broken parent relationship rejection, atomic restore rollback, and collision detection guards). 15 new tests added in `tests/mep02SafetyBoundary.test.ts`. Total test suite: 191 tests passing (100% pass rate).
-3. **Stage 3 (Presentation-Critical UX)**:
-   - Migrated 10-tab navigation to **4 Practitioner Spaces**: **1. Study**, **2. Field Material**, **3. Analysis**, **4. Deliverables** with clean sub-navigation.
-   - Added prominent **Resume Work / Next Action** hero card on Study Home with dynamic lifecycle calculation and direct one-click navigation.
-   - Added **Study Scope & Governance** card on Study Home with analytical questions, target sites/stakeholders, and data recovery quick launcher.
-   - Reduced decisions during intake: optional primary theme (defaults to `Uncategorized`) and blank interpretations allowed.
-   - Retired arbitrary headline tier badges in Finding authoring in favor of factual **Evidence Coverage & Limitations** (sources, methods, sites, stakeholders, challenging evidence).
-   - Streamlined Recommendation authoring with progressive disclosure for implementation parameters.
+**Final Presentation Hardening Pass** is complete and verified on branch `feature/v0.9-field-sensemaking`:
+1. **Master Execution Plan (MEP) Alignment & Scope**:
+   - **MEP-01 — Formal Claim Boundary** (Complete & Verified): Closes the formal claim boundary. Verified with real browser CDP acceptance tests against hosted preview. Structured trace from evidence to findings to draft recommendations with deterministic export eligibility predicates, immediate invalidation cascade on substantive edits, wrong-order approval block, deliberate human re-review restoration, and parent source deletion protection.
+   - **MEP-02 — Recovery / Intake Write Safety** (Complete & Verified): Defined integrity and recovery scenarios passed. Enforces storage and write safety invariants across `studyStore.ts` and `studyBackup.ts` (duplicate ID rejection, cross-study ownership rejection, broken parent relationship rejection, atomic restore rollback, and collision detection guards). 15 tests in `tests/mep02SafetyBoundary.test.ts`.
+   - **MEP-03 — Understandable Core Professional Journey** (Complete & Verified): Replaced multi-tab navigation with **4 Practitioner Spaces**: **1. Study**, **2. Field Material**, **3. Analysis**, **4. Deliverables**. Single clear finding path via Synthesis Workbench, factual Evidence Coverage & Limitations ("distinct source records"), simplified Recommendation model (Action, Linked Finding, Intended Actor or explicit "Responsibility to be agreed"), and Resume Work / Next Action hero card.
+   - **MEP-04 — Qualified Professional Draft / Reporting** (Active baseline): Clean professional draft preview and multi-format exports (Word .docx, PDF .pdf, Markdown .md) with deterministic safeguards against unanchored claims and actionable pre-draft review verification.
+   - **MEP-05 — Shadow Pilot** (Planned): Controlled practitioner evaluation with real field notes under evaluator supervision.
+   - **Strictly Deferred Scope**: All cross-study synthesis, advanced visual canvas, external AI APIs, cloud backend, authentication, and client portal features remain strictly deferred.
+2. **Methodological Framing & Standards**:
+   - Replaced all "donor-ready" assertions with "Professional Draft" and "Draft for Professional Review".
+   - Bounded language enforced throughout: defined integrity and recovery scenarios passed; structured trace from evidence to findings to draft recommendations; deterministic safeguards against unanchored claims; no claims of corruption-proofing or automated evaluative truth.
+   - Evidence coverage references "distinct source records" rather than assuming independent sources from IDs.
 
 All 191 Vitest tests pass across 17 test files. Next.js production build compiles cleanly with zero errors (Turbopack), and ESLint passes with zero errors and zero warnings.
 

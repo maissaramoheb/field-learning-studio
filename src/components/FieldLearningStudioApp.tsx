@@ -126,12 +126,12 @@ export const PRACTITIONER_SPACES: PractitionerSpace[] = [
     id: "analysis",
     stepNumber: "3",
     label: "Analysis",
-    description: "Coverage, Synthesis & Findings",
+    description: "Synthesis, Coverage & Findings",
     icon: "🔬",
-    defaultTab: "findings",
+    defaultTab: "synthesis",
     tabs: [
-      { id: "findings", label: "Findings", shortLabel: "Findings" },
-      { id: "synthesis", label: "Synthesis", shortLabel: "Synthesis" },
+      { id: "synthesis", label: "Synthesis Workbench", shortLabel: "Synthesis" },
+      { id: "findings", label: "Findings Ledger", shortLabel: "Findings" },
       { id: "debrief", label: "Daily Debrief", shortLabel: "Debrief" },
       { id: "lessons", label: "Lessons", shortLabel: "Lessons" },
     ],
@@ -140,13 +140,13 @@ export const PRACTITIONER_SPACES: PractitionerSpace[] = [
     id: "deliverables",
     stepNumber: "4",
     label: "Deliverables",
-    description: "Brief, Recommendations & QA",
+    description: "Professional Draft, Recommendations & Final Review",
     icon: "📄",
     defaultTab: "brief",
     tabs: [
-      { id: "brief", label: "Brief", shortLabel: "Brief" },
+      { id: "brief", label: "Professional Draft", shortLabel: "Draft" },
       { id: "recommendations", label: "Recommendations", shortLabel: "Recommendations" },
-      { id: "qa", label: "QA Review", shortLabel: "QA Review" },
+      { id: "qa", label: "Final Review", shortLabel: "Final Review" },
     ],
   },
 ];
@@ -249,10 +249,10 @@ export function computeNextAction(study: FieldStudy | null, demoCase: DemoCase) 
 
   return {
     stage: "4. Deliverables",
-    badge: "Ready for Publication",
-    title: "Field Learning Brief ready for export",
-    description: "All evidence, findings, and recommendations satisfy formal claim integrity rules. Ready for donor review and export.",
-    buttonText: "Export Learning Brief →",
+    badge: "Draft Ready for Review",
+    title: "Professional Learning Brief draft ready for review",
+    description: "All evidence, findings, and recommendations satisfy defined formal claim integrity rules. Ready for professional review and export.",
+    buttonText: "Review Professional Draft →",
     targetTab: "brief" as WorkspaceTabId,
     badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
   };
@@ -796,7 +796,7 @@ export function FieldLearningStudioApp({
         ];
         whyThisMatters =
           "QA checks protect the brief from unsupported claims, weak triangulation, and unsafe use of sensitive field evidence.";
-        safeguardNote = `Status: ${qa.status}. Human review is still required before donor-facing use.`;
+        safeguardNote = `Status: ${qa.status}. Human review is still required before professional draft use.`;
       }
     } else if (id.startsWith("DBR-")) {
       itemType = "Daily Field Debrief";
@@ -859,7 +859,7 @@ export function FieldLearningStudioApp({
         whyThisMatters =
           "Daily debriefs capture team sensemaking, emerging hypotheses, and contradictions while fresh from the field. They guide subsequent investigation without being treated as formal findings.";
         safeguardNote =
-          "Debrief notes are internal methodological records and working theories. They are NOT donor-facing claims.";
+          "Debrief notes are internal methodological records and working theories. They are NOT approved findings.";
       }
     }
 
@@ -905,7 +905,7 @@ export function FieldLearningStudioApp({
         whyThisMatters =
           "Working patterns allow evaluators to document recurring multi-source phenomena without prematurely committing to a formal finding.";
         safeguardNote =
-          "Working patterns are intermediate sensemaking instruments and do NOT count as formal donor findings.";
+          "Working patterns are intermediate sensemaking instruments and do NOT count as formal findings.";
       }
     }
 
@@ -1198,6 +1198,8 @@ export function FieldLearningStudioApp({
               auditRun={auditRun}
               auditMessage={auditMessage}
               onRunAudit={handleRunQaAudit}
+              currentStudy={currentStudy}
+              demoCase={activeDemoCase}
             />
           ) : null}
           {activeTab === "brief" ? (
@@ -1496,7 +1498,7 @@ function AppHeader({ demoCase }: { demoCase: DemoCase }) {
           <p className="mt-4 max-w-3xl text-lg leading-8 text-[var(--muted)]">
             Field Learning Studio gives MEL, evaluation, and programme teams a
             controlled workspace for tracing evidence into findings,
-            recommendations, QA review, and a donor-ready learning brief.
+            recommendations, final review, and a professional learning brief draft.
           </p>
 
           <div className="mt-7 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
@@ -1505,7 +1507,7 @@ function AppHeader({ demoCase }: { demoCase: DemoCase }) {
                 ["Field notes", "Source material"],
                 ["Evidence", "Coded observations"],
                 ["Claim lineage", "Defensible trace"],
-                ["Brief", "Donor-ready output"],
+                ["Brief", "Professional draft output"],
               ].map(([title, body], index) => (
                 <React.Fragment key={title}>
                   <div>
@@ -1528,7 +1530,7 @@ function AppHeader({ demoCase }: { demoCase: DemoCase }) {
             {[
               ["Evidence hierarchy", "Observation, interpretation, finding, and recommendation stay visibly connected."],
               ["Claim lineage", "Clickable IDs open the source-to-brief chain for reviewer inspection."],
-              ["Human review gate", "QA stays deterministic and transparent before donor-facing use."],
+              ["Human review gate", "Review checks stay deterministic and transparent before professional draft use."],
             ].map(([title, body]) => (
               <div
                 className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-4"
@@ -1795,7 +1797,7 @@ function OverviewTab({
     {
       id: "brief",
       label: "Learning brief",
-      description: "Donor-ready output with trace annex",
+      description: "Professional draft output with trace annex",
     },
   ];
 
@@ -2018,7 +2020,7 @@ function OverviewTab({
                 "The case is safe to demo and clearly labelled.",
                 "Every finding can be inspected back to evidence IDs.",
                 "Recommendations show the finding and evidence base behind them.",
-                "QA checks flag overclaiming, sensitivity, and donor-readiness before export.",
+                "Final review checks flag overclaiming, sensitivity, and draft readiness before export.",
               ].map((item) => (
                 <li className="flex gap-3" key={item}>
                   <span className="mt-2 h-2 w-2 flex-none rounded-full bg-[var(--trace)]" />
@@ -2139,7 +2141,7 @@ function OverviewTab({
                     Run QA review
                   </p>
                   <p className="text-[var(--muted)]">
-                    Check overclaiming, sensitivity, traceability, and donor-readiness safeguards.
+                    Check overclaiming, sensitivity, traceability, and draft safeguards.
                   </p>
                   <button 
                     onClick={() => onTabChange("qa")}
@@ -2516,7 +2518,7 @@ function OverviewTab({
             </h2>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
               The drawer turns each ID into a verifiable chain, so a reviewer
-              can test whether a donor-facing claim is grounded in evidence.
+              can test whether a drafted claim is grounded in evidence.
             </p>
             <div className="mt-4">
               <TraceChain
@@ -2708,7 +2710,7 @@ function FindingsSection({
     if (!currentStudy || !onRefreshStudy) return;
     const reason = window.prompt(
       "Enter rejection rationale:",
-      "Insufficient independent source triangulation."
+      "Insufficient distinct source record triangulation."
     );
     if (!reason?.trim()) return;
 
@@ -2734,10 +2736,31 @@ function FindingsSection({
 
   return (
     <Section
-      description="Each finding shows supporting evidence, contradictions, implications, and linked recommendations."
-      eyebrow="Findings"
-      title="No finding without evidence"
+      description="Authored findings with supporting evidence, contradictions, implications, and claim lineage. Use Synthesis Workbench to author new findings."
+      eyebrow="Findings Ledger"
+      title="Study Findings Ledger"
     >
+      {/* Contextual link to Synthesis Workbench to make the single finding-authoring journey obvious */}
+      <div className="mb-6 rounded-xl border border-[var(--trace)]/30 bg-[var(--trace-wash)] p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--trace)]">
+            Primary Analysis Pathway
+          </span>
+          <p className="mt-0.5 text-xs text-[var(--foreground)]">
+            Findings are developed from validated evidence. To compare material across study questions, draft new findings, and inspect live coverage &amp; limitations, use the Synthesis Workbench.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            const synthTab = document.querySelector("button[data-tab-id='synthesis']");
+            if (synthTab instanceof HTMLElement) synthTab.click();
+          }}
+          className="shrink-0 rounded-lg bg-[var(--accent)] px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[var(--accent-strong)] transition cursor-pointer text-center"
+        >
+          Open Synthesis Workbench →
+        </button>
+      </div>
       {/* Sandbox Drafts Section */}
       {sandboxFindings.length > 0 && (
         <div className="mb-6 rounded-lg border border-cyan-800 bg-cyan-950/10 p-5">
@@ -3462,6 +3485,8 @@ function QAReviewSection({
   auditRun,
   auditMessage,
   onRunAudit,
+  currentStudy,
+  demoCase,
 }: {
   qaItems: QAReviewItem[];
   traceHandlers: TraceHandlers;
@@ -3469,7 +3494,30 @@ function QAReviewSection({
   auditRun: boolean;
   auditMessage: string;
   onRunAudit: () => void;
+  currentStudy?: FieldStudy | null;
+  demoCase: DemoCase;
 }) {
+  const activeFindings = currentStudy?.findings ?? demoCase.findings ?? [];
+  const activeRecs = currentStudy?.recommendations ?? demoCase.recommendations ?? [];
+  const activeEvidence = currentStudy?.evidence ?? demoCase.evidence ?? [];
+
+  const eligibleFindings = activeFindings.filter((f) => f.validationStatus === "Validated");
+  const linkedRecommendations = activeRecs.filter((r) =>
+    activeFindings.some((f) => f.id === r.linkedFindingId && f.validationStatus === "Validated")
+  );
+  const needsReviewItems = [
+    ...activeEvidence.filter((e) => e.validationStatus === "Needs Review" || e.validationStatus === "Draft"),
+    ...activeFindings.filter((f) => f.validationStatus !== "Validated"),
+    ...activeRecs.filter((r) => r.validationStatus !== "Validated"),
+  ];
+  const findingsWithLimitations = activeFindings.filter(
+    (f) => Boolean(f.limitationNote && f.limitationNote.trim().length > 0)
+  );
+  const challengingEvidenceCount = activeFindings.reduce(
+    (acc, f) => acc + (f.contradictoryEvidenceIds?.length || (f.contradictoryEvidence ? 1 : 0)),
+    0
+  );
+
   const stats = {
     pass: qaItems.filter((i) => i.status === "Pass").length,
     needsReview: qaItems.filter((i) => i.status === "Needs Review" || i.status === "Human Review Required").length,
@@ -3498,12 +3546,12 @@ function QAReviewSection({
     },
     {
       status: "Needs Review",
-      label: "Human Review Required",
+      label: "Actionable Review Required",
       items: sortedQaItems.filter((item) => ["Needs Review", "Human Review Required"].includes(item.status)),
     },
     {
       status: "Not Assessed",
-      label: "Not Assessed / Informational",
+      label: "Contextual / Informational",
       items: sortedQaItems.filter((item) => ["Not Assessed", "Informational"].includes(item.status)),
     },
     {
@@ -3515,24 +3563,101 @@ function QAReviewSection({
 
   return (
     <Section
-      description="The checklist flags traceability, sensitivity, overclaiming, and donor-readiness risks."
-      eyebrow="QA review"
-      title="Human review required"
+      description="Actionable verification checks required before circulating or exporting the professional draft."
+      eyebrow="Deliverables Check"
+      title="Final Review before Professional Draft"
     >
-      <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
+      {/* Actionable Pre-Draft Verification Checks */}
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[var(--trace)]">
+              Pre-Draft Actionable Checks
+            </h3>
+            <p className="mt-0.5 text-xs text-[var(--muted)]">
+              Key checks required before final draft circulation.
+            </p>
+          </div>
+          <span className="rounded bg-sky-500/10 border border-sky-500/30 px-2 py-0.5 text-[10px] font-semibold text-sky-300">
+            Actionable Verification
+          </span>
+        </div>
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">1. Eligible Findings</span>
+            <p className="mt-1 font-semibold text-[var(--foreground)]">
+              {eligibleFindings.length} of {activeFindings.length} findings validated
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Only validated, non-stale findings appear in draft.</p>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">2. Linked Recommendations</span>
+            <p className="mt-1 font-semibold text-[var(--foreground)]">
+              {linkedRecommendations.length} of {activeRecs.length} recommendations anchored
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Each action is tied to an approved finding.</p>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">3. Unresolved Items</span>
+            <p className={`mt-1 font-semibold ${needsReviewItems.length > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+              {needsReviewItems.length} items awaiting review
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Draft or in-review observations/claims.</p>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">4. Recorded Limitations</span>
+            <p className="mt-1 font-semibold text-[var(--foreground)]">
+              {findingsWithLimitations.length} documented limitations
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Contextual qualifications and boundaries noted.</p>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">5. Challenging Material</span>
+            <p className="mt-1 font-semibold text-[var(--foreground)]">
+              {challengingEvidenceCount > 0 ? `${challengingEvidenceCount} items considered` : "None flagged"}
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Contradictory and counter-perspectives reviewed.</p>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">6. Traceability Verified</span>
+            <p className="mt-1 font-semibold text-emerald-400">
+              Complete source-to-brief lineage
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Clickable audit IDs linked for all claims.</p>
+          </div>
+
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">7. Scope Confirmed</span>
+            <p className="mt-1 font-semibold text-emerald-400">
+              Inquiry boundaries active
+            </p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">
+              {currentStudy?.scope ? `${currentStudy.scope.targetSites.length} sites · ${(currentStudy.questions || []).length} questions` : "Standard evaluation scope active"}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="max-w-3xl">
             <h3 className="text-base font-semibold text-[var(--foreground)]">
-              QA checks help prevent overclaiming and protect sensitive field evidence.
+              Review checks help prevent overclaiming and protect sensitive field evidence.
             </h3>
             <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
-              This deterministic demo review checks whether claims are linked,
+              This deterministic review checks whether claims are linked,
               limitations are visible, sensitive evidence is flagged, and the
-              brief remains suitable for human donor-facing review.
+              brief remains suitable for draft professional review.
             </p>
           </div>
           <span className="rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
-            Local deterministic demo check
+            Deterministic verification gate
           </span>
         </div>
 
@@ -3571,9 +3696,9 @@ function QAReviewSection({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
             </svg>
           </div>
-          <h3 className="text-base font-semibold text-[var(--foreground)]">Review gate not yet complete</h3>
+          <h3 className="text-base font-semibold text-[var(--foreground)]">Final review not yet triggered</h3>
           <p className="mt-2 text-xs text-[var(--muted)] leading-relaxed">
-            Run the checklist to reveal grouped warnings, needs-review items,
+            Run the check to reveal grouped warnings, needs-review items,
             and passed safeguards for the selected case.
           </p>
           <div className="mt-6 flex flex-col items-center gap-3">
@@ -3581,10 +3706,10 @@ function QAReviewSection({
               className="min-h-11 px-5 bg-[var(--accent)] hover:bg-[var(--accent-strong)] text-white font-semibold text-sm rounded-lg cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--trace)] transition"
               onClick={onRunAudit}
             >
-              Run review gate
+              Run final review
             </button>
             <span className="text-[10px] text-[var(--muted)] font-semibold uppercase tracking-wider">
-              Deterministic demo check — not an AI or human evaluation
+              Deterministic verification gate — not an external certification
             </span>
           </div>
         </div>
@@ -3730,19 +3855,28 @@ function LearningBriefSection({
     <Section
       description={
         demoCase.id === "school-nutrition"
-          ? "Sanitized real-world-inspired demo data formatted as a donor learning brief draft."
-          : "Fictional workspace demo data formatted as a donor learning brief draft."
+          ? "Sanitized real-world-inspired demo data formatted as a draft for professional review."
+          : "Fictional workspace demo data formatted as a draft for professional review."
       }
-      eyebrow="Learning brief"
-      title="Donor-ready brief preview"
+      eyebrow="Draft for Professional Review"
+      title="Professional Draft Preview"
     >
       <div className="rounded-lg border border-[var(--border-strong)] bg-[var(--surface)] p-5 sm:p-6 flex flex-col gap-6">
+        {/* Actionable Next Step Callout */}
+        <div className="rounded-md border border-[var(--accent-strong)]/30 bg-[var(--accent-wash)] px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--accent-strong)]">
+            <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
+            <span>Actionable next step: Download draft for team review or formal clearance</span>
+          </div>
+          <span className="text-[11px] text-[var(--muted)]">Internal workspace draft &bull; Not for external distribution without clearance</span>
+        </div>
+
         {/* Professional Export Action Area */}
         <div className="flex flex-col gap-4 border-b border-[var(--border)] pb-5">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <span className="text-xs font-semibold text-[var(--trace)] uppercase tracking-wider">
-                Export Brief Deliverable
+                Export Professional Draft
               </span>
               <p className="text-xs text-[var(--muted-soft)] mt-0.5">
                 Download structured documents generated from the active demo case. No data is uploaded.
@@ -3788,7 +3922,7 @@ function LearningBriefSection({
               onClick={handleDownloadDocx}
               type="button"
             >
-              {exportStatus === "docx-loading" ? "Generating Word..." : "Download Word brief"}
+              {exportStatus === "docx-loading" ? "Generating Word..." : "Download Word draft (.docx)"}
             </button>
 
             <button
@@ -3797,7 +3931,7 @@ function LearningBriefSection({
               onClick={handleDownloadPdf}
               type="button"
             >
-              {exportStatus === "pdf-loading" ? "Preparing PDF..." : "Download PDF"}
+              {exportStatus === "pdf-loading" ? "Preparing PDF..." : "Download PDF draft"}
             </button>
 
             <button
@@ -3806,7 +3940,7 @@ function LearningBriefSection({
               onClick={handleDownloadMarkdown}
               type="button"
             >
-              {exportStatus === "md-loading" ? "Generating..." : "Download Markdown"}
+              {exportStatus === "md-loading" ? "Generating..." : "Download Markdown draft"}
             </button>
 
             <button
@@ -3814,7 +3948,7 @@ function LearningBriefSection({
               onClick={onCopy}
               type="button"
             >
-              {copyStatus === "copied" ? "✓ Copied Markdown" : "Copy Markdown"}
+              {copyStatus === "copied" ? "✓ Copied Markdown draft" : "Copy Markdown draft"}
             </button>
           </div>
         </div>
@@ -3863,8 +3997,8 @@ function StyledBriefPreview({
     <div className="bg-[rgba(148,163,184,0.08)] p-4 sm:p-8 rounded-lg border border-[var(--border)] mt-5">
       <article className="brief-document mx-auto max-w-[820px] border border-[var(--document-border)] rounded-md overflow-hidden p-8 sm:p-12">
         <header className="border-b border-[var(--border)] pb-6 mb-8">
-          <span className="text-[11px] font-semibold text-[var(--accent)] block mb-2">
-            Programme Learning Brief
+          <span className="text-[11px] font-semibold text-[var(--accent)] block mb-2 uppercase tracking-wide">
+            Programme Learning Brief &bull; Draft for Professional Review
           </span>
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-[var(--foreground)]">
             {demoCase.project}

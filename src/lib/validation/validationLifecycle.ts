@@ -276,6 +276,12 @@ export function validateArtifact<
     if (!linkedId) {
       throw new Error("Cannot approve Recommendation: Linked Finding ID is required.");
     }
+    const actor = typeof anyArtifact.responsibleActor === "string" ? anyArtifact.responsibleActor.trim() : "";
+    if (!actor || actor.toLowerCase() === "unassigned") {
+      throw new Error(
+        "Cannot approve Recommendation: Intended Actor is required. Specify an identified role/actor or explicit 'Responsibility to be agreed'."
+      );
+    }
     if (context?.findings) {
       const linkedFinding = context.findings.find((f) => f.id === linkedId);
       if (!linkedFinding) {

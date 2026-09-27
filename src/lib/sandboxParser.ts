@@ -108,7 +108,7 @@ export function parseSandboxInput({
     findingStatement = "Systemic barriers limit beneficiary access to distributions and services.";
     recStatement = "Conduct stakeholder surveys to optimize distribution timing and reduce access bottlenecks.";
   } else if (lowerTheme.includes("safety")) {
-    interpretation = "Safety or protection concerns may be shaping participation and should be reviewed before donor-facing use.";
+    interpretation = "Safety or protection concerns may be shaping participation and should be reviewed before professional draft use.";
     findingStatement = "Protection and safety concerns compromise participant engagement during evening or remote distribution.";
     recStatement = "Implement safety escort channels or relocate distribution centers closer to community hubs.";
   } else if (lowerTheme.includes("nutrition")) {

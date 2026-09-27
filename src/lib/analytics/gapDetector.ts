@@ -45,11 +45,11 @@ export function detectFindingGaps(
       id: `gap-${finding.id}-single-source-dependency`,
       gapType: "SingleSourceDependency",
       title: "Single-Source Dependency",
-      description: `Finding ${finding.id} relies on only 1 independent source. Multiple evidence excerpts from a single source do not provide triangulation.`,
+      description: `Finding ${finding.id} relies on only 1 distinct source record. Multiple evidence excerpts from a single source do not provide triangulation.`,
       severity: "Needs Attention",
       findingId: finding.id,
       suggestedAction:
-        "Gather supporting evidence from at least one additional independent source before finalizing this claim.",
+        "Gather supporting evidence from at least one additional distinct source record before finalizing this claim.",
     });
   }
 

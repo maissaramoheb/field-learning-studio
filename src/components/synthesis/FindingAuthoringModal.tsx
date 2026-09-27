@@ -355,7 +355,7 @@ function FindingAuthoringModalContent({
                   </h4>
                   {supportProfile && (
                     <span className="rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-2 py-0.5 text-[10px] font-medium text-[var(--foreground)]">
-                      {supportProfile.independentSourceCount} source{supportProfile.independentSourceCount !== 1 ? "s" : ""} · {supportProfile.methodDiversity.methodsFound.length} method{supportProfile.methodDiversity.methodsFound.length !== 1 ? "s" : ""}
+                      {supportProfile.independentSourceCount} distinct source record{supportProfile.independentSourceCount !== 1 ? "s" : ""} · {supportProfile.methodDiversity.methodsFound.length} method{supportProfile.methodDiversity.methodsFound.length !== 1 ? "s" : ""}
                     </span>
                   )}
                 </div>
@@ -363,8 +363,8 @@ function FindingAuthoringModalContent({
                 {supportProfile ? (
                   <div className="mt-3 space-y-2 text-xs">
                     <div className="flex justify-between text-[var(--foreground)]">
-                      <span className="text-[var(--muted)]">Independent Sources:</span>
-                      <span className="font-semibold">{supportProfile.independentSourceCount} sources</span>
+                      <span className="text-[var(--muted)]">Distinct Source Records:</span>
+                      <span className="font-semibold">{supportProfile.independentSourceCount} record{supportProfile.independentSourceCount !== 1 ? "s" : ""}</span>
                     </div>
 
                     <div className="flex justify-between text-[var(--foreground)]">
@@ -415,9 +415,12 @@ function FindingAuthoringModalContent({
                           Diagnostic Flags:
                         </span>
                         <ul className="mt-1 list-disc pl-4 space-y-0.5 text-[11px] text-[var(--muted)]">
-                          {supportProfile.transparencyFlags.map((flag, idx) => (
-                            <li key={idx}>{flag}</li>
-                          ))}
+                          {supportProfile.transparencyFlags.map((flag, idx) => {
+                            const cleanedFlag = flag.replace(/independent sources?/gi, (m) =>
+                              m.toLowerCase().endsWith("s") ? "distinct source records" : "distinct source record"
+                            );
+                            return <li key={idx}>{cleanedFlag}</li>;
+                          })}
                         </ul>
                       </div>
                     )}

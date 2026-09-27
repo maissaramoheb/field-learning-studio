@@ -141,12 +141,12 @@ export function generateQAReview(demoCase: DemoCase): QAReviewItem[] {
     },
     {
       id: "QA-010",
-      title: "Donor-Ready Language",
+      title: "Professional Tone & Drafting Standards",
       reviewQuestion:
-        "Is the language clear, measured, and suitable for a learning brief?",
+        "Is the language clear, measured, and suitable for a professional learning brief?",
       status: "Human Review Required",
       notes:
-        "Tone and external communication standards must be reviewed by lead researcher before publication.",
+        "Tone and reporting standards must be reviewed by lead researcher before circulation.",
     },
     {
       id: "QA-011",

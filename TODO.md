@@ -124,6 +124,14 @@
     - [x] Frictionless observation capture: optional primary theme (defaults to `Uncategorized`) and blank interpretations allowed.
     - [x] Live Evidence Coverage & Limitations in Finding modal (factual source, method, site, stakeholder counts; retired arbitrary tier badge).
     - [x] Simplified Recommendation authoring with progressive disclosure for implementation parameters.
+- [x] Final Presentation Hardening Pass:
+  - [x] Remove "Donor-Ready" language throughout app and exports; replace with "Professional Draft" and "Draft for Professional Review".
+  - [x] Correct source terminology to "distinct source records" in Evidence Coverage & Limitations without inferring independence from source IDs.
+  - [x] Harden Recommendation validation model: Action (required), Linked Finding (required), Intended Actor (identified role or explicit "Responsibility to be agreed" required before approval); progressive disclosure for Priority, Timeframe, Constraints, Risks, Indicators without default High/Low/Short-term judgments.
+  - [x] Prevent duplicate finding workflow: clear primary analysis pathway via Synthesis Workbench with contextual launcher banner in Findings Ledger.
+  - [x] Turn QA review into Final Review with 7 actionable pre-draft verification cards (Eligible Findings, Linked Recommendations, Unresolved Items, Recorded Limitations, Challenging Material, Traceability Verified, Scope Confirmed).
+  - [x] Eliminate overclaiming: use honest, bounded framing ("Defined integrity and recovery scenarios passed", "Structured trace from evidence to findings to draft recommendations", "Deterministic safeguards against unanchored claims").
+  - [x] Restore documentation and MEP definitions (MEP-01 formal claim boundary, MEP-02 recovery/intake write safety, MEP-03 understandable core professional journey, MEP-04 qualified professional draft/reporting, MEP-05 shadow pilot; all cross-study/canvas/AI/cloud features remain deferred).
 
 ## P1
 

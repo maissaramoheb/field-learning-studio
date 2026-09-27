@@ -1,9 +1,9 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "presentation_ready_sprint_complete",
+  "status": "final_presentation_hardening_complete",
   "priority": "high",
-  "current_phase": "Presentation-Ready Execution Sprint",
+  "current_phase": "Final Presentation Hardening Pass",
   "next_action": "Review deployed preview URL and presentation screenshots.",
   "blocker": null,
   "decision_needed": null,
@@ -23,6 +23,6 @@
   "remaining_risks": [
     "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported."
   ],
-  "recommended_next_step": "Conduct walkthrough review using the 4-space workflow and verify stakeholder readiness.",
-  "notion_page_update": "Completed Presentation-Ready Execution Sprint on feature/v0.9-field-sensemaking: (1) Stage 1: Closed MEP-01 with live CDP browser acceptance audit across all claim boundary invariants; (2) Stage 2: Closed Minimum MEP-02 safety boundary (15 tests in tests/mep02SafetyBoundary.test.ts); (3) Stage 3: Implemented 4 Practitioner Spaces (Study, Field Material, Analysis, Deliverables), Resume Work / Next Action hero card, frictionless intake, factual Evidence Coverage & Limitations in findings, and simplified recommendations. 191 Vitest tests passing across 17 files, 0 TS errors, 0 lint warnings, clean Turbopack build."
+  "recommended_next_step": "Present hardened 4-space workflow for professional review.",
+  "notion_page_update": "Completed Final Presentation Hardening Pass on feature/v0.9-field-sensemaking: (1) Replaced all 'donor-ready' language with 'Professional Draft' and 'Draft for Professional Review'; (2) Corrected source terminology to 'distinct source records' in Evidence Coverage & Limitations; (3) Hardened Recommendation model requiring Action, Linked Finding, and Intended Actor or explicit 'Responsibility to be agreed' with progressive disclosure; (4) Clarified primary analysis pathway via Synthesis Workbench; (5) Turned QA review into Final Review with 7 actionable pre-draft verification checks; (6) Enforced honest, bounded framing across all UI copy and documentation. All 191 tests pass, TS clean, lint clean, Turbopack build passing."
 }

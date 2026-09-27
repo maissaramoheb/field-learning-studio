@@ -78,11 +78,11 @@ function RecommendationAuthoringModalContent({
       recommendation: recommendationText.trim(),
       linkedFindingId: linkedFinding.id,
       evidenceBase: linkedFinding.supportingEvidenceIds || [],
-      responsibleActor: responsibleActor.trim() || "Unassigned",
+      responsibleActor: responsibleActor.trim() || "Responsibility to be agreed",
       priority,
-      timeframe: timeframe.trim() || "Not specified",
-      feasibility: feasibility.trim() || "Medium",
-      riskSensitivity: riskSensitivity.trim() || "Medium",
+      timeframe: timeframe.trim() || "To be scheduled",
+      feasibility: feasibility.trim() || "To be assessed",
+      riskSensitivity: riskSensitivity.trim() || "To be assessed",
       expectedBenefit: expectedBenefit.trim() || "",
       successIndicator: successIndicator.trim() || "",
       validationStatus: initialRecommendation ? initialRecommendation.validationStatus : "Draft",
@@ -171,24 +171,36 @@ function RecommendationAuthoringModalContent({
             />
           </div>
 
-          {/* Intended Actor (when known) */}
+          {/* Intended Actor */}
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted-strong)]">
-              Intended Actor / Responsible Body <span className="text-[var(--muted)] font-normal normal-case">(optional)</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted-strong)]">
+                Intended Actor / Responsible Body
+              </label>
+              <button
+                type="button"
+                onClick={() => setResponsibleActor("Responsibility to be agreed")}
+                className="text-[10px] text-[var(--trace)] hover:underline cursor-pointer"
+              >
+                Set &ldquo;Responsibility to be agreed&rdquo;
+              </button>
+            </div>
             <input
               type="text"
               value={responsibleActor}
               onChange={(e) => setResponsibleActor(e.target.value)}
-              placeholder="e.g. Program Coordinator, Field Team, or leave blank if unassigned"
+              placeholder="e.g. Program Coordinator, Field Team, or 'Responsibility to be agreed'"
               className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
             />
+            <p className="mt-1 text-[11px] text-[var(--muted)]">
+              May remain unresolved during early drafting; approval requires an identified actor or explicit &ldquo;Responsibility to be agreed&rdquo;.
+            </p>
           </div>
 
           {/* Progressive Disclosure: Implementation Parameters */}
           <details className="group rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3.5 transition">
             <summary className="flex cursor-pointer items-center justify-between text-xs font-semibold text-[var(--muted-strong)] hover:text-[var(--foreground)] select-none">
-              <span>Implementation Parameters (Priority, Timeframe, Feasibility, Risks, Indicators)</span>
+              <span>Implementation Parameters (Priority, Timeframe, Constraints, Risks, Indicators)</span>
               <span className="text-xs text-[var(--muted)] transition-transform group-open:rotate-180">▼</span>
             </summary>
 
@@ -196,28 +208,28 @@ function RecommendationAuthoringModalContent({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                    Priority
+                    Priority (optional)
                   </label>
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value as RecommendationPriority)}
                     className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
                   >
-                    <option value="High">High Priority</option>
                     <option value="Medium">Medium Priority</option>
+                    <option value="High">High Priority</option>
                     <option value="Low">Low Priority</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                    Timeframe
+                    Timeframe (optional)
                   </label>
                   <input
                     type="text"
                     value={timeframe}
                     onChange={(e) => setTimeframe(e.target.value)}
-                    placeholder="e.g. Next grant cycle, 1-3 months"
+                    placeholder="e.g. Next grant cycle, 1-3 months (no default)"
                     className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
                   />
                 </div>
@@ -226,32 +238,28 @@ function RecommendationAuthoringModalContent({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                    Feasibility
+                    Feasibility / Constraints (optional)
                   </label>
-                  <select
+                  <input
+                    type="text"
                     value={feasibility}
                     onChange={(e) => setFeasibility(e.target.value)}
+                    placeholder="e.g. Medium - dependent on school calendar"
                     className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
-                  >
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
-                  </select>
+                  />
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                    Risk / Sensitivity
+                    Risk / Sensitivity (optional)
                   </label>
-                  <select
+                  <input
+                    type="text"
                     value={riskSensitivity}
                     onChange={(e) => setRiskSensitivity(e.target.value)}
+                    placeholder="e.g. Requires strict confidentiality"
                     className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
-                  >
-                    <option value="Low">Low Risk</option>
-                    <option value="Medium">Medium Risk</option>
-                    <option value="High">High Risk</option>
-                  </select>
+                  />
                 </div>
               </div>
 
