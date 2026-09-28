@@ -2,6 +2,16 @@
 
 ## P0
 
+- [x] Day / Night Theme System (`feature/day-night-theme`):
+  - [x] Semantic design tokens in `globals.css` with 100% preservation of Night theme baseline.
+  - [x] Intentionally designed editorial Day theme (`#f6f8fa` canvas, `#ffffff` surface, `#0f172a` text, `#2563eb` accent).
+  - [x] Zero flash on initial load via synchronous inline `<head>` script in `layout.tsx`.
+  - [x] Accessible `ThemeSwitcher.tsx` with Sun/Moon icons in Landing header and Studio utilities.
+  - [x] `localStorage.getItem('fls_theme')` persistence with `prefers-color-scheme` fallback.
+  - [x] Zero hydration warnings using `useSyncExternalStore`.
+  - [x] Dual-theme screenshots (`public/screenshots/*-day.png`) dynamically toggled on landing page.
+  - [x] 204 unit & integration tests passing, tsc clean, lint clean, Turbopack build clean.
+  - [x] Automated 7-stage headless Chrome CDP verification passed with 0 console errors.
 - [x] Unified Production Release v1.0 (`v1.0-public-pilot`):
   - [x] Merge `feature/docx-field-intake` and `feature/public-landing-page` onto `main`.
   - [x] Production deployment to `https://field-learning-studio.vercel.app` (Next.js 16 Turbopack).

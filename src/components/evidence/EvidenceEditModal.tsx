@@ -280,7 +280,7 @@ function EvidenceEditModalContent({
             <button
               type="submit"
               disabled={isSubmitting || !rawObservation.trim() || !primaryTheme.trim()}
-              className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace)] px-4 py-2 text-xs font-semibold text-[#03121a] shadow hover:bg-[var(--trace-text)] disabled:opacity-50 cursor-pointer"
+              className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace)] px-4 py-2 text-xs font-semibold text-[var(--trace-ink)] shadow hover:bg-[var(--trace-text)] disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? "Saving..." : isValidated ? "Save & Request Re-validation" : "Save Changes"}
             </button>

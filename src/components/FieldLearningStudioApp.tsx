@@ -57,6 +57,7 @@ import {
   saveFinding,
   saveRecommendation,
 } from "@/lib/storage";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 interface FieldLearningStudioAppProps {
   demoCase: DemoCase;
@@ -1353,6 +1354,7 @@ function CaseSelector({
         </div>
         <span className="fls-mode">{selectedDemo ? "Read-only demo" : "Local study"}</span>
         <div className="fls-app-utilities">
+          <ThemeSwitcher />
           {onOpenBackupRestore && <button type="button" className="fls-button fls-button-quiet" onClick={onOpenBackupRestore}>Backup / Restore</button>}
           {onCreateNewStudy && <button type="button" className="fls-button fls-button-quiet" onClick={onCreateNewStudy}>+ New study</button>}
         </div>
@@ -4195,7 +4197,7 @@ function TraceButton({
 function StrengthBadge({ value }: { value: EvidenceStrength }) {
   const className =
     value === "High"
-      ? "border-[rgba(59,130,246,0.34)] bg-[rgba(37,99,235,0.12)] text-[#bfdbfe]"
+      ? "border-[rgba(59,130,246,0.34)] bg-[rgba(37,99,235,0.12)] text-[var(--accent-strong)]"
       : value === "Medium"
         ? "border-amber-200 bg-amber-50 text-amber-800"
         : "border-zinc-200 bg-zinc-50 text-zinc-700";

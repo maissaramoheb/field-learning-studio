@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 type WorkflowStage = "study" | "evidence" | "analysis" | "deliverables";
 
@@ -14,6 +15,7 @@ interface WorkflowStageInfo {
   fullDesc: string;
   keyActions: string[];
   screenshotUrl: string;
+  screenshotDayUrl: string;
   screenshotAlt: string;
 }
 
@@ -31,6 +33,7 @@ const WORKFLOW_STAGES: WorkflowStageInfo[] = [
       "Methodological limitations recorded upfront",
     ],
     screenshotUrl: "/screenshots/study.png",
+    screenshotDayUrl: "/screenshots/study-day.png",
     screenshotAlt: "Field Learning Studio - Study Setup Space",
   },
   {
@@ -46,6 +49,7 @@ const WORKFLOW_STAGES: WorkflowStageInfo[] = [
       "Explicit human validation lifecycle (Draft → Needs Review → Validated)",
     ],
     screenshotUrl: "/screenshots/field_material.png",
+    screenshotDayUrl: "/screenshots/field_material-day.png",
     screenshotAlt: "Field Learning Studio - Field Material Space",
   },
   {
@@ -61,6 +65,7 @@ const WORKFLOW_STAGES: WorkflowStageInfo[] = [
       "Live support tier scoring (Strongly Supported / Partial / Emerging)",
     ],
     screenshotUrl: "/screenshots/analysis.png",
+    screenshotDayUrl: "/screenshots/analysis-day.png",
     screenshotAlt: "Field Learning Studio - Analysis Space",
   },
   {
@@ -76,6 +81,7 @@ const WORKFLOW_STAGES: WorkflowStageInfo[] = [
       "One-click editable Word (.docx) and PDF export pack",
     ],
     screenshotUrl: "/screenshots/deliverables.png",
+    screenshotDayUrl: "/screenshots/deliverables-day.png",
     screenshotAlt: "Field Learning Studio - Deliverables Space",
   },
 ];
@@ -127,6 +133,7 @@ export function LandingPage() {
           </nav>
 
           <div className="flex items-center gap-3 shrink-0">
+            <ThemeSwitcher />
             <Link
               href="/studio"
               className="fls-button fls-button-primary text-xs font-semibold px-3 py-1.5 rounded-md shadow-xs hover:shadow-md transition whitespace-nowrap"
@@ -150,7 +157,7 @@ export function LandingPage() {
 
             <h1 className="text-2xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.15] text-[var(--foreground)]">
               From field material to a{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-300">
+              <span className="fls-hero-gradient">
                 defensible professional draft.
               </span>
             </h1>
@@ -207,7 +214,15 @@ export function LandingPage() {
                   alt="Field Learning Studio - Active Study Workspace"
                   fill
                   priority
-                  className="object-cover object-top"
+                  className="object-cover object-top dark-image"
+                  sizes="(max-width: 1200px) 100vw, 1200px"
+                />
+                <Image
+                  src="/screenshots/study-day.png"
+                  alt="Field Learning Studio - Active Study Workspace"
+                  fill
+                  priority
+                  className="object-cover object-top light-image"
                   sizes="(max-width: 1200px) 100vw, 1200px"
                 />
               </div>
@@ -399,7 +414,14 @@ export function LandingPage() {
                       src={currentStage.screenshotUrl}
                       alt={currentStage.screenshotAlt}
                       fill
-                      className="object-cover object-top transition duration-300"
+                      className="object-cover object-top transition duration-300 dark-image"
+                      sizes="(max-width: 1024px) 100vw, 600px"
+                    />
+                    <Image
+                      src={currentStage.screenshotDayUrl}
+                      alt={currentStage.screenshotAlt}
+                      fill
+                      className="object-cover object-top transition duration-300 light-image"
                       sizes="(max-width: 1024px) 100vw, 600px"
                     />
                   </div>
@@ -443,35 +465,35 @@ export function LandingPage() {
 
                 {/* 2. Observation */}
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5 space-y-2">
-                  <span className="font-mono text-[10px] font-bold text-emerald-400">EV-003</span>
+                  <span className="font-mono text-[10px] font-bold text-[var(--success-text)]">EV-003</span>
                   <h4 className="text-xs font-semibold text-[var(--foreground)]">
                     Observation
                   </h4>
                   <p className="text-[11px] text-[var(--muted)] leading-relaxed">
                     &ldquo;Delivery trucks arrived 90 mins after recess during summer heatwaves.&rdquo;
                   </p>
-                  <span className="inline-block rounded bg-emerald-950/40 text-emerald-300 px-1.5 py-0.5 font-mono text-[10px] border border-emerald-500/30">
+                  <span className="inline-block rounded bg-[var(--success-soft)] text-[var(--success-text)] px-1.5 py-0.5 font-mono text-[10px] border border-[var(--success-border)]">
                     Validated
                   </span>
                 </div>
 
                 {/* 3. Finding */}
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5 space-y-2">
-                  <span className="font-mono text-[10px] font-bold text-amber-400">FND-001</span>
+                  <span className="font-mono text-[10px] font-bold text-[var(--warning-text)]">FND-001</span>
                   <h4 className="text-xs font-semibold text-[var(--foreground)]">
                     Finding
                   </h4>
                   <p className="text-[11px] text-[var(--muted)] leading-relaxed">
                     Morning delivery delays disrupt scheduled meal service in rural schools during high-heat periods.
                   </p>
-                  <span className="block font-mono text-[10px] text-amber-300">
+                  <span className="block font-mono text-[10px] text-[var(--warning-text)]">
                     3 Sources · 1 Divergent
                   </span>
                 </div>
 
                 {/* 4. Recommendation */}
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5 space-y-2">
-                  <span className="font-mono text-[10px] font-bold text-purple-400">REC-001</span>
+                  <span className="font-mono text-[10px] font-bold text-purple-600 dark:text-purple-400">REC-001</span>
                   <h4 className="text-xs font-semibold text-[var(--foreground)]">
                     Recommendation
                   </h4>
@@ -485,14 +507,14 @@ export function LandingPage() {
 
                 {/* 5. Professional Draft */}
                 <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-3.5 space-y-2">
-                  <span className="font-mono text-[10px] font-bold text-blue-400">BRIEF DRAFT</span>
+                  <span className="font-mono text-[10px] font-bold text-[var(--accent-strong)]">BRIEF DRAFT</span>
                   <h4 className="text-xs font-semibold text-[var(--foreground)]">
                     Learning Brief
                   </h4>
                   <p className="text-[11px] text-[var(--muted)] leading-relaxed">
                     Executive Word (.docx) &amp; PDF draft with linked evidence citations and limitations.
                   </p>
-                  <span className="block font-mono text-[10px] text-blue-300">
+                  <span className="block font-mono text-[10px] text-[var(--accent-strong)]">
                     Audit-Ready Export
                   </span>
                 </div>
@@ -527,56 +549,56 @@ export function LandingPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Column 1: FLS Role */}
-              <div className="rounded-xl border border-sky-500/30 bg-sky-950/10 p-6 space-y-4">
+              <div className="rounded-xl border border-[var(--info-border)] bg-[var(--info-soft)] p-6 space-y-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-sky-400 text-lg">⚙️</span>
-                  <h3 className="text-base font-semibold text-sky-200">
+                  <span className="text-[var(--info)] text-lg">⚙️</span>
+                  <h3 className="text-base font-semibold text-[var(--foreground)]">
                     What Field Learning Studio Does
                   </h3>
                 </div>
-                <ul className="space-y-3 text-xs text-sky-300 leading-relaxed">
+                <ul className="space-y-3 text-xs text-[var(--muted)] leading-relaxed">
                   <li className="flex items-start gap-2">
-                    <span className="text-sky-400 font-bold">•</span>
+                    <span className="text-[var(--info)] font-bold">•</span>
                     <span><strong>Structures narrative materials:</strong> Segments long notes, transcripts, and tables into reviewable candidates.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-sky-400 font-bold">•</span>
+                    <span className="text-[var(--info)] font-bold">•</span>
                     <span><strong>Preserves referential chains:</strong> Keeps observations tied to exact source documents and line references.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-sky-400 font-bold">•</span>
+                    <span className="text-[var(--info)] font-bold">•</span>
                     <span><strong>Flags coverage gaps:</strong> Highlights missing stakeholder perspectives or unverified site claims.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-sky-400 font-bold">•</span>
+                    <span className="text-[var(--info)] font-bold">•</span>
                     <span><strong>Formats professional documents:</strong> Prepares formatted Word drafts and PDFs with audit trails.</span>
                   </li>
                 </ul>
               </div>
 
               {/* Column 2: Practitioner Role */}
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/10 p-6 space-y-4">
+              <div className="rounded-xl border border-[var(--success-border)] bg-[var(--success-soft)] p-6 space-y-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-emerald-400 text-lg">👤</span>
-                  <h3 className="text-base font-semibold text-emerald-200">
+                  <span className="text-[var(--success)] text-lg">👤</span>
+                  <h3 className="text-base font-semibold text-[var(--foreground)]">
                     What the Practitioner Decides
                   </h3>
                 </div>
-                <ul className="space-y-3 text-xs text-emerald-300 leading-relaxed">
+                <ul className="space-y-3 text-xs text-[var(--muted)] leading-relaxed">
                   <li className="flex items-start gap-2">
-                    <span className="text-emerald-400 font-bold">•</span>
+                    <span className="text-[var(--success)] font-bold">•</span>
                     <span><strong>Evaluates truth &amp; reliability:</strong> Assesses whether an interviewee statement is factual, biased, or speculative.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-emerald-400 font-bold">•</span>
+                    <span className="text-[var(--success)] font-bold">•</span>
                     <span><strong>Weighs analytical significance:</strong> Decides which observations constitute genuine evaluative patterns.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-emerald-400 font-bold">•</span>
+                    <span className="text-[var(--success)] font-bold">•</span>
                     <span><strong>Authors and validates Findings:</strong> Writes nuanced statements incorporating cultural and political context.</span>
                   </li>
                   <li className="flex items-start gap-2">
-                    <span className="text-emerald-400 font-bold">•</span>
+                    <span className="text-[var(--success)] font-bold">•</span>
                     <span><strong>Formulates Recommendations:</strong> Tailors actionable policy changes to institutional feasibility.</span>
                   </li>
                 </ul>
@@ -658,7 +680,14 @@ export function LandingPage() {
                   src="/screenshots/analysis.png"
                   alt="Field Learning Studio - Synthesis Comparative Matrix"
                   fill
-                  className="object-cover object-top"
+                  className="object-cover object-top dark-image"
+                  sizes="(max-width: 1200px) 100vw, 1000px"
+                />
+                <Image
+                  src="/screenshots/analysis-day.png"
+                  alt="Field Learning Studio - Synthesis Comparative Matrix"
+                  fill
+                  className="object-cover object-top light-image"
                   sizes="(max-width: 1200px) 100vw, 1000px"
                 />
               </div>
@@ -719,7 +748,14 @@ export function LandingPage() {
                       src="/screenshots/deliverables.png"
                       alt="Field Learning Studio - Deliverables Learning Brief Document"
                       fill
-                      className="object-cover object-top"
+                      className="object-cover object-top dark-image"
+                      sizes="(max-width: 1024px) 100vw, 600px"
+                    />
+                    <Image
+                      src="/screenshots/deliverables-day.png"
+                      alt="Field Learning Studio - Deliverables Learning Brief Document"
+                      fill
+                      className="object-cover object-top light-image"
                       sizes="(max-width: 1024px) 100vw, 600px"
                     />
                   </div>

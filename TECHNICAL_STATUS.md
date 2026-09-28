@@ -2,32 +2,32 @@
 
 ## Current Status
 
-**Production Release v1.0 (Public Pilot)** is fully integrated, deployed, and verified live on permanent production URL:
-**`https://field-learning-studio.vercel.app`**
+**Day / Night Theme System (`feature/day-night-theme`)** is fully implemented, verified, and ready for preview evaluation alongside the live **v1.0 Public Pilot** (`https://field-learning-studio.vercel.app`):
 
-1. **Unified Production Architecture**:
-   - Merged `feature/docx-field-intake` and `feature/public-landing-page` onto `main` (commit `c145dad`).
-   - Permanent production URL serves:
-     - `/` → High-authority, methodology-first public landing page (`LandingPage.tsx`).
-     - `/studio` → Full analytical studio workspace (`FieldLearningStudioApp.tsx`) with client-side IndexedDB persistence.
-     - `/welcome` → Direct alias to public landing page.
-2. **Client-Side DOCX Field Intake**:
-   - Complete Word document intake engine (`mammoth.js`) running 100% client-side in the browser.
-   - Extracts structured Source provenance and candidate Observations (`CandidateReviewTable`).
-   - Complete Accept / Edit / Skip workflow with atomic batch import into IndexedDB.
-   - Full backward compatibility and export parity across DOCX, PDF, and Markdown deliverables.
-3. **Automated Live Production Verification**:
-   - Automated headless Chrome CDP smoke test run directly against `https://field-learning-studio.vercel.app`:
-     - 0 console errors, 0 network failures.
-     - Navigation from `/` to `/studio` verified.
-     - Word Document Intake modal (`DocxIntakeModal`) verified in Field Material space.
-     - Analysis and Deliverables workspaces verified.
-     - Mobile 390×844 responsive layout verified with zero horizontal scroll overflow.
+1. **Dual Theme Architecture (Night & Day)**:
+   - Preserves 100% visual fidelity of official **Night Theme** (production baseline).
+   - Introduces an intentionally designed, editorial **Day Theme** (`[data-theme="day"]`) inspired by high-end research notebooks and analytical workspaces.
+   - Zero layout changes, zero structural shifts, zero methodology or content model modifications.
+   - Synchronous inline `<head>` script evaluates `fls_theme` from `localStorage` or `prefers-color-scheme` to guarantee **zero flash** on initial load.
+   - Zero React hydration mismatch warnings via `useSyncExternalStore` in `ThemeSwitcher.tsx`.
+2. **Accessible Theme Switcher**:
+   - Implemented `ThemeSwitcher.tsx` with Sun and Moon vector icons, explicit `aria-label`, and interactive hover/focus states.
+   - Rendered in both public `LandingPage` navigation (near Launch Studio CTA) and studio `FieldLearningStudioApp` app utility bar.
+   - Persists user choice in `localStorage.getItem('fls_theme')` (`"day"` | `"night"`).
+3. **Dual-Theme Screenshots on Landing Page**:
+   - Generated matching 1440×900 Day screenshots for all 4 workflow spaces and final draft preview in `public/screenshots/*-day.png`.
+   - Wired `LandingPage.tsx` with `.dark-image` and `.light-image` classes to automatically display the corresponding screenshots for the active theme.
 4. **Quality Gates Passed**:
-   - **204/204** Vitest unit and integration tests passing across 19 test files (191 core tests + 13 DOCX intake tests).
+   - **204/204** Vitest unit and integration tests passing across 19 test files.
    - TypeScript compilation clean (`tsc --noEmit --incremental false` exits 0).
    - ESLint clean (0 errors, 0 warnings).
    - Next.js Turbopack production build succeeds with static prerendered routes.
+   - Chrome CDP automated browser audit passed all 7 stages with **0 console errors** and **0 hydration warnings**.
+
+---
+
+**Production Release v1.0 (Public Pilot)** remains live on permanent production URL:
+**`https://field-learning-studio.vercel.app`**
 
 
 - **MEP-01 — Close the Formal Claim Boundary**:
