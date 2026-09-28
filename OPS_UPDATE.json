@@ -1,14 +1,14 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "theme_system_verified",
+  "status": "production_v1.1_deployed",
   "priority": "high",
-  "current_phase": "Day / Night Theme System Implemented & Verified on Feature Branch",
-  "next_action": "Deploy preview and submit for review before merging to main.",
+  "current_phase": "v1.1 Day / Night Theme System Released to Production",
+  "next_action": "Conduct partner demonstrations and collect pilot feedback in both themes.",
   "blocker": null,
   "decision_needed": null,
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
-  "preview_url": "https://field-learning-studio-l7n1j16er-delta4ce20-5830s-projects.vercel.app",
+  "preview_url": "https://field-learning-studio-jvmn92bt1-delta4ce20-5830s-projects.vercel.app",
   "production_url": "https://field-learning-studio.vercel.app",
   "validation_results": {
     "primary": "passed",
@@ -19,11 +19,11 @@
     "diff_check": "passed",
     "local_http": "passed",
     "tests": "204_passed_19_files",
-    "theme_cdp_audit": "passed_7_stages_0_errors_0_hydration_warnings"
+    "prod_smoke_cdp": "passed_both_day_night_0_errors_0_hydration_warnings_390_clean"
   },
   "remaining_risks": [
     "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported."
   ],
-  "recommended_next_step": "Deploy Vercel preview branch for stakeholder review.",
-  "notion_page_update": "Day / Night Theme System is fully implemented and verified on feature/day-night-theme. Official Night Theme preserved with 100% fidelity; editorial Day Theme introduced with clean semantic CSS tokens. Zero flash on load via inline head script, zero hydration warnings via useSyncExternalStore. All 204 unit & integration tests pass across 19 test files. Automated 7-stage CDP browser audit passed with 0 console errors."
+  "recommended_next_step": "Ready for partner demonstrations and field pilot validation.",
+  "notion_page_update": "Field Learning Studio v1.1 Day / Night Theme System is deployed live to production at https://field-learning-studio.vercel.app. Features dual intentionally designed themes (editorial Day and official Night baseline), zero flash on load, persistent preferences via localStorage, and automatic OS fallback. All 204 unit & integration tests pass across 19 files. Automated production CDP smoke test verified both themes, all 4 studio spaces, and mobile responsiveness with zero console errors and zero hydration warnings."
 }

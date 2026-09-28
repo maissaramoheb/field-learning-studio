@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased - Day / Night Theme System (`feature/day-night-theme`)
+## v1.1.0 - Day / Night Theme System Release
 
 - **Dual-Theme Design System**:
   - Implemented an intentional, editorial **Day Theme** (`[data-theme="day"]`) designed specifically for long analytical sessions (warm paper canvas `#f6f8fa`, crisp card surface `#ffffff`, high-contrast text `#0f172a`, deep editorial blue accent `#2563eb`, analytical cyan-blue trace `#0284c7`).

@@ -2,11 +2,12 @@
 
 ## Current Status
 
-**Day / Night Theme System (`feature/day-night-theme`)** is fully implemented, verified, and ready for preview evaluation alongside the live **v1.0 Public Pilot** (`https://field-learning-studio.vercel.app`):
+**Production Release v1.1 — Day / Night Theme System** is fully merged into `main` (commit `d2093f5`), deployed to Vercel Production, and verified live on permanent production URL:
+**`https://field-learning-studio.vercel.app`**
 
 1. **Dual Theme Architecture (Night & Day)**:
-   - Preserves 100% visual fidelity of official **Night Theme** (production baseline).
-   - Introduces an intentionally designed, editorial **Day Theme** (`[data-theme="day"]`) inspired by high-end research notebooks and analytical workspaces.
+   - Official **Night Theme** preserved with 100% visual fidelity compared to the production baseline.
+   - Editorial **Day Theme** (`[data-theme="day"]`) introduced with warm paper canvas (`#f6f8fa`), crisp white cards (`#ffffff`), authoritative slate typography (`#0f172a`), deep cobalt action accent (`#2563eb`), and high-clarity trace accent (`#0284c7`).
    - Zero layout changes, zero structural shifts, zero methodology or content model modifications.
    - Synchronous inline `<head>` script evaluates `fls_theme` from `localStorage` or `prefers-color-scheme` to guarantee **zero flash** on initial load.
    - Zero React hydration mismatch warnings via `useSyncExternalStore` in `ThemeSwitcher.tsx`.
@@ -15,19 +16,22 @@
    - Rendered in both public `LandingPage` navigation (near Launch Studio CTA) and studio `FieldLearningStudioApp` app utility bar.
    - Persists user choice in `localStorage.getItem('fls_theme')` (`"day"` | `"night"`).
 3. **Dual-Theme Screenshots on Landing Page**:
-   - Generated matching 1440×900 Day screenshots for all 4 workflow spaces and final draft preview in `public/screenshots/*-day.png`.
-   - Wired `LandingPage.tsx` with `.dark-image` and `.light-image` classes to automatically display the corresponding screenshots for the active theme.
-4. **Quality Gates Passed**:
+   - Synchronized matching 1440×900 Day screenshots for all 4 workflow spaces and final draft preview in `public/screenshots/*-day.png`.
+   - Dynamic CSS classes (`.dark-image` and `.light-image`) automatically display matching screenshots based on active theme without client-side layout shifts.
+4. **Live Production Smoke Test Passed**:
+   - Headless Chrome CDP smoke test run directly against `https://field-learning-studio.vercel.app`:
+     - 0 console errors, 0 hydration warnings, 0 network failures.
+     - Theme toggle and persistence verified across `/` and `/studio`.
+     - Page refresh in Day mode verified with zero flicker.
+     - OS preference fallback (`prefers-color-scheme: light/dark`) verified when storage is cleared.
+     - All 4 Studio spaces verified in both Day and Night themes.
+     - Mobile 390×844 responsive layout verified with zero horizontal scroll overflow.
+5. **Quality Gates Passed**:
    - **204/204** Vitest unit and integration tests passing across 19 test files.
    - TypeScript compilation clean (`tsc --noEmit --incremental false` exits 0).
    - ESLint clean (0 errors, 0 warnings).
    - Next.js Turbopack production build succeeds with static prerendered routes.
-   - Chrome CDP automated browser audit passed all 7 stages with **0 console errors** and **0 hydration warnings**.
-
----
-
-**Production Release v1.0 (Public Pilot)** remains live on permanent production URL:
-**`https://field-learning-studio.vercel.app`**
+   - Rollback tag created and pushed before merge: `pre-day-night-theme-release-2026-09-28`.
 
 
 - **MEP-01 — Close the Formal Claim Boundary**:
