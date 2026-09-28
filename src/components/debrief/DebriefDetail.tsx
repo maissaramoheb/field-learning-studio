@@ -71,7 +71,7 @@ export function DebriefDetail({
           <button
             type="button"
             onClick={() => onTraceSelect(debrief.id)}
-            className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace)] px-3 py-1.5 text-xs font-semibold text-[#03121a] hover:bg-[var(--trace-text)] cursor-pointer"
+            className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace)] px-3 py-1.5 text-xs font-semibold text-[var(--trace-ink)] hover:bg-[var(--trace-text)] cursor-pointer"
           >
             Inspect in Drawer &rarr;
           </button>

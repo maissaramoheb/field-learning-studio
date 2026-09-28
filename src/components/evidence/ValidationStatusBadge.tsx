@@ -11,13 +11,13 @@ export function ValidationStatusBadge({
   revision?: number;
 }) {
   const s = status || "Draft";
-  let colorClass = "border-slate-600 bg-slate-800/60 text-slate-300";
+  let colorClass = "border-[var(--border-strong)] bg-[var(--surface-muted)] text-[var(--muted)]";
   if (s === "Needs Review") {
-    colorClass = "border-amber-500/40 bg-amber-950/40 text-amber-300";
+    colorClass = "border-[var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-text)]";
   } else if (s === "Validated") {
-    colorClass = "border-emerald-500/40 bg-emerald-950/40 text-emerald-300";
+    colorClass = "border-[var(--success-border)] bg-[var(--success-soft)] text-[var(--success-text)]";
   } else if (s === "Rejected") {
-    colorClass = "border-rose-500/40 bg-rose-950/40 text-rose-300";
+    colorClass = "border-[var(--danger-border)] bg-[var(--danger-soft)] text-[var(--danger-text)]";
   }
 
   return (
@@ -28,7 +28,7 @@ export function ValidationStatusBadge({
         {s}
       </span>
       {revision !== undefined && revision > 1 && (
-        <span className="rounded border border-sky-800/40 bg-sky-950/30 px-1.5 py-0.5 text-[10px] font-semibold text-sky-400">
+        <span className="rounded border border-[var(--info-border)] bg-[var(--info-soft)] px-1.5 py-0.5 text-[10px] font-semibold text-[var(--info-text)]">
           Rev {revision}
         </span>
       )}

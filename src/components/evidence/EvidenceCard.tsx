@@ -124,15 +124,15 @@ export function EvidenceCard({
 
         {/* Validated Attribution Banner */}
         {status === "Validated" && entry.lastValidatedBy && (
-          <div className="mb-3 rounded-lg border border-emerald-500/30 bg-emerald-950/20 px-3 py-1.5 text-xs text-emerald-300 flex items-center justify-between">
+          <div className="mb-3 rounded-lg border border-[var(--success-border)] bg-[var(--success-soft)] px-3 py-1.5 text-xs text-[var(--success-text)] flex items-center justify-between">
             <div className="flex items-center gap-1.5">
               <span>✓</span>
               <span>
-                Validated by <span className="font-semibold text-emerald-200">{entry.lastValidatedBy}</span>
+                Validated by <span className="font-semibold text-[var(--success-text)]">{entry.lastValidatedBy}</span>
               </span>
             </div>
             {entry.lastValidatedAt && (
-              <span className="text-[10px] text-emerald-400/80">
+              <span className="text-[10px] text-[var(--success-text)] opacity-80">
                 {new Date(entry.lastValidatedAt).toLocaleDateString()}
               </span>
             )}
@@ -141,12 +141,12 @@ export function EvidenceCard({
 
         {/* Rejection Banner */}
         {status === "Rejected" && entry.rejectionReason && (
-          <div className="mb-3 rounded-lg border border-rose-500/40 bg-rose-950/30 p-3 text-xs text-rose-300">
-            <div className="flex items-center gap-1 font-semibold text-rose-200">
+          <div className="mb-3 rounded-lg border border-[var(--danger-border)] bg-[var(--danger-soft)] p-3 text-xs text-[var(--danger-text)]">
+            <div className="flex items-center gap-1 font-semibold text-[var(--danger-text)]">
               <span>✕</span>
               <span>Rejection Rationale:</span>
             </div>
-            <p className="mt-1 italic text-rose-200/90">&ldquo;{entry.rejectionReason}&rdquo;</p>
+            <p className="mt-1 italic opacity-90">&ldquo;{entry.rejectionReason}&rdquo;</p>
           </div>
         )}
 
@@ -327,7 +327,7 @@ export function EvidenceCard({
             <button
               type="button"
               onClick={() => onTraceSelect(entry.id)}
-              className="rounded border border-[var(--trace-border)] bg-[var(--trace)] px-2.5 py-1 text-xs font-semibold text-[#03121a] hover:bg-[var(--trace-text)] cursor-pointer"
+              className="rounded border border-[var(--trace-border)] bg-[var(--trace)] px-2.5 py-1 text-xs font-semibold text-[var(--trace-ink)] hover:bg-[var(--trace-text)] cursor-pointer"
             >
               Inspect Chain &rarr;
             </button>
@@ -339,7 +339,7 @@ export function EvidenceCard({
             <button
               type="button"
               onClick={() => onTraceSelect(entry.id)}
-              className="rounded border border-[var(--trace-border)] bg-[var(--trace)] px-2.5 py-1 text-xs font-semibold text-[#03121a] hover:bg-[var(--trace-text)] cursor-pointer"
+              className="rounded border border-[var(--trace-border)] bg-[var(--trace)] px-2.5 py-1 text-xs font-semibold text-[var(--trace-ink)] hover:bg-[var(--trace-text)] cursor-pointer"
             >
               Inspect Chain &rarr;
             </button>

@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased - Day / Night Theme System (`feature/day-night-theme`)
+
+- **Dual-Theme Design System**:
+  - Implemented an intentional, editorial **Day Theme** (`[data-theme="day"]`) designed specifically for long analytical sessions (warm paper canvas `#f6f8fa`, crisp card surface `#ffffff`, high-contrast text `#0f172a`, deep editorial blue accent `#2563eb`, analytical cyan-blue trace `#0284c7`).
+  - Preserved the official **Night Theme** (`[data-theme="night"]` and default `:root`) with 100% visual fidelity compared to production baseline.
+  - Fully semantic CSS token architecture in `globals.css` (`--background`, `--surface`, `--surface-muted`, `--surface-elevated`, `--surface-selected`, `--border`, `--border-strong`, `--accent`, `--accent-strong`, `--trace`, `--trace-ink`, `--warning-*`, `--success-*`, `--danger-*`, `--document-*`).
+- **Zero Flash & Zero Hydration Warnings**:
+  - Synchronous inline script in `src/app/layout.tsx` `<head>` sets `data-theme` attribute before DOM painting begins, preventing any theme flash.
+  - Accessible `ThemeSwitcher.tsx` with Sun/Moon SVGs using `useSyncExternalStore` for flicker-free React 19 hydration and multi-tab/cross-component synchronization.
+  - Persistent preference in `localStorage.getItem('fls_theme')` with automatic fallback to `prefers-color-scheme`.
+- **Theme-Synchronized Screenshots**:
+  - Generated and paired 1440×900 Day screenshots (`study-day.png`, `field_material-day.png`, `analysis-day.png`, `deliverables-day.png`, `final_draft_preview-day.png`) in `public/screenshots/`.
+  - Configured `LandingPage.tsx` with `.dark-image` and `.light-image` classes to automatically display theme-matching workspace screenshots.
+- **Verification & Quality Gates**:
+  - All 204 Vitest unit and integration tests passing.
+  - TypeScript clean, ESLint clean, Next.js Turbopack production build clean.
+  - Automated 7-stage headless Chrome CDP browser audit passed with 0 console errors and 0 hydration warnings.
+
 ## v1.0.0 - Unified Production Release: Public Landing Page + DOCX Field Intake + Studio Workspace
 
 - **Production Integration**:

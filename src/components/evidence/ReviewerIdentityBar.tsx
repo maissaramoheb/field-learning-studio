@@ -46,7 +46,7 @@ export function ReviewerIdentityBar({
             />
             <button
               type="submit"
-              className="rounded bg-[var(--trace)] px-2.5 py-1 text-[11px] font-semibold text-[#03121a] hover:bg-[var(--trace-text)] cursor-pointer"
+              className="rounded bg-[var(--trace)] px-2.5 py-1 text-[11px] font-semibold text-[var(--trace-ink)] hover:bg-[var(--trace-text)] cursor-pointer"
             >
               Set
             </button>

@@ -100,16 +100,16 @@ export function StudyQuestionSelector({
           onClick={() => onSelectFilter("unassigned")}
           className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
             activeFilter === "unassigned"
-              ? "bg-amber-400 text-slate-950 shadow-sm"
-              : "border border-amber-900/40 bg-amber-950/20 text-amber-300 hover:bg-amber-950/40"
+              ? "bg-[var(--warning)] text-slate-950 shadow-sm"
+              : "border border-[var(--warning-border)] bg-[var(--warning-soft)] text-[var(--warning-text)] hover:opacity-80"
           }`}
         >
           <span>Unassigned Evidence</span>
           <span
             className={`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
               activeFilter === "unassigned"
-                ? "bg-amber-950 text-amber-200"
-                : "bg-amber-500/20 text-amber-300"
+                ? "bg-black/20 text-slate-950"
+                : "bg-[var(--warning-border)] text-[var(--warning-text)]"
             }`}
           >
             {unassignedCount}
