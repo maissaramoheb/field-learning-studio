@@ -2,31 +2,54 @@
 
 ## Current Status
 
-**Phase 0 — Schema, Lineage, and Epistemic Foundation (v1.2 Specification)** is fully implemented on dedicated branch `feature/phase-0-schema-lineage-foundation` based on baseline `ea07102fc1329d9e4d689d35f3ae5741646b8af9`.
+**Phase 1 — Study Library, Demo/Real Separation, and Workspace Identity Foundation** is fully implemented on dedicated branch `feature/phase-1-study-library-workspace-shell` based on authoritative baseline `main @ 314ce11ff884377ae755b2a5a7cc51ab6ccab8de`.
 
-1. **Four Locked Architectural Safeguards Implemented**:
-   - **MaterialCategory Safeguard**: Explicit classification (`primary_evidence`, `secondary_evidence`, `supervisory_interpretation`, `legacy_unclassified`). Supervisory debriefs excluded from `independentSourceCount`. Legacy unclassified records trigger qualification warnings without fabricating independent support.
-   - **Centralized Write Normalization**: Pure, idempotent normalizers in `src/lib/storage/normalization.ts` guarantee all required Phase 0 metadata (`audit`, `materialCategory`, `reviewStatus`, `lineageStatus`, `linkedFindingIds`, `linkedLessonIds`) on every write through `studyStore`.
-   - **Recommendation Dual-Write Compatibility**: Strict synchronization invariant enforced on every write: `linkedFindingId = linkedFindingIds[0] ?? linkedFindingId ?? undefined`, preserving compatibility with legacy single-finding consumers and the `by_finding` IndexedDB index.
-   - **Pre-Migration Backup Isolation**: Raw v1 connection used in `src/lib/storage/migrationV2.ts` to export and verify `.fls.json` backup envelopes into `FieldLearningStudioBackupDB` before `FieldLearningStudioDB` opens at version 2. Upgrade halts on backup failure, keeping main DB at v1.
-2. **IndexedDB v2 Architecture**:
-   - Upgraded `DB_VERSION = 2`.
-   - Retained existing 8 stores and added 2 new stores: `sourceFileMetadata` (`[studyId, id]`) and `sourceFileContent` (`[studyId, fileId]`).
-   - Added index `by_reviewStatus` on `evidence` store.
-   - Maintained in-memory lineage traversal within assembled studies; rejected invalid compound multiEntry indexes.
-3. **Dynamic Triangulation & Epistemic Support Engine**:
-   - Dynamic runtime computation in `src/lib/analytics/triangulation.ts` and `supportProfile.ts` without persisting deterministic metrics.
-   - Single-source findings remain validatable with explicit recorded human limitation caveats.
-4. **Source File Storage Abstraction**:
-   - Implemented `src/lib/storage/sourceFileRepository.ts` segregating lightweight metadata from binary/text blobs with quota threshold checks.
-5. **Quality Gates Passed**:
-   - **217/217** Vitest unit and integration tests passing across 22 test files (13 new Phase 0 tests in 3 test suites).
+1. **Study Library Architecture**:
+   - Implemented `StudyLibraryView` (`src/components/library/StudyLibraryView.tsx`) establishing the canonical landing space when entering the studio.
+   - Clean, distinct visual sections: **Showcase Studies** (Demo Cases) and **My Studies** (Local Editable Studies).
+   - Designed welcoming `EmptyStudyState` (`src/components/library/EmptyStudyState.tsx`) guiding users through first-study creation with clear, non-alarming copy.
+   - Preserved `MinimalStudyModal` for immediate, zero-friction local study creation.
+   - Maintained non-functional reserve card for Phase 2 Import & Mapping UI.
+2. **Demo/Real Separation**:
+   - Showcase studies (`DemoStudyCard`) are visually marked with subtle informational badges (`SHOWCASE DATA · READ-ONLY`) and distinct action buttons (`Open Demo Study`, `Clone to My Studies`).
+   - Real studies (`StudyCard`) display evaluation context, status pill, last modified timestamp, and entity metrics (sources, evidence, findings, recommendations) without anxiety-inducing "LIVE" language.
+   - In-workspace header (`StudyWorkspaceHeader`) displays subtle `SHOWCASE DATA · READ-ONLY` badge only when viewing a demo study, preserving an uncluttered environment for real evaluation work.
+   - "Clone to My Studies" creates an editable local copy in IndexedDB preserving full epistemic lineage and relationships.
+3. **Workspace Identity & Semantic Tokens**:
+   - Defined semantic workspace design tokens in `src/app/globals.css` for both Night and Day themes:
+     - `study`: Step 1 | Purpose: *DEFINE* | Blue (`#3b82f6` night / `#2563eb` day)
+     - `field-material`: Step 2 | Purpose: *CAPTURE & QUALIFY* | Sky (`#0ea5e9` night / `#0284c7` day)
+     - `analysis`: Step 3 | Purpose: *INTERPRET & VALIDATE* | Violet (`#8b5cf6` night / `#7c3aed` day)
+     - `deliverables`: Step 4 | Purpose: *COMMUNICATE & DECIDE* | Purple (`#a855f7` night / `#9333ea` day)
+   - Strict separation between workspace identity accents and evaluation status tokens (`--warning`, `--danger`, `--success`).
+   - Implemented `WorkspaceContextHeader` providing unified orientation answering: *Where am I?*, *What am I doing here?*, *What type of work belongs here?*
+4. **Header Simplification & Navigation Hierarchy**:
+   - Implemented `StudyWorkspaceHeader` structuring navigation into 3 clean, uncluttered levels:
+     - **Level 1**: Top utility bar with `< Back to Study Library`, study title, demo indicator, theme toggle, backup/restore, and `+ New Study`.
+     - **Level 2**: Progression-oriented 4-space tabs (Study -> Field Material -> Analysis -> Deliverables) communicating epistemic progression (*Define -> Capture -> Interpret -> Communicate*) while allowing free, non-wizard navigation.
+     - **Level 3**: Sub-tabs for the active workspace, preserving existing analytical workflows without disruption.
+5. **Quality Gates & Verification**:
+   - **229/229** Vitest unit and integration tests passing across 23 test files (12 new tests in `tests/phase1StudyLibrary.test.ts`).
    - TypeScript compilation clean (`tsc --noEmit --incremental false` exits 0).
    - ESLint clean (0 errors, 0 warnings).
    - Next.js Turbopack production build succeeds with static prerendered routes.
-   - `git diff --check` passes cleanly (0 whitespace/conflict issues).
+   - `git diff --check` clean (0 whitespace or line ending issues).
+   - Headless Chrome CDP visual QA verified 14 high-resolution screenshots across Day and Night themes.
 
-**Production Baseline**: v1.1 Day / Night Theme System remains deployed and verified on `https://field-learning-studio.vercel.app` (commit `ea07102`). Phase 0 changes are isolated to `feature/phase-0-schema-lineage-foundation` with zero production deployment or merge.
+**Authoritative Baseline**: `main @ 314ce11ff884377ae755b2a5a7cc51ab6ccab8de` (Phase 0 merged). Phase 1 changes are isolated to `feature/phase-1-study-library-workspace-shell` with zero production deployment or merge.
+
+## Historical Milestones
+
+- **Phase 0 — Schema, Lineage, and Epistemic Foundation (v1.2 Specification)**:
+  - Upgraded IndexedDB to v2 with `sourceFileMetadata`, `sourceFileContent`, and `by_reviewStatus` index.
+  - Implemented pre-migration backup isolation in `FieldLearningStudioBackupDB` before v2 upgrade.
+  - Centralized, pure, idempotent write normalization in `src/lib/storage/normalization.ts`.
+  - Implemented explicit `MaterialCategory` (`primary_evidence`, `secondary_evidence`, `supervisory_interpretation`, `legacy_unclassified`).
+  - Supervisory debrief exclusion from `independentSourceCount` and qualification warnings for legacy unclassified material.
+  - Recommendation dual-write synchronization (`linkedFindingId` <-> `linkedFindingIds[0]`).
+  - Lesson and GoodPractice M:N `linkedFindingIds` and `lineageStatus: "legacy_unresolved" | "resolved"`.
+  - Dynamic runtime triangulation engine in `src/lib/analytics/triangulation.ts` and `supportProfile.ts`.
+  - Segregated `SourceFileRepository` for metadata and blob/text content with quota estimation.
 
 
 - **MEP-01 — Close the Formal Claim Boundary**:

@@ -1,5 +1,37 @@
 # Changelog
 
+## Phase 1 - Study Library, Demo/Real Separation, and Workspace Identity Foundation
+
+- **Study Library Architecture (`StudyLibraryView`)**:
+  - Implemented `StudyLibraryView` component serving as the home/overview view when entering the Studio (`?view=library`).
+  - Divided library into two clear visual sections: **Showcase Studies** (curated, read-only demo evaluations) and **My Studies** (local editable studies stored in IndexedDB).
+  - Implemented `EmptyStudyState` guiding users on first visit with clean, inviting action to create a real study.
+  - Retained `MinimalStudyModal` for frictionless real study creation.
+  - Added reserve card for future Phase 2 Import & Mapping UI.
+- **Demo / Real Separation & Cloning**:
+  - Distinct styling for Demo Studies (`DemoStudyCard`) with informational `SHOWCASE DATA · READ-ONLY` badge.
+  - Real studies (`StudyCard`) display evaluation metadata, status badge, last-modified timestamp, and key metric counters (sources, evidence, findings, recommendations) without alarming or distracting "LIVE" labels.
+  - Implemented "Clone to My Studies" on demo cards: clones the selected demo study into a new editable local study in IndexedDB with full relationship and lineage fidelity.
+  - In-workspace header displays subtle `SHOWCASE DATA · READ-ONLY` pill when viewing demo studies.
+- **Workspace Identity System & Semantic Design Tokens**:
+  - Defined semantic CSS tokens in `globals.css` across Day and Night themes:
+    - Step 1: **Study** | Purpose: *DEFINE* | Blue (`--workspace-study-accent: #3b82f6` night, `#2563eb` day)
+    - Step 2: **Field Material** | Purpose: *CAPTURE & QUALIFY* | Sky (`--workspace-field-accent: #0ea5e9` night, `#0284c7` day)
+    - Step 3: **Analysis** | Purpose: *INTERPRET & VALIDATE* | Violet (`--workspace-analysis-accent: #8b5cf6` night, `#7c3aed` day)
+    - Step 4: **Deliverables** | Purpose: *COMMUNICATE & DECIDE* | Purple (`--workspace-deliverables-accent: #a855f7` night, `#9333ea` day)
+  - Strict isolation between workspace identity tokens and status/alert tokens (`--warning`, `--danger`, `--success`).
+  - Implemented `WorkspaceContextHeader` orientation component answering: *Where am I?*, *What am I doing here?*, *What type of work belongs here?*
+- **Header Hierarchy & Navigation Refactoring**:
+  - Replaced cramped `<select>` dropdown with 3-tier navigation hierarchy in `StudyWorkspaceHeader`:
+    - Level 1: Utility bar (`< Back to Study Library`, study title, demo indicator, ThemeSwitcher, Backup/Restore, `+ New Study`).
+    - Level 2: Epistemic 4-space tabs with step numbers and purpose labels (*Define -> Capture -> Interpret -> Communicate*) while allowing unrestricted navigation.
+    - Level 3: Active sub-tabs preserving existing analytical workflows without disruption.
+- **Verification & Visual QA**:
+  - Added 12 new unit and integration tests in `tests/phase1StudyLibrary.test.ts` covering demo/real separation, cloning, empty state, workspace context mapping, and lineage preservation.
+  - Total passing tests: 229 across 23 test files.
+  - TypeScript, ESLint, Turbopack production build, and `git diff --check` all pass with 0 errors.
+  - Headless Chrome CDP visual QA verified 14 high-resolution screenshots across Day and Night themes.
+
 ## Phase 0 - Schema, Lineage, and Epistemic Foundation (Specification v1.2)
 
 - **IndexedDB Schema v2 (`FieldLearningStudioDB`)**:

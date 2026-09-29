@@ -2,6 +2,18 @@
 
 ## P0
 
+- [x] Phase 1 Study Library, Demo/Real Separation, and Workspace Identity Foundation (`feature/phase-1-study-library-workspace-shell`):
+  - [x] Canonical `StudyLibraryView` with Showcase Studies and My Studies sections.
+  - [x] Welcoming `EmptyStudyState` guiding users to create their first real study.
+  - [x] Distinct visual differentiation for Demo Studies (`DemoStudyCard`) vs Real Studies (`StudyCard`).
+  - [x] "Clone to My Studies" action on demo cards creating local editable copy in IndexedDB.
+  - [x] Non-functional reserve card for Phase 2 Import & Mapping UI.
+  - [x] Three-level `StudyWorkspaceHeader` replacing cramped dropdown with clean `< Back to Study Library` navigation.
+  - [x] Progression-oriented 4-space tabs (Study -> Field Material -> Analysis -> Deliverables) without rigid wizard constraints.
+  - [x] Semantic workspace tokens (`study`, `field-material`, `analysis`, `deliverables`) in Day and Night themes distinct from status colors.
+  - [x] `WorkspaceContextHeader` orientation component answering *Where am I?*, *What am I doing here?*, *What type of work belongs here?*.
+  - [x] 12 unit/integration tests in `tests/phase1StudyLibrary.test.ts` (229/229 total tests passing).
+  - [x] Automated visual QA across 14 high-resolution screenshots.
 - [x] Phase 0 Schema, Lineage, and Epistemic Foundation (`feature/phase-0-schema-lineage-foundation`):
   - [x] IndexedDB v2 schema with 10 stores (`sourceFileMetadata`, `sourceFileContent`) and `by_reviewStatus` index.
   - [x] Pre-migration backup isolation in `FieldLearningStudioBackupDB` via raw v1 connection before v2 upgrade.
