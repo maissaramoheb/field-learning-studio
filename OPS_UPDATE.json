@@ -1,10 +1,10 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "production_v1.1_deployed",
+  "status": "phase_0_schema_foundation_implemented",
   "priority": "high",
-  "current_phase": "v1.1 Day / Night Theme System Released to Production",
-  "next_action": "Conduct partner demonstrations and collect pilot feedback in both themes.",
+  "current_phase": "Phase 0 Schema, Lineage, and Epistemic Foundation (Specification v1.2)",
+  "next_action": "Review Phase 0 foundation before proceeding to Phase 1.",
   "blocker": null,
   "decision_needed": null,
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
@@ -18,12 +18,12 @@
     "json": "passed",
     "diff_check": "passed",
     "local_http": "passed",
-    "tests": "204_passed_19_files",
-    "prod_smoke_cdp": "passed_both_day_night_0_errors_0_hydration_warnings_390_clean"
+    "tests": "217_passed_22_files",
+    "prod_smoke_cdp": "passed_v1.1_baseline"
   },
   "remaining_risks": [
-    "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported."
+    "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported (mitigated in Phase 0 via SourceFileRepository quota estimation and threshold warnings)."
   ],
-  "recommended_next_step": "Ready for partner demonstrations and field pilot validation.",
-  "notion_page_update": "Field Learning Studio v1.1 Day / Night Theme System is deployed live to production at https://field-learning-studio.vercel.app. Features dual intentionally designed themes (editorial Day and official Night baseline), zero flash on load, persistent preferences via localStorage, and automatic OS fallback. All 204 unit & integration tests pass across 19 files. Automated production CDP smoke test verified both themes, all 4 studio spaces, and mobile responsiveness with zero console errors and zero hydration warnings."
+  "recommended_next_step": "Phase 0 foundation complete on feature branch; await review and authorization before Phase 1.",
+  "notion_page_update": "Field Learning Studio Phase 0 (Schema, Lineage, and Epistemic Foundation) is implemented according to Specification v1.2 on feature/phase-0-schema-lineage-foundation. Upgraded IndexedDB to v2 with sourceFileMetadata, sourceFileContent, and reviewStatus indexing. Enforced pre-migration backup isolation in FieldLearningStudioBackupDB before upgrade, pure centralized write normalization, MaterialCategory epistemic taxonomy, supervisory debrief exclusion from independent source counts, recommendation dual-write compatibility, and pure dynamic triangulation. All 217 tests pass across 22 test files with 0 TypeScript and 0 lint errors."
 }

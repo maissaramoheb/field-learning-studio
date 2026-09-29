@@ -4,6 +4,11 @@ import type {
   CollectionMethod,
   StudyScopeConfig,
 } from "@/lib/types";
+import {
+  DEMO_AUDIT,
+  inferMaterialCategoryFromSourceType,
+  mapLegacyValidationToReviewStatus,
+} from "./normalization";
 
 const KNOWN_COLLECTION_METHODS: CollectionMethod[] = [
   "Key Informant Interview",
@@ -68,6 +73,8 @@ export function adaptDemoCaseToFieldStudy(demoCase: DemoCase): FieldStudy {
   const sources = (demoCase.sources || []).map((s) => ({
     ...s,
     studyId,
+    materialCategory: s.materialCategory ?? inferMaterialCategoryFromSourceType(s.sourceType),
+    audit: s.audit ?? DEMO_AUDIT,
     consentStatus: s.consentStatus ?? "Written",
     anonymizationStatus: s.anonymizationStatus ?? "Anonymized",
     createdAt: s.createdAt ?? baseTimestamp,
@@ -77,6 +84,8 @@ export function adaptDemoCaseToFieldStudy(demoCase: DemoCase): FieldStudy {
   const evidence = (demoCase.evidence || []).map((e) => ({
     ...e,
     studyId,
+    reviewStatus: e.reviewStatus ?? mapLegacyValidationToReviewStatus(e.validationStatus),
+    audit: e.audit ?? DEMO_AUDIT,
     validationStatus: e.validationStatus ?? "Validated",
     revision: e.revision ?? 1,
     lastValidatedAt: e.lastValidatedAt ?? baseTimestamp,
@@ -88,6 +97,7 @@ export function adaptDemoCaseToFieldStudy(demoCase: DemoCase): FieldStudy {
   const findings = (demoCase.findings || []).map((f) => ({
     ...f,
     studyId,
+    audit: f.audit ?? DEMO_AUDIT,
     validationStatus: f.validationStatus ?? "Validated",
     revision: f.revision ?? 1,
     lastValidatedAt: f.lastValidatedAt ?? baseTimestamp,
@@ -99,6 +109,11 @@ export function adaptDemoCaseToFieldStudy(demoCase: DemoCase): FieldStudy {
   const lessons = (demoCase.lessons || []).map((l) => ({
     ...l,
     studyId,
+    linkedFindingIds: l.linkedFindingIds ?? [],
+    lineageStatus:
+      l.lineageStatus ??
+      (l.linkedFindingIds && l.linkedFindingIds.length > 0 ? "resolved" : "legacy_unresolved"),
+    audit: l.audit ?? DEMO_AUDIT,
     validationStatus: l.validationStatus ?? "Validated",
     revision: l.revision ?? 1,
     lastValidatedAt: l.lastValidatedAt ?? baseTimestamp,
@@ -110,6 +125,11 @@ export function adaptDemoCaseToFieldStudy(demoCase: DemoCase): FieldStudy {
   const goodPractices = (demoCase.goodPractices || []).map((g) => ({
     ...g,
     studyId,
+    linkedFindingIds: g.linkedFindingIds ?? [],
+    lineageStatus:
+      g.lineageStatus ??
+      (g.linkedFindingIds && g.linkedFindingIds.length > 0 ? "resolved" : "legacy_unresolved"),
+    audit: g.audit ?? DEMO_AUDIT,
     validationStatus: g.validationStatus ?? "Validated",
     revision: g.revision ?? 1,
     lastValidatedAt: g.lastValidatedAt ?? baseTimestamp,
@@ -118,16 +138,28 @@ export function adaptDemoCaseToFieldStudy(demoCase: DemoCase): FieldStudy {
     updatedAt: g.updatedAt ?? baseTimestamp,
   }));
 
-  const recommendations = (demoCase.recommendations || []).map((r) => ({
-    ...r,
-    studyId,
-    validationStatus: r.validationStatus ?? "Validated",
-    revision: r.revision ?? 1,
-    lastValidatedAt: r.lastValidatedAt ?? baseTimestamp,
-    lastValidatedBy: r.lastValidatedBy ?? "Demo Reviewer",
-    createdAt: r.createdAt ?? baseTimestamp,
-    updatedAt: r.updatedAt ?? baseTimestamp,
-  }));
+  const recommendations = (demoCase.recommendations || []).map((r) => {
+    const findingIds =
+      r.linkedFindingIds && r.linkedFindingIds.length > 0
+        ? r.linkedFindingIds
+        : r.linkedFindingId
+        ? [r.linkedFindingId]
+        : [];
+    return {
+      ...r,
+      studyId,
+      linkedFindingId: findingIds[0] ?? r.linkedFindingId,
+      linkedFindingIds: findingIds,
+      linkedLessonIds: r.linkedLessonIds ?? [],
+      audit: r.audit ?? DEMO_AUDIT,
+      validationStatus: r.validationStatus ?? "Validated",
+      revision: r.revision ?? 1,
+      lastValidatedAt: r.lastValidatedAt ?? baseTimestamp,
+      lastValidatedBy: r.lastValidatedBy ?? "Demo Reviewer",
+      createdAt: r.createdAt ?? baseTimestamp,
+      updatedAt: r.updatedAt ?? baseTimestamp,
+    };
+  });
 
   return {
     id: studyId,

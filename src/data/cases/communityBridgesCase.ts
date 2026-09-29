@@ -1,4 +1,5 @@
 import type { DemoCase } from "@/lib/types";
+import { DEMO_AUDIT } from "@/lib/storage/normalization";
 
 export const communityBridgesCase: DemoCase = {
   id: "community-bridges",
@@ -38,6 +39,8 @@ export const communityBridgesCase: DemoCase = {
       id: "SRC-001",
       title: "Youth focus group summary",
       sourceType: "Focus group discussion",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-02-12",
       stakeholderType: "Youth participants",
       location: "Al Noor District",
@@ -49,6 +52,8 @@ export const communityBridgesCase: DemoCase = {
       id: "SRC-002",
       title: "Women's peace circle notes",
       sourceType: "Focus group discussion",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-02-15",
       stakeholderType: "Women representatives",
       location: "River East",
@@ -60,6 +65,8 @@ export const communityBridgesCase: DemoCase = {
       id: "SRC-003",
       title: "Community center attendance log",
       sourceType: "Monitoring record",
+      materialCategory: "secondary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-02-28",
       stakeholderType: "Community center coordinators",
       location: "Three districts",
@@ -71,6 +78,8 @@ export const communityBridgesCase: DemoCase = {
       id: "SRC-004",
       title: "Training reflection forms",
       sourceType: "Training feedback",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-04",
       stakeholderType: "Youth and women trainees",
       location: "Central training hub",
@@ -82,6 +91,8 @@ export const communityBridgesCase: DemoCase = {
       id: "SRC-005",
       title: "Local council interview summary",
       sourceType: "Key informant interview",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-07",
       stakeholderType: "Local authorities",
       location: "Municipal offices",
@@ -93,6 +104,8 @@ export const communityBridgesCase: DemoCase = {
       id: "SRC-006",
       title: "Partner coordination minutes",
       sourceType: "Meeting minutes",
+      materialCategory: "secondary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-09",
       stakeholderType: "Implementing partners",
       location: "Coordination forum",
@@ -104,6 +117,8 @@ export const communityBridgesCase: DemoCase = {
       id: "SRC-007",
       title: "Facilitator field diary",
       sourceType: "Observation notes",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-14",
       stakeholderType: "Field facilitators",
       location: "Multiple communities",
@@ -115,6 +130,8 @@ export const communityBridgesCase: DemoCase = {
       id: "SRC-008",
       title: "Safety and sensitivity log",
       sourceType: "Protection log",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-18",
       stakeholderType: "Community protection focal points",
       location: "River East and Al Noor",
@@ -126,6 +143,8 @@ export const communityBridgesCase: DemoCase = {
       id: "SRC-009",
       title: "Youth small grants completion notes",
       sourceType: "Grant monitoring notes",
+      materialCategory: "secondary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-25",
       stakeholderType: "Youth committees",
       location: "Two community centers",
@@ -137,6 +156,8 @@ export const communityBridgesCase: DemoCase = {
       id: "SRC-010",
       title: "Stakeholder mapping workshop output",
       sourceType: "Workshop output",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-27",
       stakeholderType: "Mixed community stakeholders",
       location: "District workshop",
@@ -148,6 +169,8 @@ export const communityBridgesCase: DemoCase = {
       id: "SRC-011",
       title: "Donor quarterly narrative draft",
       sourceType: "Narrative report draft",
+      materialCategory: "supervisory_interpretation",
+      audit: DEMO_AUDIT,
       date: "2026-04-02",
       stakeholderType: "Programme team",
       location: "Programme office",
@@ -159,6 +182,8 @@ export const communityBridgesCase: DemoCase = {
       id: "SRC-012",
       title: "Community feedback hotline digest",
       sourceType: "Feedback digest",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-04-05",
       stakeholderType: "Community members",
       location: "Programme-wide",
@@ -575,6 +600,9 @@ export const communityBridgesCase: DemoCase = {
       conditionsRequired:
         "Local calendars, safe venues, transport checks, and willingness to adjust schedules.",
       evidenceBase: ["EV-001", "EV-002", "EV-004", "EV-010", "EV-017"],
+      linkedFindingIds: ["FND-001", "FND-002"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       transferability:
         "Transferable to other community participation programmes if calendars and safety assumptions are locally validated.",
     },
@@ -589,6 +617,9 @@ export const communityBridgesCase: DemoCase = {
       conditionsRequired:
         "Small action funds, clear decision rights, simple proposal templates, and meeting discipline.",
       evidenceBase: ["EV-003", "EV-011", "EV-018"],
+      linkedFindingIds: ["FND-003"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       transferability:
         "Relevant for youth engagement and civic participation projects with modest action budgets.",
     },
@@ -603,6 +634,9 @@ export const communityBridgesCase: DemoCase = {
       conditionsRequired:
         "Trusted facilitation teams, escalation protocols, and non-identifying sensitivity logs.",
       evidenceBase: ["EV-009", "EV-014"],
+      linkedFindingIds: ["FND-006"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       transferability:
         "Highly transferable to conflict-sensitive community programming with trained local facilitation.",
     },
@@ -617,6 +651,9 @@ export const communityBridgesCase: DemoCase = {
       conditionsRequired:
         "Shared planning tools, responsible focal points, and routine updates.",
       evidenceBase: ["EV-007", "EV-016"],
+      linkedFindingIds: ["FND-004"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       transferability:
         "Transferable to multi-partner field programmes with overlapping geographies.",
     },
@@ -631,6 +668,9 @@ export const communityBridgesCase: DemoCase = {
       conditionsRequired:
         "Mentoring visits, peer practice, role-play, and applied assignments.",
       evidenceBase: ["EV-005", "EV-015"],
+      linkedFindingIds: ["FND-005"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       transferability:
         "Transferable to most capacity-building components where behavior change is expected.",
     },
@@ -645,6 +685,9 @@ export const communityBridgesCase: DemoCase = {
       conditionsRequired:
         "Safe preparatory spaces, skilled facilitators, and respect for participants' preferred engagement channels.",
       evidenceBase: ["EV-002", "EV-008", "EV-017"],
+      linkedFindingIds: ["FND-002"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       transferability:
         "Transferable where women or marginalized groups face barriers in mixed public spaces.",
     },
@@ -659,6 +702,9 @@ export const communityBridgesCase: DemoCase = {
       conditionsRequired:
         "Outcome-oriented learning questions, light-touch qualitative probes, and inclusion checks.",
       evidenceBase: ["EV-019", "EV-020"],
+      linkedFindingIds: ["FND-008"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       transferability:
         "Transferable to learning-focused grants that need credible donor reporting.",
     },
@@ -672,6 +718,9 @@ export const communityBridgesCase: DemoCase = {
       whyItWorked:
         "It reduced travel, formality, and timing barriers while keeping the activity visible locally.",
       evidenceBase: ["EV-001", "EV-004", "EV-010"],
+      linkedFindingIds: ["FND-001"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       conditionsForReplication:
         "Accessible centers, locally validated schedules, and basic attendance monitoring.",
       risksLimits:
@@ -687,6 +736,9 @@ export const communityBridgesCase: DemoCase = {
       whyItWorked:
         "It increased confidence, clarified messages, and reduced pressure in mixed settings.",
       evidenceBase: ["EV-002", "EV-008", "EV-017"],
+      linkedFindingIds: ["FND-002"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       conditionsForReplication:
         "Safe timing, trusted facilitators, and clear links between preparation and mixed forums.",
       risksLimits:
@@ -702,6 +754,9 @@ export const communityBridgesCase: DemoCase = {
       whyItWorked:
         "It reduced overlap and made coordination operational.",
       evidenceBase: ["EV-007", "EV-016"],
+      linkedFindingIds: ["FND-004"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       conditionsForReplication:
         "Named focal points, weekly updates, and agreement on minimum planning information.",
       risksLimits:
@@ -717,6 +772,9 @@ export const communityBridgesCase: DemoCase = {
       whyItWorked:
         "It combined early warning with local trust and avoided naming sensitive individuals.",
       evidenceBase: ["EV-009", "EV-014"],
+      linkedFindingIds: ["FND-006"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       conditionsForReplication:
         "Conflict-sensitivity training, referral boundaries, and non-identifying documentation.",
       risksLimits:
@@ -731,6 +789,9 @@ export const communityBridgesCase: DemoCase = {
       recommendation:
         "Create a locally reviewed activity calendar that adjusts community center sessions around work, school, safety, and seasonal livelihood patterns.",
       linkedFindingId: "FND-001",
+      linkedFindingIds: ["FND-001"],
+      linkedLessonIds: ["LES-001"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-001", "EV-004", "EV-010"],
       responsibleActor: "Programme manager with community center coordinators",
       priority: "High",
@@ -748,6 +809,9 @@ export const communityBridgesCase: DemoCase = {
       recommendation:
         "Budget for safe access measures for women, including transport checks, safer session times, and locally appropriate childcare arrangements.",
       linkedFindingId: "FND-002",
+      linkedFindingIds: ["FND-002"],
+      linkedLessonIds: ["LES-001", "LES-006"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-002", "EV-017"],
       responsibleActor: "Operations lead and gender focal point",
       priority: "High",
@@ -765,6 +829,9 @@ export const communityBridgesCase: DemoCase = {
       recommendation:
         "Use women-only preparation sessions before selected mixed forums where participants request additional space to prepare.",
       linkedFindingId: "FND-002",
+      linkedFindingIds: ["FND-002"],
+      linkedLessonIds: ["LES-006"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-008", "EV-012"],
       responsibleActor: "Gender focal point and lead facilitators",
       priority: "High",
@@ -782,6 +849,9 @@ export const communityBridgesCase: DemoCase = {
       recommendation:
         "Link youth committees to small, realistic action grants and require simple agendas before each committee meeting.",
       linkedFindingId: "FND-003",
+      linkedFindingIds: ["FND-003"],
+      linkedLessonIds: ["LES-002"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-003", "EV-011", "EV-018"],
       responsibleActor: "Youth engagement officer",
       priority: "High",
@@ -799,6 +869,9 @@ export const communityBridgesCase: DemoCase = {
       recommendation:
         "Make the shared partner calendar mandatory for outreach planning and review it in every coordination meeting.",
       linkedFindingId: "FND-004",
+      linkedFindingIds: ["FND-004"],
+      linkedLessonIds: ["LES-004"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-007", "EV-016"],
       responsibleActor: "Partner coordination lead",
       priority: "Medium",
@@ -816,6 +889,9 @@ export const communityBridgesCase: DemoCase = {
       recommendation:
         "Add post-training mentoring, role-play, and applied assignments to the capacity-building package.",
       linkedFindingId: "FND-005",
+      linkedFindingIds: ["FND-005"],
+      linkedLessonIds: ["LES-005"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-005", "EV-015"],
       responsibleActor: "Training lead",
       priority: "Medium",
@@ -833,6 +909,9 @@ export const communityBridgesCase: DemoCase = {
       recommendation:
         "Formalize a conflict-sensitivity protocol for rumor logging, facilitator debriefs, and escalation thresholds.",
       linkedFindingId: "FND-006",
+      linkedFindingIds: ["FND-006"],
+      linkedLessonIds: ["LES-003"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-009", "EV-014"],
       responsibleActor: "Conflict sensitivity focal point",
       priority: "High",
@@ -850,6 +929,9 @@ export const communityBridgesCase: DemoCase = {
       recommendation:
         "Publish plain-language selection criteria and close feedback loops after participant or committee selection decisions.",
       linkedFindingId: "FND-007",
+      linkedFindingIds: ["FND-007"],
+      linkedLessonIds: ["LES-002"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-013", "EV-018"],
       responsibleActor: "Accountability focal point",
       priority: "High",
@@ -867,6 +949,9 @@ export const communityBridgesCase: DemoCase = {
       recommendation:
         "Add a light outcome learning probe to capture relationship change, dispute handling, and perceived social cohesion.",
       linkedFindingId: "FND-008",
+      linkedFindingIds: ["FND-008"],
+      linkedLessonIds: ["LES-007"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-019"],
       responsibleActor: "MEL lead",
       priority: "Medium",
@@ -884,6 +969,9 @@ export const communityBridgesCase: DemoCase = {
       recommendation:
         "Update the stakeholder map to include persons with disabilities, remote villages, and other less visible groups.",
       linkedFindingId: "FND-008",
+      linkedFindingIds: ["FND-008"],
+      linkedLessonIds: ["LES-007"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-020"],
       responsibleActor: "Inclusion focal point and field coordinators",
       priority: "Medium",

@@ -9,10 +9,17 @@ import type {
   LessonLearned,
   GoodPractice,
   Recommendation,
+  SourceFileId,
+  SourceFileMetadata,
+  SourceFileContent,
 } from "@/lib/types";
+import {
+  runPreMigrationBackupIfNeeded,
+  executePersistedBackfill,
+} from "./migrationV2";
 
 export const DB_NAME = "FieldLearningStudioDB";
-export const DB_VERSION = 1;
+export const DB_VERSION = 2;
 
 export interface FieldLearningStudioDBSchema extends DBSchema {
   studies: {
@@ -38,6 +45,7 @@ export interface FieldLearningStudioDBSchema extends DBSchema {
       by_study: StudyId;
       by_source: [StudyId, string];
       by_validationStatus: [StudyId, string];
+      by_reviewStatus: [StudyId, string];
     };
   };
   debriefs: {
@@ -81,11 +89,33 @@ export interface FieldLearningStudioDBSchema extends DBSchema {
       by_validationStatus: [StudyId, string];
     };
   };
+  sourceFileMetadata: {
+    key: SourceFileId;
+    value: SourceFileMetadata;
+    indexes: {
+      by_study: StudyId;
+      by_importedAt: number;
+    };
+  };
+  sourceFileContent: {
+    key: SourceFileId;
+    value: SourceFileContent;
+    indexes: {
+      by_study: StudyId;
+    };
+  };
 }
 
 export async function getDb(): Promise<IDBPDatabase<FieldLearningStudioDBSchema>> {
+  const preflight = await runPreMigrationBackupIfNeeded(DB_NAME);
+  if (preflight.needed && !preflight.backedUp) {
+    throw new Error(
+      `Pre-migration backup failed: ${preflight.error || "Unknown error"}. Database upgrade halted to protect user data.`
+    );
+  }
+
   return openDB<FieldLearningStudioDBSchema>(DB_NAME, DB_VERSION, {
-    upgrade(db) {
+    async upgrade(db, oldVersion, newVersion, transaction) {
       if (!db.objectStoreNames.contains("studies")) {
         const studyStore = db.createObjectStore("studies", { keyPath: "id" });
         studyStore.createIndex("by_status", "status");
@@ -149,6 +179,28 @@ export async function getDb(): Promise<IDBPDatabase<FieldLearningStudioDBSchema>
         recStore.createIndex("by_finding", ["studyId", "linkedFindingId"]);
         recStore.createIndex("by_validationStatus", ["studyId", "validationStatus"]);
       }
+
+      if (!db.objectStoreNames.contains("sourceFileMetadata")) {
+        const metaStore = db.createObjectStore("sourceFileMetadata", { keyPath: "id" });
+        metaStore.createIndex("by_study", "studyId");
+        metaStore.createIndex("by_importedAt", "importedAt");
+      }
+
+      if (!db.objectStoreNames.contains("sourceFileContent")) {
+        const contentStore = db.createObjectStore("sourceFileContent", { keyPath: "id" });
+        contentStore.createIndex("by_study", "studyId");
+      }
+
+      if (db.objectStoreNames.contains("evidence")) {
+        const evidenceStore = transaction.objectStore("evidence");
+        if (!evidenceStore.indexNames.contains("by_reviewStatus")) {
+          evidenceStore.createIndex("by_reviewStatus", ["studyId", "reviewStatus"]);
+        }
+      }
+
+      if (oldVersion === 1) {
+        await executePersistedBackfill(transaction);
+      }
     },
   });
 }
@@ -165,6 +217,8 @@ export async function clearAllStores(): Promise<void> {
       "lessons",
       "goodPractices",
       "recommendations",
+      "sourceFileMetadata",
+      "sourceFileContent",
     ],
     "readwrite"
   );
@@ -177,6 +231,8 @@ export async function clearAllStores(): Promise<void> {
     tx.objectStore("lessons").clear(),
     tx.objectStore("goodPractices").clear(),
     tx.objectStore("recommendations").clear(),
+    tx.objectStore("sourceFileMetadata").clear(),
+    tx.objectStore("sourceFileContent").clear(),
     tx.done,
   ]);
 }

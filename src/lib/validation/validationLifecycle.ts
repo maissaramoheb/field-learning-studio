@@ -5,6 +5,7 @@ import type {
   EvidenceSupportProfile,
   ValidationStatus,
   SourceRecord,
+  OriginMetadata,
 } from "@/lib/types";
 import {
   isFindingExportEligible,
@@ -313,6 +314,17 @@ export function validateArtifact<
   }
 
   const now = Date.now();
+  const existingAudit = (artifact as unknown as Record<string, unknown>).audit as OriginMetadata | undefined;
+  const updatedAudit: OriginMetadata = {
+    provenance: existingAudit?.provenance ?? "human",
+    createdActor: existingAudit?.createdActor ?? { kind: "human", displayName: trimmedReviewer },
+    createdAt: existingAudit?.createdAt ?? now,
+    updatedActor: { kind: "human", displayName: trimmedReviewer },
+    updatedAt: now,
+    validatedActor: { kind: "human", displayName: trimmedReviewer },
+    lastValidatedAt: now,
+  };
+
   return {
     ...artifact,
     validationStatus: "Validated",
@@ -321,6 +333,7 @@ export function validateArtifact<
     rejectionReason: undefined,
     staleDependencyWarning: undefined,
     ...(validationNote?.trim() ? { limitationNote: validationNote.trim() } : {}),
+    audit: updatedAudit,
     updatedAt: now,
   };
 }

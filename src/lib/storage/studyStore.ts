@@ -10,6 +10,15 @@ import {
   cascadeEvidenceInvalidationToFindings,
 } from "./integrity";
 import { isSubstantiveEvidenceChange } from "@/lib/validation/validationLifecycle";
+import {
+  normalizeSourceRecord,
+  normalizeEvidenceEntry,
+  normalizeDailyDebrief,
+  normalizeFinding,
+  normalizeLessonLearned,
+  normalizeGoodPractice,
+  normalizeRecommendation,
+} from "./normalization";
 import type {
   StudyId,
   StudyMeta,
@@ -291,7 +300,8 @@ export async function saveSource(
       );
     }
   }
-  await db.put("sources", source);
+  const normalized = normalizeSourceRecord(source, false);
+  await db.put("sources", normalized as SourceRecord & { studyId: StudyId });
 }
 
 export async function saveSourceBatch(
@@ -325,7 +335,8 @@ export async function saveSourceBatch(
   const tx = db.transaction("sources", "readwrite");
   const store = tx.objectStore("sources");
   for (const src of sources) {
-    store.put(src);
+    const normalized = normalizeSourceRecord(src, false);
+    store.put(normalized as SourceRecord & { studyId: StudyId });
   }
   await tx.done;
 }
@@ -394,7 +405,8 @@ export async function saveEvidence(
     }
   }
 
-  await db.put("evidence", evidence);
+  const normalized = normalizeEvidenceEntry(evidence, false);
+  await db.put("evidence", normalized as EvidenceEntry & { studyId: StudyId });
 }
 
 export async function saveEvidenceBatch(
@@ -450,7 +462,8 @@ export async function saveEvidenceBatch(
   const tx = db.transaction("evidence", "readwrite");
   const store = tx.objectStore("evidence");
   for (const ev of evidenceList) {
-    store.put(ev);
+    const normalized = normalizeEvidenceEntry(ev, false);
+    store.put(normalized as EvidenceEntry & { studyId: StudyId });
   }
   await tx.done;
 
@@ -492,7 +505,8 @@ export async function deleteEvidence(
 
 export async function saveDebrief(debrief: DailyDebrief): Promise<void> {
   const db = await getDb();
-  await db.put("debriefs", debrief);
+  const normalized = normalizeDailyDebrief(debrief, false);
+  await db.put("debriefs", normalized);
 }
 
 export async function getDebrief(
@@ -537,7 +551,8 @@ export async function saveFinding(
     }
   }
   await assertFindingEvidenceIntegrity(db, finding.studyId, finding);
-  await db.put("findings", finding);
+  const normalized = normalizeFinding(finding, false);
+  await db.put("findings", normalized as Finding & { studyId: StudyId });
 }
 
 export async function getFinding(
@@ -582,7 +597,8 @@ export async function saveLesson(
     }
   }
   await assertLessonEvidenceIntegrity(db, lesson.studyId, lesson);
-  await db.put("lessons", lesson);
+  const normalized = normalizeLessonLearned(lesson, false);
+  await db.put("lessons", normalized as LessonLearned & { studyId: StudyId });
 }
 
 export async function getLesson(
@@ -627,7 +643,8 @@ export async function saveGoodPractice(
     }
   }
   await assertGoodPracticeEvidenceIntegrity(db, practice.studyId, practice);
-  await db.put("goodPractices", practice);
+  const normalized = normalizeGoodPractice(practice, false);
+  await db.put("goodPractices", normalized as GoodPractice & { studyId: StudyId });
 }
 
 export async function getGoodPractice(
@@ -672,7 +689,8 @@ export async function saveRecommendation(
     }
   }
   await assertRecommendationFindingIntegrity(db, recommendation.studyId, recommendation);
-  await db.put("recommendations", recommendation);
+  const normalized = normalizeRecommendation(recommendation, false);
+  await db.put("recommendations", normalized as Recommendation & { studyId: StudyId });
 }
 
 export async function getRecommendation(
@@ -766,37 +784,44 @@ export async function saveCompleteStudy(study: FieldStudy): Promise<void> {
 
   const sourceStore = tx.objectStore("sources");
   for (const s of sources) {
-    await sourceStore.put({ ...s, studyId: meta.id });
+    const normalized = normalizeSourceRecord({ ...s, studyId: meta.id }, false);
+    await sourceStore.put(normalized as SourceRecord & { studyId: StudyId });
   }
 
   const evidenceStore = tx.objectStore("evidence");
   for (const e of evidence) {
-    await evidenceStore.put({ ...e, studyId: meta.id });
+    const normalized = normalizeEvidenceEntry({ ...e, studyId: meta.id }, false);
+    await evidenceStore.put(normalized as EvidenceEntry & { studyId: StudyId });
   }
 
   const debriefStore = tx.objectStore("debriefs");
   for (const d of debriefs) {
-    await debriefStore.put({ ...d, studyId: meta.id });
+    const normalized = normalizeDailyDebrief({ ...d, studyId: meta.id }, false);
+    await debriefStore.put(normalized);
   }
 
   const findingStore = tx.objectStore("findings");
   for (const f of findings) {
-    await findingStore.put({ ...f, studyId: meta.id });
+    const normalized = normalizeFinding({ ...f, studyId: meta.id }, false);
+    await findingStore.put(normalized as Finding & { studyId: StudyId });
   }
 
   const lessonStore = tx.objectStore("lessons");
   for (const l of lessons) {
-    await lessonStore.put({ ...l, studyId: meta.id });
+    const normalized = normalizeLessonLearned({ ...l, studyId: meta.id }, false);
+    await lessonStore.put(normalized as LessonLearned & { studyId: StudyId });
   }
 
   const gpStore = tx.objectStore("goodPractices");
   for (const g of goodPractices) {
-    await gpStore.put({ ...g, studyId: meta.id });
+    const normalized = normalizeGoodPractice({ ...g, studyId: meta.id }, false);
+    await gpStore.put(normalized as GoodPractice & { studyId: StudyId });
   }
 
   const recStore = tx.objectStore("recommendations");
   for (const r of recommendations) {
-    await recStore.put({ ...r, studyId: meta.id });
+    const normalized = normalizeRecommendation({ ...r, studyId: meta.id }, false);
+    await recStore.put(normalized as Recommendation & { studyId: StudyId });
   }
 
   await tx.done;
