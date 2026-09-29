@@ -275,6 +275,78 @@ function isSandboxRecordId(id: string): boolean {
   return id.includes("SBX") || id.includes("TEMP");
 }
 
+export interface StudioNavigationResolution {
+  viewMode: "workspace" | "library";
+  targetStudyId: string | null;
+  urlToReplace?: string;
+}
+
+export function resolveStudioNavigation({
+  search,
+  cachedStudyId,
+  studies,
+  defaultStudyId,
+}: {
+  search: string;
+  cachedStudyId: string | null;
+  studies: StudyMeta[];
+  defaultStudyId?: string;
+}): StudioNavigationResolution {
+  const params = new URLSearchParams(search);
+  const viewParam = params.get("view");
+  const studyParam = params.get("study");
+
+  // 1. Explicit ?view=library
+  if (viewParam === "library") {
+    const bgId =
+      cachedStudyId && studies.some((s) => s.id === cachedStudyId)
+        ? cachedStudyId
+        : defaultStudyId && studies.some((s) => s.id === defaultStudyId)
+        ? defaultStudyId
+        : studies[0]?.id || null;
+    return {
+      viewMode: "library",
+      targetStudyId: bgId,
+    };
+  }
+
+  // 2. Explicit ?study=<id> (takes precedence over cached study)
+  if (studyParam) {
+    const match = studies.find((s) => s.id === studyParam);
+    if (match) {
+      return {
+        viewMode: "workspace",
+        targetStudyId: studyParam,
+      };
+    } else {
+      // Invalid or deleted study ID -> safe fallback to library without opening unrelated cached study
+      return {
+        viewMode: "library",
+        targetStudyId: defaultStudyId || studies[0]?.id || null,
+        urlToReplace: "/studio?view=library",
+      };
+    }
+  }
+
+  // 3. Cached active study from localStorage
+  if (cachedStudyId && studies.some((s) => s.id === cachedStudyId)) {
+    return {
+      viewMode: "workspace",
+      targetStudyId: cachedStudyId,
+    };
+  }
+
+  // 4. Safe fallback
+  const fallbackId =
+    defaultStudyId && studies.some((s) => s.id === defaultStudyId)
+      ? defaultStudyId
+      : studies[0]?.id || null;
+  return {
+    viewMode: fallbackId ? "workspace" : "library",
+    targetStudyId: fallbackId,
+  };
+}
+
 export function FieldLearningStudioApp({
   demoCase,
 }: FieldLearningStudioAppProps) {
@@ -320,8 +392,9 @@ export function FieldLearningStudioApp({
     setViewMode("library");
     if (typeof window !== "undefined") {
       const url = new URL(window.location.href);
+      url.searchParams.delete("study");
       url.searchParams.set("view", "library");
-      window.history.pushState({}, "", url.toString());
+      window.history.pushState({ view: "library" }, "", url.toString());
     }
   };
 
@@ -332,7 +405,7 @@ export function FieldLearningStudioApp({
       const url = new URL(window.location.href);
       url.searchParams.delete("view");
       url.searchParams.set("study", studyId);
-      window.history.pushState({}, "", url.toString());
+      window.history.pushState({ study: studyId }, "", url.toString());
     }
   };
 
@@ -345,7 +418,7 @@ export function FieldLearningStudioApp({
         const url = new URL(window.location.href);
         url.searchParams.delete("view");
         url.searchParams.set("study", newStudyId);
-        window.history.pushState({}, "", url.toString());
+        window.history.pushState({ study: newStudyId }, "", url.toString());
       }
     } catch (err) {
       console.error("Failed to clone demo study:", err);
@@ -378,36 +451,75 @@ export function FieldLearningStudioApp({
 
   useEffect(() => {
     let isMounted = true;
+
+    async function applyUrlOrStoredResolution(studies: StudyMeta[]) {
+      if (!isMounted) return;
+      const search =
+        typeof window !== "undefined" ? window.location.search : "";
+      const cachedStudyId =
+        typeof window !== "undefined"
+          ? localStorage.getItem("fls_active_study_id")
+          : null;
+
+      const resolution = resolveStudioNavigation({
+        search,
+        cachedStudyId,
+        studies,
+        defaultStudyId: demoCase.id,
+      });
+
+      if (resolution.urlToReplace && typeof window !== "undefined") {
+        window.history.replaceState({ view: "library" }, "", resolution.urlToReplace);
+      }
+
+      setViewMode(resolution.viewMode);
+
+      if (resolution.targetStudyId) {
+        setSelectedCaseId(resolution.targetStudyId);
+        if (resolution.viewMode === "workspace" && typeof window !== "undefined") {
+          localStorage.setItem("fls_active_study_id", resolution.targetStudyId);
+        }
+        const assembled = await assembleStudy(resolution.targetStudyId);
+        if (isMounted && assembled) {
+          setCurrentStudy(assembled);
+        }
+      }
+    }
+
     async function initStudies() {
       try {
         await bootstrapDemoTemplates();
         const studies = await listStudies();
         if (!isMounted) return;
         setAllStudies(studies);
-
-        const savedStudyId =
-          typeof window !== "undefined"
-            ? localStorage.getItem("fls_active_study_id")
-            : null;
-        const targetId =
-          savedStudyId && studies.some((s) => s.id === savedStudyId)
-            ? savedStudyId
-            : demoCase.id || studies[0]?.id;
-
-        setSelectedCaseId(targetId);
-        if (targetId) {
-          const assembled = await assembleStudy(targetId);
-          if (isMounted && assembled) {
-            setCurrentStudy(assembled);
-          }
-        }
+        await applyUrlOrStoredResolution(studies);
       } catch (err) {
         console.error("Storage initialization error:", err);
       }
     }
+
     initStudies();
+
+    const handlePopState = async () => {
+      try {
+        const studies = await listStudies();
+        if (!isMounted) return;
+        setAllStudies(studies);
+        await applyUrlOrStoredResolution(studies);
+      } catch (err) {
+        console.error("History popstate error:", err);
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("popstate", handlePopState);
+    }
+
     return () => {
       isMounted = false;
+      if (typeof window !== "undefined") {
+        window.removeEventListener("popstate", handlePopState);
+      }
     };
   }, [demoCase.id]);
 
@@ -1158,9 +1270,13 @@ export function FieldLearningStudioApp({
           onStudyCreated={async (studyId) => {
             if (typeof window !== "undefined") {
               localStorage.setItem("fls_active_study_id", studyId);
+              const url = new URL(window.location.href);
+              url.searchParams.delete("view");
+              url.searchParams.set("study", studyId);
+              window.history.pushState({ study: studyId }, "", url.toString());
             }
             await refreshStudiesList(studyId);
-            setActiveTab("intake");
+            setActiveTab("overview");
             setViewMode("workspace");
           }}
         />
@@ -1358,9 +1474,13 @@ export function FieldLearningStudioApp({
         onStudyCreated={async (studyId) => {
           if (typeof window !== "undefined") {
             localStorage.setItem("fls_active_study_id", studyId);
+            const url = new URL(window.location.href);
+            url.searchParams.delete("view");
+            url.searchParams.set("study", studyId);
+            window.history.pushState({ study: studyId }, "", url.toString());
           }
           await refreshStudiesList(studyId);
-          setActiveTab("intake");
+          setActiveTab("overview");
           setViewMode("workspace");
         }}
       />

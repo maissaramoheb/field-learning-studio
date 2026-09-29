@@ -868,6 +868,10 @@ export async function cloneDemoStudy(
     createdAt: now,
     updatedAt: now,
     scope: JSON.parse(JSON.stringify(sourceStudy.scope)),
+    patternNotes: sourceStudy.patternNotes?.map((note) => ({
+      ...note,
+      studyId: newStudyId,
+    })),
     sources: sourceStudy.sources.map((s) => ({
       ...s,
       studyId: newStudyId,

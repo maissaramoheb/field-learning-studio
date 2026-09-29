@@ -12,8 +12,9 @@
   - [x] Progression-oriented 4-space tabs (Study -> Field Material -> Analysis -> Deliverables) without rigid wizard constraints.
   - [x] Semantic workspace tokens (`study`, `field-material`, `analysis`, `deliverables`) in Day and Night themes distinct from status colors.
   - [x] `WorkspaceContextHeader` orientation component answering *Where am I?*, *What am I doing here?*, *What type of work belongs here?*.
-  - [x] 12 unit/integration tests in `tests/phase1StudyLibrary.test.ts` (229/229 total tests passing).
-  - [x] Automated visual QA across 14 high-resolution screenshots.
+  - [x] Post-implementation audit hardening: URL deep-link priority resolution (`resolveStudioNavigation`), popstate browser history traversal, `PatternNote` studyId remapping on demo clone, and mobile header two-row reflow at <=540px.
+  - [x] 18 unit/integration tests in `tests/phase1StudyLibrary.test.ts` (235/235 total tests passing across 23 test files).
+  - [x] Automated visual QA across 14 high-resolution screenshots + responsive validation across 390px, 430px, 540px, and 768px.
 - [x] Phase 0 Schema, Lineage, and Epistemic Foundation (`feature/phase-0-schema-lineage-foundation`):
   - [x] IndexedDB v2 schema with 10 stores (`sourceFileMetadata`, `sourceFileContent`) and `by_reviewStatus` index.
   - [x] Pre-migration backup isolation in `FieldLearningStudioBackupDB` via raw v1 connection before v2 upgrade.

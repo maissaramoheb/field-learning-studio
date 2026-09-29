@@ -7,19 +7,21 @@ import {
   assembleStudy,
   cloneDemoStudy,
   saveStudyMeta,
+  saveCompleteStudy,
   getStudyStats,
 } from "@/lib/storage";
 import { demoCases } from "@/data/cases";
 import {
   PRACTITIONER_SPACES,
   getSpaceForTab,
+  resolveStudioNavigation,
   type PractitionerSpaceId,
   type WorkspaceTabId,
 } from "@/components/FieldLearningStudioApp";
 import {
   WORKSPACE_CONTEXT_MAP,
 } from "@/components/layout/WorkspaceContextHeader";
-import type { StudyMeta } from "@/lib/types";
+import type { StudyMeta, FieldStudy, PatternNote } from "@/lib/types";
 
 describe("Phase 1: Study Library & Workspace Identity Foundation", () => {
   beforeEach(async () => {
@@ -283,6 +285,171 @@ describe("Phase 1: Study Library & Workspace Identity Foundation", () => {
         );
         expect(evidenceExists).toBe(true);
       }
+    });
+  });
+
+  describe("7. Cold Deep-Link Priority & URL History Navigation", () => {
+    it("1. ?study=<valid-id> overrides cached active study from localStorage", () => {
+      const mockStudies: StudyMeta[] = [
+        { id: "demo-1", title: "Demo 1", isDemoCase: true } as StudyMeta,
+        { id: "study-cached", title: "Cached Study", isDemoCase: false } as StudyMeta,
+        { id: "study-deep-link", title: "Target Deep Link", isDemoCase: false } as StudyMeta,
+      ];
+
+      const result = resolveStudioNavigation({
+        search: "?study=study-deep-link",
+        cachedStudyId: "study-cached",
+        studies: mockStudies,
+        defaultStudyId: "demo-1",
+      });
+
+      expect(result.viewMode).toBe("workspace");
+      expect(result.targetStudyId).toBe("study-deep-link");
+      expect(result.urlToReplace).toBeUndefined();
+    });
+
+    it("2. invalid ?study=<id> safely falls back to Study Library without opening unrelated cached study", () => {
+      const mockStudies: StudyMeta[] = [
+        { id: "demo-1", title: "Demo 1", isDemoCase: true } as StudyMeta,
+        { id: "study-cached", title: "Cached Study", isDemoCase: false } as StudyMeta,
+      ];
+
+      const result = resolveStudioNavigation({
+        search: "?study=non-existent-or-deleted-id",
+        cachedStudyId: "study-cached",
+        studies: mockStudies,
+        defaultStudyId: "demo-1",
+      });
+
+      expect(result.viewMode).toBe("library");
+      expect(result.urlToReplace).toBe("/studio?view=library");
+    });
+
+    it("3. popstate history traversal: Library -> Open Study -> Back = Library", () => {
+      const mockStudies: StudyMeta[] = [
+        { id: "demo-1", title: "Demo 1", isDemoCase: true } as StudyMeta,
+      ];
+
+      // Step 1: Initial state is Library
+      const step1 = resolveStudioNavigation({
+        search: "?view=library",
+        cachedStudyId: null,
+        studies: mockStudies,
+        defaultStudyId: "demo-1",
+      });
+      expect(step1.viewMode).toBe("library");
+
+      // Step 2: Open Study
+      const step2 = resolveStudioNavigation({
+        search: "?study=demo-1",
+        cachedStudyId: null,
+        studies: mockStudies,
+        defaultStudyId: "demo-1",
+      });
+      expect(step2.viewMode).toBe("workspace");
+      expect(step2.targetStudyId).toBe("demo-1");
+
+      // Step 3: Browser Back pressed -> URL becomes ?view=library
+      const step3 = resolveStudioNavigation({
+        search: "?view=library",
+        cachedStudyId: "demo-1",
+        studies: mockStudies,
+        defaultStudyId: "demo-1",
+      });
+      expect(step3.viewMode).toBe("library");
+    });
+
+    it("4. popstate history traversal: Forward restores previously opened Study", () => {
+      const mockStudies: StudyMeta[] = [
+        { id: "demo-1", title: "Demo 1", isDemoCase: true } as StudyMeta,
+        { id: "study-2", title: "Study 2", isDemoCase: false } as StudyMeta,
+      ];
+
+      // Browser Forward pressed -> URL becomes ?study=study-2
+      const forwardResult = resolveStudioNavigation({
+        search: "?study=study-2",
+        cachedStudyId: "demo-1",
+        studies: mockStudies,
+        defaultStudyId: "demo-1",
+      });
+      expect(forwardResult.viewMode).toBe("workspace");
+      expect(forwardResult.targetStudyId).toBe("study-2");
+    });
+
+    it("handles multi-step history sequence: Study A -> Library -> Study B -> Back (Library) -> Back (Study A)", () => {
+      const mockStudies: StudyMeta[] = [
+        { id: "study-a", title: "Study A", isDemoCase: false } as StudyMeta,
+        { id: "study-b", title: "Study B", isDemoCase: false } as StudyMeta,
+      ];
+
+      // State 1: Study A
+      expect(resolveStudioNavigation({ search: "?study=study-a", cachedStudyId: null, studies: mockStudies }).viewMode).toBe("workspace");
+      // State 2: Library
+      expect(resolveStudioNavigation({ search: "?view=library", cachedStudyId: "study-a", studies: mockStudies }).viewMode).toBe("library");
+      // State 3: Study B
+      expect(resolveStudioNavigation({ search: "?study=study-b", cachedStudyId: "study-a", studies: mockStudies }).viewMode).toBe("workspace");
+      // Back 1 -> Library
+      expect(resolveStudioNavigation({ search: "?view=library", cachedStudyId: "study-b", studies: mockStudies }).viewMode).toBe("library");
+      // Back 2 -> Study A
+      const back2 = resolveStudioNavigation({ search: "?study=study-a", cachedStudyId: "study-b", studies: mockStudies });
+      expect(back2.viewMode).toBe("workspace");
+      expect(back2.targetStudyId).toBe("study-a");
+    });
+  });
+
+  describe("8. Demo Clone PatternNote Remapping & Immutability", () => {
+    it("5 & 6. clones PatternNotes with remapped studyId without mutating original demo", async () => {
+      await bootstrapDemoTemplates();
+      const demoId = demoCases[0].id;
+      const originalStudy = await assembleStudy(demoId);
+      expect(originalStudy).toBeDefined();
+
+      // Seed a realistic pattern note into the demo study
+      const patternNoteId = "pn-test-001";
+      const originalPatternNote: PatternNote = {
+        id: patternNoteId,
+        studyId: demoId,
+        statement: "Youth advisory committees experienced systematic exclusion during resource allocation",
+        evidenceIds: originalStudy?.evidence.slice(0, 2).map((e) => e.id) || [],
+        theme: "Inclusion",
+        contradictionNote: "No opposing evidence noted",
+        createdAt: Date.now() - 50000,
+        updatedAt: Date.now() - 50000,
+      };
+
+      const studyWithPattern: FieldStudy = {
+        ...originalStudy!,
+        patternNotes: [originalPatternNote],
+      };
+      await saveCompleteStudy(studyWithPattern);
+
+      // Verify the pattern note exists on the demo study
+      const verifiedOriginal = await assembleStudy(demoId);
+      expect(verifiedOriginal?.patternNotes?.length).toBe(1);
+      expect(verifiedOriginal?.patternNotes?.[0].studyId).toBe(demoId);
+
+      // Clone the demo study
+      const clonedId = await cloneDemoStudy(demoId, "Cloned Study with Pattern Note");
+
+      // Verify cloned study has patternNotes remapped
+      const assembledClone = await assembleStudy(clonedId);
+      expect(assembledClone).toBeDefined();
+      expect(assembledClone?.id).toBe(clonedId);
+      expect(assembledClone?.patternNotes).toBeDefined();
+      expect(assembledClone?.patternNotes?.length).toBe(1);
+
+      const clonedNote = assembledClone!.patternNotes![0];
+      // Requirement 5: cloned PatternNote receives new studyId
+      expect(clonedNote.id).toBe(patternNoteId);
+      expect(clonedNote.statement).toBe(originalPatternNote.statement);
+      expect(clonedNote.studyId).toBe(clonedId);
+      expect(clonedNote.studyId).not.toBe(demoId);
+
+      // Requirement 6: original demo PatternNote remains unchanged
+      const intactOriginal = await assembleStudy(demoId);
+      expect(intactOriginal?.patternNotes?.length).toBe(1);
+      expect(intactOriginal?.patternNotes?.[0].studyId).toBe(demoId);
+      expect(intactOriginal?.patternNotes?.[0].id).toBe(patternNoteId);
     });
   });
 });

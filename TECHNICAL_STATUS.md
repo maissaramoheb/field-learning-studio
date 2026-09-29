@@ -28,13 +28,21 @@
      - **Level 1**: Top utility bar with `< Back to Study Library`, study title, demo indicator, theme toggle, backup/restore, and `+ New Study`.
      - **Level 2**: Progression-oriented 4-space tabs (Study -> Field Material -> Analysis -> Deliverables) communicating epistemic progression (*Define -> Capture -> Interpret -> Communicate*) while allowing free, non-wizard navigation.
      - **Level 3**: Sub-tabs for the active workspace, preserving existing analytical workflows without disruption.
-5. **Quality Gates & Verification**:
-   - **229/229** Vitest unit and integration tests passing across 23 test files (12 new tests in `tests/phase1StudyLibrary.test.ts`).
+5. **Post-Implementation Audit Hardening**:
+   - **URL / History Synchronization**:
+     - Implemented `resolveStudioNavigation` pure resolution logic: explicit `?view=library` takes priority, valid `?study=<id>` deep-links take precedence over cached `localStorage` study, and invalid/deleted study query params cleanly fallback to library without blank states or console exceptions.
+     - Attached `popstate` event listener with clean teardown, enabling native browser Back/Forward traversal between Library and active workspaces.
+   - **PatternNote Lineage on Demo Clone**:
+     - Extended `cloneDemoStudy()` to deep clone `patternNotes` and remap `studyId` to `newStudyId`, while leaving the source demo pattern notes strictly immutable.
+   - **Responsive Mobile Header**:
+     - Hardened Level 1 header at $\le 800\text{px}$ and $\le 540\text{px}$ into two clean responsive rows (`.fls-app-bar-context` and `.fls-app-utilities`), eliminating title collision, utility bunching, and horizontal overflow on small viewports (390px, 430px, 540px).
+6. **Quality Gates & Verification**:
+   - **235/235** Vitest unit and integration tests passing across 23 test files (18 tests in `tests/phase1StudyLibrary.test.ts`, including 6 new targeted tests for deep-link priority, popstate navigation, and pattern note cloning).
    - TypeScript compilation clean (`tsc --noEmit --incremental false` exits 0).
    - ESLint clean (0 errors, 0 warnings).
    - Next.js Turbopack production build succeeds with static prerendered routes.
    - `git diff --check` clean (0 whitespace or line ending issues).
-   - Headless Chrome CDP visual QA verified 14 high-resolution screenshots across Day and Night themes.
+   - Headless Chrome CDP visual QA verified 14 high-resolution screenshots + 6 responsive mobile checks across Day and Night themes.
 
 **Authoritative Baseline**: `main @ 314ce11ff884377ae755b2a5a7cc51ab6ccab8de` (Phase 0 merged). Phase 1 changes are isolated to `feature/phase-1-study-library-workspace-shell` with zero production deployment or merge.
 

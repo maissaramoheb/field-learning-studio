@@ -26,11 +26,15 @@
     - Level 1: Utility bar (`< Back to Study Library`, study title, demo indicator, ThemeSwitcher, Backup/Restore, `+ New Study`).
     - Level 2: Epistemic 4-space tabs with step numbers and purpose labels (*Define -> Capture -> Interpret -> Communicate*) while allowing unrestricted navigation.
     - Level 3: Active sub-tabs preserving existing analytical workflows without disruption.
+- **Post-Implementation Audit Hardening**:
+  - Implemented `resolveStudioNavigation` establishing strict deep-link resolution precedence (`?view=library` -> valid `?study=<id>` over cached study -> safe fallback) and attached `popstate` event listener with clean unmount cleanup for native browser Back/Forward traversal.
+  - Hardened `cloneDemoStudy()` to deep clone `patternNotes` with explicit `studyId: newStudyId` remapping while strictly maintaining immutability of the source demo pattern notes.
+  - Refactored Level 1 header in `StudyWorkspaceHeader` and `globals.css` into two responsive rows (`.fls-app-bar-context` and `.fls-app-utilities`) at $\le 800\text{px}$ and $\le 540\text{px}$, resolving mobile button collisions, title truncation, and horizontal overflow.
 - **Verification & Visual QA**:
-  - Added 12 new unit and integration tests in `tests/phase1StudyLibrary.test.ts` covering demo/real separation, cloning, empty state, workspace context mapping, and lineage preservation.
-  - Total passing tests: 229 across 23 test files.
+  - Added 18 unit and integration tests in `tests/phase1StudyLibrary.test.ts` covering demo/real separation, cloning, empty state, workspace context mapping, lineage preservation, deep-link priority, browser history popstate traversal, and PatternNote remapping.
+  - Total passing tests: 235 across 23 test files.
   - TypeScript, ESLint, Turbopack production build, and `git diff --check` all pass with 0 errors.
-  - Headless Chrome CDP visual QA verified 14 high-resolution screenshots across Day and Night themes.
+  - Headless Chrome CDP visual QA verified 14 high-resolution screenshots + 6 responsive mobile checks across Day and Night themes.
 
 ## Phase 0 - Schema, Lineage, and Epistemic Foundation (Specification v1.2)
 

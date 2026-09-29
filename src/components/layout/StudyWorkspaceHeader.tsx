@@ -66,59 +66,69 @@ export function StudyWorkspaceHeader({
     <header className="fls-app-header" id="study-workspace-header">
       {/* LEVEL 1: Product Brand, Back to Library, Study Context & Utilities */}
       <div className="fls-app-bar">
-        <button
-          type="button"
-          className="fls-back-to-library-btn"
-          onClick={onBackToLibrary}
-          aria-label="Back to Study Library"
-          title="Return to the Study Library"
-        >
-          <span aria-hidden="true">←</span>
-          <span>Study Library</span>
-        </button>
-
-        <span className="fls-brand">
-          Field Learning <strong>Studio</strong>
-        </span>
-
-        <div className="fls-header-study-info">
-          <span className="fls-bullet-divider" aria-hidden="true">/</span>
-          <span
-            className="fls-header-study-title"
-            title={studyTitle}
+        <div className="fls-app-bar-context">
+          <button
+            type="button"
+            className="fls-back-to-library-btn"
+            onClick={onBackToLibrary}
+            aria-label="Back to Study Library"
+            title="Return to the Study Library"
           >
-            {studyTitle}
+            <span aria-hidden="true">←</span>
+            <span className="fls-back-btn-label">Study Library</span>
+          </button>
+
+          <span className="fls-brand">
+            Field Learning <strong>Studio</strong>
           </span>
-          {isDemoCase && (
+
+          <div className="fls-header-study-info">
+            <span className="fls-bullet-divider" aria-hidden="true">/</span>
             <span
-              className="fls-badge-demo"
-              title="Showcase dataset. Direct edits are disabled; use Clone to create an editable copy."
+              className="fls-header-study-title"
+              title={studyTitle}
             >
-              Demo Study · Read-Only
+              {studyTitle}
             </span>
-          )}
+            {isDemoCase && (
+              <span
+                className="fls-badge-demo"
+                title="Showcase dataset. Direct edits are disabled; use Clone to create an editable copy."
+              >
+                <span className="fls-demo-label-full">Demo Study · Read-Only</span>
+                <span className="fls-demo-label-compact" aria-hidden="true">Demo</span>
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="fls-app-utilities">
-          <ThemeSwitcher />
-          {onOpenBackupRestore && (
-            <button
-              type="button"
-              className="fls-button fls-button-quiet"
-              onClick={onOpenBackupRestore}
-            >
-              Backup / Restore
-            </button>
-          )}
-          {onCreateNewStudy && (
-            <button
-              type="button"
-              className="fls-button fls-button-quiet"
-              onClick={onCreateNewStudy}
-            >
-              + New study
-            </button>
-          )}
+          <span className="fls-brand-mobile" aria-hidden="true">
+            Field Learning <strong>Studio</strong>
+          </span>
+          <div className="fls-utilities-group">
+            <ThemeSwitcher />
+            {onOpenBackupRestore && (
+              <button
+                type="button"
+                className="fls-button fls-button-quiet"
+                onClick={onOpenBackupRestore}
+                title="Backup / Restore study data"
+              >
+                Backup / Restore
+              </button>
+            )}
+            {onCreateNewStudy && (
+              <button
+                type="button"
+                className="fls-button fls-button-quiet"
+                onClick={onCreateNewStudy}
+                title="Create a new study"
+              >
+                + New study
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
