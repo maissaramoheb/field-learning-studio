@@ -1,10 +1,10 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "phase_0_schema_foundation_implemented",
+  "status": "phase_1_study_library_workspace_shell_implemented",
   "priority": "high",
-  "current_phase": "Phase 0 Schema, Lineage, and Epistemic Foundation (Specification v1.2)",
-  "next_action": "Review Phase 0 foundation before proceeding to Phase 1.",
+  "current_phase": "Phase 1 Study Library, Demo/Real Separation, and Workspace Identity Foundation",
+  "next_action": "Review Phase 1 implementation before proceeding to Phase 2.",
   "blocker": null,
   "decision_needed": null,
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
@@ -18,12 +18,12 @@
     "json": "passed",
     "diff_check": "passed",
     "local_http": "passed",
-    "tests": "217_passed_22_files",
-    "prod_smoke_cdp": "passed_v1.1_baseline"
+    "tests": "235_passed_23_files",
+    "prod_smoke_cdp": "passed_phase1_visual_qa"
   },
   "remaining_risks": [
     "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported (mitigated in Phase 0 via SourceFileRepository quota estimation and threshold warnings)."
   ],
-  "recommended_next_step": "Phase 0 foundation complete on feature branch; await review and authorization before Phase 1.",
-  "notion_page_update": "Field Learning Studio Phase 0 (Schema, Lineage, and Epistemic Foundation) is implemented according to Specification v1.2 on feature/phase-0-schema-lineage-foundation. Upgraded IndexedDB to v2 with sourceFileMetadata, sourceFileContent, and reviewStatus indexing. Enforced pre-migration backup isolation in FieldLearningStudioBackupDB before upgrade, pure centralized write normalization, MaterialCategory epistemic taxonomy, supervisory debrief exclusion from independent source counts, recommendation dual-write compatibility, and pure dynamic triangulation. All 217 tests pass across 22 test files with 0 TypeScript and 0 lint errors."
+  "recommended_next_step": "Phase 1 implementation and post-implementation audit hardening complete on feature branch; ready for merge into main.",
+  "notion_page_update": "Field Learning Studio Phase 1 (Study Library, Demo/Real Separation, and Workspace Identity Foundation) is implemented and hardened on feature/phase-1-study-library-workspace-shell based on main @ 314ce11. Audit hardening addressed URL deep-link priority resolution, popstate browser history traversal, PatternNote remapping during demo cloning, and responsive Level 1 header reflow at <=540px. All 235 tests pass across 23 test files with 0 TypeScript and 0 lint errors, and responsive visual QA verified."
 }

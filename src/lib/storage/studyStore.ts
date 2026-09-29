@@ -868,6 +868,10 @@ export async function cloneDemoStudy(
     createdAt: now,
     updatedAt: now,
     scope: JSON.parse(JSON.stringify(sourceStudy.scope)),
+    patternNotes: sourceStudy.patternNotes?.map((note) => ({
+      ...note,
+      studyId: newStudyId,
+    })),
     sources: sourceStudy.sources.map((s) => ({
       ...s,
       studyId: newStudyId,
@@ -914,4 +918,27 @@ export async function cloneDemoStudy(
 
   await saveCompleteStudy(clonedStudy);
   return newStudyId;
+}
+
+export interface StudyStats {
+  sourcesCount: number;
+  evidenceCount: number;
+  findingsCount: number;
+  recommendationsCount: number;
+}
+
+export async function getStudyStats(studyId: StudyId): Promise<StudyStats> {
+  const db = await getDb();
+  const [sourcesCount, evidenceCount, findingsCount, recommendationsCount] = await Promise.all([
+    db.countFromIndex("sources", "by_study", studyId),
+    db.countFromIndex("evidence", "by_study", studyId),
+    db.countFromIndex("findings", "by_study", studyId),
+    db.countFromIndex("recommendations", "by_study", studyId),
+  ]);
+  return {
+    sourcesCount,
+    evidenceCount,
+    findingsCount,
+    recommendationsCount,
+  };
 }

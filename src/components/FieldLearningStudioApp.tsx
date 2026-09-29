@@ -56,8 +56,11 @@ import {
   adaptFieldStudyToDemoCase,
   saveFinding,
   saveRecommendation,
+  cloneDemoStudy,
 } from "@/lib/storage";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { StudyLibraryView } from "@/components/library/StudyLibraryView";
+import { StudyWorkspaceHeader } from "@/components/layout/StudyWorkspaceHeader";
+import { WorkspaceContextHeader } from "@/components/layout/WorkspaceContextHeader";
 
 interface FieldLearningStudioAppProps {
   demoCase: DemoCase;
@@ -71,7 +74,7 @@ type EvidenceFilters = {
   validationStatus?: string;
 };
 
-type WorkspaceTabId =
+export type WorkspaceTabId =
   | "overview"
   | "intake"
   | "evidence"
@@ -272,6 +275,78 @@ function isSandboxRecordId(id: string): boolean {
   return id.includes("SBX") || id.includes("TEMP");
 }
 
+export interface StudioNavigationResolution {
+  viewMode: "workspace" | "library";
+  targetStudyId: string | null;
+  urlToReplace?: string;
+}
+
+export function resolveStudioNavigation({
+  search,
+  cachedStudyId,
+  studies,
+  defaultStudyId,
+}: {
+  search: string;
+  cachedStudyId: string | null;
+  studies: StudyMeta[];
+  defaultStudyId?: string;
+}): StudioNavigationResolution {
+  const params = new URLSearchParams(search);
+  const viewParam = params.get("view");
+  const studyParam = params.get("study");
+
+  // 1. Explicit ?view=library
+  if (viewParam === "library") {
+    const bgId =
+      cachedStudyId && studies.some((s) => s.id === cachedStudyId)
+        ? cachedStudyId
+        : defaultStudyId && studies.some((s) => s.id === defaultStudyId)
+        ? defaultStudyId
+        : studies[0]?.id || null;
+    return {
+      viewMode: "library",
+      targetStudyId: bgId,
+    };
+  }
+
+  // 2. Explicit ?study=<id> (takes precedence over cached study)
+  if (studyParam) {
+    const match = studies.find((s) => s.id === studyParam);
+    if (match) {
+      return {
+        viewMode: "workspace",
+        targetStudyId: studyParam,
+      };
+    } else {
+      // Invalid or deleted study ID -> safe fallback to library without opening unrelated cached study
+      return {
+        viewMode: "library",
+        targetStudyId: defaultStudyId || studies[0]?.id || null,
+        urlToReplace: "/studio?view=library",
+      };
+    }
+  }
+
+  // 3. Cached active study from localStorage
+  if (cachedStudyId && studies.some((s) => s.id === cachedStudyId)) {
+    return {
+      viewMode: "workspace",
+      targetStudyId: cachedStudyId,
+    };
+  }
+
+  // 4. Safe fallback
+  const fallbackId =
+    defaultStudyId && studies.some((s) => s.id === defaultStudyId)
+      ? defaultStudyId
+      : studies[0]?.id || null;
+  return {
+    viewMode: fallbackId ? "workspace" : "library",
+    targetStudyId: fallbackId,
+  };
+}
+
 export function FieldLearningStudioApp({
   demoCase,
 }: FieldLearningStudioAppProps) {
@@ -302,6 +377,54 @@ export function FieldLearningStudioApp({
     needsReviewCount: number;
   } | null>(null);
 
+  // Phase 1: View mode (workspace vs study library)
+  const [viewMode, setViewMode] = useState<"workspace" | "library">(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("view") === "library") {
+        return "library";
+      }
+    }
+    return "workspace";
+  });
+
+  const handleOpenLibrary = () => {
+    setViewMode("library");
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("study");
+      url.searchParams.set("view", "library");
+      window.history.pushState({ view: "library" }, "", url.toString());
+    }
+  };
+
+  const handleSelectStudyFromLibrary = async (studyId: string) => {
+    await handleSelectCase(studyId);
+    setViewMode("workspace");
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("view");
+      url.searchParams.set("study", studyId);
+      window.history.pushState({ study: studyId }, "", url.toString());
+    }
+  };
+
+  const handleCloneDemoFromLibrary = async (demoCaseId: string) => {
+    try {
+      const newStudyId = await cloneDemoStudy(demoCaseId);
+      await refreshStudiesList(newStudyId);
+      setViewMode("workspace");
+      if (typeof window !== "undefined") {
+        const url = new URL(window.location.href);
+        url.searchParams.delete("view");
+        url.searchParams.set("study", newStudyId);
+        window.history.pushState({ study: newStudyId }, "", url.toString());
+      }
+    } catch (err) {
+      console.error("Failed to clone demo study:", err);
+    }
+  };
+
   const refreshStudiesList = async (targetId?: string) => {
     try {
       await bootstrapDemoTemplates();
@@ -328,36 +451,75 @@ export function FieldLearningStudioApp({
 
   useEffect(() => {
     let isMounted = true;
+
+    async function applyUrlOrStoredResolution(studies: StudyMeta[]) {
+      if (!isMounted) return;
+      const search =
+        typeof window !== "undefined" ? window.location.search : "";
+      const cachedStudyId =
+        typeof window !== "undefined"
+          ? localStorage.getItem("fls_active_study_id")
+          : null;
+
+      const resolution = resolveStudioNavigation({
+        search,
+        cachedStudyId,
+        studies,
+        defaultStudyId: demoCase.id,
+      });
+
+      if (resolution.urlToReplace && typeof window !== "undefined") {
+        window.history.replaceState({ view: "library" }, "", resolution.urlToReplace);
+      }
+
+      setViewMode(resolution.viewMode);
+
+      if (resolution.targetStudyId) {
+        setSelectedCaseId(resolution.targetStudyId);
+        if (resolution.viewMode === "workspace" && typeof window !== "undefined") {
+          localStorage.setItem("fls_active_study_id", resolution.targetStudyId);
+        }
+        const assembled = await assembleStudy(resolution.targetStudyId);
+        if (isMounted && assembled) {
+          setCurrentStudy(assembled);
+        }
+      }
+    }
+
     async function initStudies() {
       try {
         await bootstrapDemoTemplates();
         const studies = await listStudies();
         if (!isMounted) return;
         setAllStudies(studies);
-
-        const savedStudyId =
-          typeof window !== "undefined"
-            ? localStorage.getItem("fls_active_study_id")
-            : null;
-        const targetId =
-          savedStudyId && studies.some((s) => s.id === savedStudyId)
-            ? savedStudyId
-            : demoCase.id || studies[0]?.id;
-
-        setSelectedCaseId(targetId);
-        if (targetId) {
-          const assembled = await assembleStudy(targetId);
-          if (isMounted && assembled) {
-            setCurrentStudy(assembled);
-          }
-        }
+        await applyUrlOrStoredResolution(studies);
       } catch (err) {
         console.error("Storage initialization error:", err);
       }
     }
+
     initStudies();
+
+    const handlePopState = async () => {
+      try {
+        const studies = await listStudies();
+        if (!isMounted) return;
+        setAllStudies(studies);
+        await applyUrlOrStoredResolution(studies);
+      } catch (err) {
+        console.error("History popstate error:", err);
+      }
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("popstate", handlePopState);
+    }
+
     return () => {
       isMounted = false;
+      if (typeof window !== "undefined") {
+        window.removeEventListener("popstate", handlePopState);
+      }
     };
   }, [demoCase.id]);
 
@@ -1086,32 +1248,82 @@ export function FieldLearningStudioApp({
     onTraceSelect: handleTraceSelect,
   };
 
+  const activeSpaceId = getSpaceForTab(activeTab);
+  const activeSpace = PRACTITIONER_SPACES.find((s) => s.id === activeSpaceId) || PRACTITIONER_SPACES[0];
+  const activeTabInfo = activeSpace.tabs.find((t) => t.id === activeTab);
+  const activeTabLabel = activeTabInfo?.label;
+
+  if (viewMode === "library") {
+    return (
+      <>
+        <StudyLibraryView
+          studies={allStudies}
+          onSelectStudy={handleSelectStudyFromLibrary}
+          onCreateNewStudy={() => setIsNewStudyModalOpen(true)}
+          onCloneDemoStudy={handleCloneDemoFromLibrary}
+          onOpenBackupRestore={() => setIsBackupRestoreModalOpen(true)}
+        />
+
+        <MinimalStudyModal
+          isOpen={isNewStudyModalOpen}
+          onClose={() => setIsNewStudyModalOpen(false)}
+          onStudyCreated={async (studyId) => {
+            if (typeof window !== "undefined") {
+              localStorage.setItem("fls_active_study_id", studyId);
+              const url = new URL(window.location.href);
+              url.searchParams.delete("view");
+              url.searchParams.set("study", studyId);
+              window.history.pushState({ study: studyId }, "", url.toString());
+            }
+            await refreshStudiesList(studyId);
+            setActiveTab("overview");
+            setViewMode("workspace");
+          }}
+        />
+
+        <BackupRestoreModal
+          isOpen={isBackupRestoreModalOpen}
+          onClose={() => setIsBackupRestoreModalOpen(false)}
+          currentStudy={currentStudy}
+          allStudies={allStudies}
+          onStudyRestored={async (studyId) => {
+            if (typeof window !== "undefined") {
+              localStorage.setItem("fls_active_study_id", studyId);
+            }
+            await refreshStudiesList(studyId);
+            setActiveTab("intake");
+            setViewMode("workspace");
+          }}
+        />
+      </>
+    );
+  }
+
   return (
     <main className="fls-dark-workbench min-h-screen text-[var(--foreground)]">
       <a className="fls-skip-link" href="#workspace-panel">Skip to workspace</a>
       <div className="fls-sticky-frame">
-        <CaseSelector
-          selectedId={selectedCaseId}
-          onSelect={handleSelectCase}
-          editableStudies={allStudies.filter((s) => !s.isDemoCase)}
+        <StudyWorkspaceHeader
           currentStudy={currentStudy}
+          activeStudyMeta={allStudies.find((s) => s.id === selectedCaseId)}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          onBackToLibrary={handleOpenLibrary}
           onCreateNewStudy={() => setIsNewStudyModalOpen(true)}
           onOpenBackupRestore={() => setIsBackupRestoreModalOpen(true)}
+          evidenceCount={currentStudy?.evidence.length ?? activeDemoCase.evidence.length}
+          findingsCount={currentStudy?.findings.length ?? activeDemoCase.findings.length}
+          recommendationsCount={currentStudy?.recommendations.length ?? activeDemoCase.recommendations.length}
         />
-
-        <div className="fls-frame">
-          <WorkspaceTabs
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            evidenceCount={currentStudy?.evidence.length ?? activeDemoCase.evidence.length}
-            findingsCount={currentStudy?.findings.length ?? activeDemoCase.findings.length}
-            recommendationsCount={currentStudy?.recommendations.length ?? activeDemoCase.recommendations.length}
-          />
-        </div>
       </div>
 
       <div className="fls-frame">
         <div className="fls-workspace" id="workspace-panel" role="tabpanel" aria-labelledby={`workspace-tab-${activeTab}`} tabIndex={-1}>
+          <WorkspaceContextHeader
+            spaceId={activeSpaceId}
+            activeTab={activeTab}
+            tabLabel={activeTabLabel}
+          />
           {activeTab === "overview" ? (
             <OverviewTab 
               currentStudy={currentStudy}
@@ -1262,9 +1474,14 @@ export function FieldLearningStudioApp({
         onStudyCreated={async (studyId) => {
           if (typeof window !== "undefined") {
             localStorage.setItem("fls_active_study_id", studyId);
+            const url = new URL(window.location.href);
+            url.searchParams.delete("view");
+            url.searchParams.set("study", studyId);
+            window.history.pushState({ study: studyId }, "", url.toString());
           }
           await refreshStudiesList(studyId);
-          setActiveTab("intake");
+          setActiveTab("overview");
+          setViewMode("workspace");
         }}
       />
 
@@ -1279,6 +1496,7 @@ export function FieldLearningStudioApp({
           }
           await refreshStudiesList(studyId);
           setActiveTab("intake");
+          setViewMode("workspace");
         }}
       />
 
@@ -1291,161 +1509,6 @@ export function FieldLearningStudioApp({
         />
       )}
     </main>
-  );
-}
-
-function caseProfile(demoCase: DemoCase) {
-  if (demoCase.id === "school-nutrition") {
-    return {
-      useCase: "School nutrition / child wellbeing / field monitoring",
-      sensitivity: "Sanitized real-world-inspired case",
-      demonstrates:
-        "Safeguarding-aware evidence synthesis from field monitoring patterns",
-      note:
-        "Sanitized demo derived from prior fieldwork. No identifiable school, child, staff, or community data is displayed.",
-    };
-  }
-
-  return {
-    useCase: "Peacebuilding / social cohesion learning",
-    sensitivity: "Fictional safe demo case",
-    demonstrates:
-      "Evidence-to-learning workflow for participation, access, and coordination",
-    note:
-      "Fictional demo data for product validation. No real sensitive field evidence is processed.",
-  };
-}
-
-function CaseSelector({
-  selectedId,
-  onSelect,
-  editableStudies = [],
-  currentStudy,
-  onCreateNewStudy,
-  onOpenBackupRestore,
-}: {
-  selectedId: string;
-  onSelect: (id: string) => void;
-  editableStudies?: StudyMeta[];
-  currentStudy: FieldStudy | null;
-  onCreateNewStudy?: () => void;
-  onOpenBackupRestore?: () => void;
-}) {
-  const localStudies = currentStudy && !currentStudy.isDemoCase && !editableStudies.some((study) => study.id === currentStudy.id)
-    ? [...editableStudies, currentStudy]
-    : editableStudies;
-  const selectedDemo = demoCases.find((item) => item.id === selectedId);
-  return (
-    <header className="fls-app-header" id="case-selector">
-      <div className="fls-app-bar">
-        <span className="fls-brand">Field Learning <strong>Studio</strong></span>
-        <div className="fls-study-switcher">
-          <label htmlFor="active-study">Active study</label>
-          <select id="active-study" value={selectedId} onChange={(event) => onSelect(event.target.value)}>
-            {localStudies.length > 0 && (
-              <optgroup label="Local studies">
-                {localStudies.map((study) => <option key={study.id} value={study.id}>{study.title}</option>)}
-              </optgroup>
-            )}
-            <optgroup label="Read-only examples">
-              {demoCases.map((item) => <option key={item.id} value={item.id}>{item.project}</option>)}
-            </optgroup>
-          </select>
-        </div>
-        <span className="fls-mode">{selectedDemo ? "Read-only demo" : "Local study"}</span>
-        <div className="fls-app-utilities">
-          <ThemeSwitcher />
-          {onOpenBackupRestore && <button type="button" className="fls-button fls-button-quiet" onClick={onOpenBackupRestore}>Backup / Restore</button>}
-          {onCreateNewStudy && <button type="button" className="fls-button fls-button-quiet" onClick={onCreateNewStudy}>+ New study</button>}
-        </div>
-      </div>
-      {selectedDemo && (
-        <div className="fls-demo-notice">
-          <span>{caseProfile(selectedDemo).note}</span>
-          <span>Switching studies clears temporary sandbox drafts.</span>
-        </div>
-      )}
-    </header>
-  );
-}
-
-function handleNavigationKeys(event: React.KeyboardEvent<HTMLDivElement>) {
-  const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'));
-  const index = buttons.indexOf(event.target as HTMLButtonElement);
-  if (index < 0 || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-  event.preventDefault();
-  const rtl = getComputedStyle(event.currentTarget).direction === "rtl";
-  const forward = event.key === (rtl ? "ArrowLeft" : "ArrowRight");
-  const next = event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : (index + (forward ? 1 : -1) + buttons.length) % buttons.length;
-  buttons[next]?.focus();
-  buttons[next]?.click();
-}
-
-function WorkspaceTabs({
-  activeTab,
-  onTabChange,
-  evidenceCount,
-  findingsCount,
-  recommendationsCount,
-}: {
-  activeTab: WorkspaceTabId;
-  onTabChange: (tabId: WorkspaceTabId) => void;
-  evidenceCount?: number;
-  findingsCount?: number;
-  recommendationsCount?: number;
-}) {
-  const activeSpaceId = getSpaceForTab(activeTab);
-  const activeSpace = PRACTITIONER_SPACES.find((s) => s.id === activeSpaceId) || PRACTITIONER_SPACES[0];
-
-  return (
-    <nav aria-label="Field Learning Studio practitioner spaces" className="fls-space-nav">
-      <div className="fls-primary-tabs" role="tablist" aria-label="Practitioner spaces" onKeyDown={handleNavigationKeys}>
-        {PRACTITIONER_SPACES.map((space) => {
-          const isActive = space.id === activeSpaceId;
-          const count = space.id === "field-material" ? evidenceCount : space.id === "analysis" ? findingsCount : space.id === "deliverables" ? recommendationsCount : undefined;
-          return (
-            <button
-              key={space.id}
-              role="tab"
-              aria-selected={isActive}
-              tabIndex={isActive ? 0 : -1}
-              id={space.id === "study" ? "workspace-tab-overview" : `space-${space.id}`}
-              aria-controls="workspace-panel"
-              data-space-id={space.id}
-              type="button"
-              title={space.description}
-              onClick={() => {
-                if (!isActive) onTabChange(space.defaultTab);
-              }}
-              className="fls-space-tab"
-            >
-              <span>{space.label}</span>
-              {count !== undefined && <span className="fls-nav-count" aria-hidden="true">{count}</span>}
-            </button>
-          );
-        })}
-      </div>
-      {activeSpace.tabs.length > 1 && (
-        <div className="fls-secondary-tabs" role="tablist" aria-label={`${activeSpace.label} views`} onKeyDown={handleNavigationKeys}>
-          {activeSpace.tabs.map((tab) => (
-            <button
-              key={tab.id}
-              role="tab"
-              aria-selected={activeTab === tab.id}
-              tabIndex={activeTab === tab.id ? 0 : -1}
-              id={`workspace-tab-${tab.id}`}
-              aria-controls="workspace-panel"
-              data-tab-id={tab.id}
-              type="button"
-              onClick={() => onTabChange(tab.id)}
-              className="fls-view-tab"
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </nav>
   );
 }
 
