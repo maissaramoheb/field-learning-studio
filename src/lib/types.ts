@@ -8,6 +8,7 @@ export type RecommendationId = `REC-${string}`;
 export type DailyDebriefId = `DBR-${string}`;
 export type QAReviewItemId = `QA-${string}`;
 export type LearningBriefSectionId = `BRF-${string}`;
+export type SourceFileId = `SF-${string}`;
 
 export type EvidenceStrength = "High" | "Medium" | "Low";
 export type SensitivityFlag = "None" | "Low" | "Medium" | "High";
@@ -24,6 +25,110 @@ export type QAReviewStatus =
   | "Informational";
 
 export type ValidationStatus = "Draft" | "Needs Review" | "Validated" | "Rejected";
+
+export type EvidenceReviewStatus = "pending" | "usable" | "needs_clarification" | "excluded";
+
+export type MaterialCategory =
+  | "primary_evidence"
+  | "secondary_evidence"
+  | "supervisory_interpretation"
+  | "legacy_unclassified";
+
+export type ActorKind = "human" | "system" | "ai";
+
+export interface ActorRef {
+  kind: ActorKind;
+  id?: string;
+  displayName: string;
+}
+
+export type ProvenanceKind = "human" | "ai_assisted" | "ai_generated" | "legacy_unknown";
+
+export interface OriginMetadata {
+  provenance: ProvenanceKind;
+  createdActor: ActorRef;
+  createdAt: number;
+  updatedActor: ActorRef;
+  updatedAt: number;
+  modelOrPromptId?: string;
+  validatedActor?: ActorRef;
+  lastValidatedAt?: number;
+}
+
+export type CoordinateSourceType = "docx_extracted" | "xlsx_cell" | "csv_row" | "transcript_offset";
+
+export interface SourceCoordinate {
+  sourceType: CoordinateSourceType;
+  // DOCX
+  blockIndex?: number;
+  headingPath?: string[];
+  segmentType?: "paragraph" | "bullet" | "table_cell" | "table_row";
+  charOffset?: number;
+  // XLSX
+  sheetName?: string;
+  rowIndex?: number;
+  columnIndex?: number;
+  columnHeader?: string;
+  cellAddress?: string;
+  // CSV
+  csvRowIndex?: number;
+  csvColumnIndex?: number;
+  csvHeader?: string;
+  // General text / transcript
+  lineNumber?: number;
+  timecodeSeconds?: number;
+}
+
+export interface SourceFileMetadata {
+  id: SourceFileId;
+  studyId: StudyId;
+  filename: string;
+  mimeType: string;
+  fileSizeBytes: number;
+  sha256?: string;
+  importedAt: number;
+  parsingVersion: number;
+  hasContent: boolean;
+}
+
+export interface SourceFileContent {
+  id: SourceFileId;
+  studyId: StudyId;
+  blob?: Blob;
+  extractedText?: string;
+  extractedHtml?: string;
+}
+
+export interface TriangulationSuggestion {
+  suggestedStatus: "convergent" | "mixed" | "divergent" | "sparse";
+  rationale: string;
+  modelOrPromptId: string;
+  createdAt: number;
+}
+
+export interface TriangulationAssessment {
+  confirmedStatus: "convergent" | "mixed" | "divergent" | "sparse";
+  justification: string;
+  assessedBy: ActorRef;
+  assessedAt: number;
+}
+
+export interface TriangulationMetrics {
+  distinctSourceCount: number;
+  independentSourceCount: number;
+  methodDiversityCount: number;
+  methodsFound: CollectionMethod[];
+  stakeholderCoverageCount: number;
+  stakeholdersFound: string[];
+  siteCoverageCount: number;
+  sitesFound: string[];
+  contradictionCount: number;
+  hasContradictions: boolean;
+  isSingleSourceDependent: boolean;
+  isSparse: boolean;
+  hasUnclassifiedMaterialWarning: boolean;
+  transparencyFlags: string[];
+}
 
 export type ConsentStatus = 
   | "Written"
@@ -171,6 +276,9 @@ export interface SourceRecord {
   rawText?: string;
   notes?: string;
   sensitivityFlag: SensitivityFlag;
+  sourceFileId?: SourceFileId;
+  materialCategory?: MaterialCategory;
+  audit?: OriginMetadata;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -191,6 +299,11 @@ export interface EvidenceEntry {
   potentialFinding: string;
   qaStatus: QAStatus;
   validationStatus?: ValidationStatus;
+  reviewStatus?: EvidenceReviewStatus;
+  materialCategory?: MaterialCategory;
+  sourceFileId?: SourceFileId;
+  sourceCoordinate?: SourceCoordinate;
+  audit?: OriginMetadata;
   contradictionIds?: EvidenceEntryId[];
   studyQuestionIds?: string[];
   revision?: number;
@@ -219,6 +332,8 @@ export interface DailyDebrief {
   tomorrowPriorities: string[];
   linkedSourceIds: SourceRecordId[];
   linkedEvidenceIds: EvidenceEntryId[];
+  materialCategory?: MaterialCategory;
+  audit?: OriginMetadata;
   createdAt: number;
   updatedAt: number;
 }
@@ -236,6 +351,11 @@ export interface Finding {
   programmeImplication: string;
   linkedRecommendationIds: RecommendationId[];
   validationStatus?: ValidationStatus;
+  supersededByFindingId?: FindingId;
+  supersededAt?: number;
+  triangulationSuggestion?: TriangulationSuggestion;
+  triangulationAssessment?: TriangulationAssessment;
+  audit?: OriginMetadata;
   isStakeholderSpecific?: boolean;
   targetStakeholderGroup?: string;
   studyQuestionId?: string;
@@ -258,6 +378,9 @@ export interface LessonLearned {
   whyItHappened: string;
   conditionsRequired: string;
   evidenceBase: EvidenceEntryId[];
+  linkedFindingIds?: FindingId[];
+  lineageStatus?: "resolved" | "legacy_unresolved";
+  audit?: OriginMetadata;
   transferability: string;
   validationStatus?: ValidationStatus;
   revision?: number;
@@ -276,6 +399,9 @@ export interface GoodPractice {
   description: string;
   whyItWorked: string;
   evidenceBase: EvidenceEntryId[];
+  linkedFindingIds?: FindingId[];
+  lineageStatus?: "resolved" | "legacy_unresolved";
+  audit?: OriginMetadata;
   conditionsForReplication: string;
   risksLimits: string;
   recommendedUse: string;
@@ -294,6 +420,9 @@ export interface Recommendation {
   studyId?: StudyId;
   recommendation: string;
   linkedFindingId: FindingId;
+  linkedFindingIds?: FindingId[];
+  linkedLessonIds?: LessonLearnedId[];
+  audit?: OriginMetadata;
   evidenceBase: EvidenceEntryId[];
   responsibleActor: string;
   priority: RecommendationPriority;

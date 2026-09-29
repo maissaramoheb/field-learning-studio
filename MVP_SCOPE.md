@@ -67,6 +67,25 @@
 - **Optional Sandbox Export Inclusion (P0):** Excludes sandbox drafts from Word, PDF, and Markdown exports by default; includes them only in a separate "Sandbox Draft Evidence — Requires Review" section when explicitly enabled.
 - **No Persistence / No Upload Boundary (P0):** Does not use file upload, database storage, localStorage, backend processing, external AI APIs, analytics, or saved project workspaces.
 
+## Phase 0 Foundation Includes (Specification v1.2)
+
+- **IndexedDB Schema v2:** 10 stores (8 existing + `sourceFileMetadata` + `sourceFileContent`), `by_reviewStatus` on `evidence`.
+- **Preflight Backup Isolation:** Zero-risk pre-migration backup to `FieldLearningStudioBackupDB` before opening v2.
+- **Write Normalization Engine:** Centralized, pure, idempotent normalizers for all 7 entity types before persistence.
+- **Lineage Foundation:** `linkedFindingIds` on lessons, good practices, recommendations; `linkedLessonIds` on recommendations; dual-write synchronization with `linkedFindingId`.
+- **Epistemic Classification:** Explicit `MaterialCategory` (`primary_evidence`, `secondary_evidence`, `supervisory_interpretation`, `legacy_unclassified`).
+- **Dynamic Triangulation:** Pure runtime calculation excluding supervisory debriefs from independent counts, qualifying legacy unclassified items, and supporting single-source findings with human caveats.
+- **Source File Storage Abstraction:** Metadata/content segregation with quota warnings.
+
+## Phase 0 Does Not Include
+
+- Study Library UI redesign.
+- Import & Mapping UI or XLSX parser.
+- Synthesis or Triangulation Matrix UI redesign.
+- Findings Ledger redesign or "Ask this Study".
+- Deliverables redesign or sandbox deletion.
+- Production deployment or merging to main.
+
 ## v0.1 Does Not Include
 
 - Authentication.

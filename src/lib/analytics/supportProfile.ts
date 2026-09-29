@@ -73,16 +73,26 @@ export function computeSupportProfile(
   }
 
   // 1. Source Independence Rule: count distinct valid sourceId values that exist in this study
+  // Epistemic exclusion: supervisory debriefs do not count as independent corroboration
   const uniqueSourceIds = new Set<string>();
+  const independentSourceIds = new Set<string>();
   for (const ev of supportingEvidence) {
     if (ev.sourceId && ev.sourceId.trim()) {
       const trimmedSourceId = ev.sourceId.trim();
-      if (sourceMap.has(trimmedSourceId)) {
+      const src = sourceMap.get(trimmedSourceId);
+      if (src) {
         uniqueSourceIds.add(trimmedSourceId);
+        const isSupervisory =
+          src.materialCategory === "supervisory_interpretation" ||
+          ev.materialCategory === "supervisory_interpretation" ||
+          src.sourceType?.toLowerCase() === "debrief";
+        if (!isSupervisory) {
+          independentSourceIds.add(trimmedSourceId);
+        }
       }
     }
   }
-  const independentSourceCount = uniqueSourceIds.size;
+  const independentSourceCount = independentSourceIds.size;
 
   // 2. Method Diversity: methods found across supporting sources
   const methodsSet = new Set<CollectionMethod>();

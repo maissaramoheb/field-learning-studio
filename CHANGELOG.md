@@ -1,5 +1,37 @@
 # Changelog
 
+## Phase 0 - Schema, Lineage, and Epistemic Foundation (Specification v1.2)
+
+- **IndexedDB Schema v2 (`FieldLearningStudioDB`)**:
+  - Incremented `DB_VERSION` from 1 to 2 with transactional, cursor-based historical record backfill.
+  - Added dedicated object stores: `sourceFileMetadata` (`[studyId, id]`, indexed by `by_originalName`, `by_createdAt`) and `sourceFileContent` (`[studyId, fileId]`).
+  - Added index `by_reviewStatus` on `evidence` store for targeted lifecycle queries.
+  - Maintained in-memory relationship traversal for assembled studies without invalid compound multiEntry indexes.
+- **Preflight Backup Isolation**:
+  - Implemented `runPreMigrationBackup` in `src/lib/storage/migrationV2.ts` opening raw v1 connection to capture verified `.fls.json` backup envelopes in a dedicated `FieldLearningStudioBackupDB` before opening the main database at version 2.
+  - Upgrade is safely aborted if backup envelope serialization or verification fails, leaving `FieldLearningStudioDB` untouched at version 1.
+- **Pure Centralized Write Normalization**:
+  - Implemented `src/lib/storage/normalization.ts` providing pure, idempotent normalizers for all 7 entity types before persistence via `studyStore`.
+  - Guarantees required metadata (`audit`, `materialCategory`, `reviewStatus`, `lineageStatus`, `linkedFindingIds`, `linkedLessonIds`) on every write without depending on individual UI callers.
+- **Epistemic Classification & Dynamic Triangulation**:
+  - Implemented explicit `MaterialCategory` (`primary_evidence`, `secondary_evidence`, `supervisory_interpretation`, `legacy_unclassified`).
+  - Supervisory debriefs explicitly classified as `supervisory_interpretation` and excluded from `independentSourceCount`.
+  - Unclassified legacy materials assigned `legacy_unclassified`, surfacing methodological independence-classification warnings without silently fabricating independence.
+  - Implemented pure runtime calculation in `src/lib/analytics/triangulation.ts` and `supportProfile.ts` with zero persisted deterministic scores.
+  - Single-source findings remain validatable when accompanied by explicit recorded human limitation caveats.
+- **Lineage Foundation & Dual-Write Invariant**:
+  - Extended `LessonLearned` and `GoodPractice` with `linkedFindingIds: FindingId[]` and `lineageStatus: "legacy_unresolved" | "resolved"`.
+  - Extended `Recommendation` with `linkedFindingIds: FindingId[]` and `linkedLessonIds: LessonId[]`.
+  - Enforced dual-write compatibility invariant: `linkedFindingId = linkedFindingIds[0] ?? linkedFindingId ?? undefined`, keeping existing production readers and the `by_finding` index operational.
+- **Source File Storage Abstraction**:
+  - Implemented `src/lib/storage/sourceFileRepository.ts` separating lightweight metadata from heavy blob/text content, complete with storage quota estimation and threshold warnings.
+- **Demo Case Data Updates**:
+  - Updated `communityBridgesCase.ts`, `nutritionFieldCase.ts`, and `demoStudyAdapter.ts` with neutral audit personas (`system:demo-seed`, `evaluator-1`) and fully populated lineage fields.
+- **Test Suites & Verification**:
+  - Added 13 new unit and integration tests across `tests/indexedDbMigrationV2.test.ts`, `tests/lineageGraph.test.ts`, and `tests/triangulationRules.test.ts` with synthetic fixture `tests/fixtures/sanitizedV1Database.ts`.
+  - All 217 unit and integration tests passing across 22 test files.
+  - TypeScript clean (`tsc --noEmit` exits 0), ESLint clean (0 errors, 0 warnings), Next.js Turbopack build clean.
+
 ## v1.1.0 - Day / Night Theme System Release
 
 - **Dual-Theme Design System**:

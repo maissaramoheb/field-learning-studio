@@ -2,6 +2,17 @@
 
 ## P0
 
+- [x] Phase 0 Schema, Lineage, and Epistemic Foundation (`feature/phase-0-schema-lineage-foundation`):
+  - [x] IndexedDB v2 schema with 10 stores (`sourceFileMetadata`, `sourceFileContent`) and `by_reviewStatus` index.
+  - [x] Pre-migration backup isolation in `FieldLearningStudioBackupDB` via raw v1 connection before v2 upgrade.
+  - [x] Centralized, pure, idempotent write normalization in `src/lib/storage/normalization.ts`.
+  - [x] Explicit `MaterialCategory` (`primary_evidence`, `secondary_evidence`, `supervisory_interpretation`, `legacy_unclassified`).
+  - [x] Supervisory debrief exclusion from `independentSourceCount` and qualification warnings for legacy unclassified material.
+  - [x] Recommendation dual-write synchronization (`linkedFindingId` <-> `linkedFindingIds[0]`).
+  - [x] Lesson and GoodPractice M:N `linkedFindingIds` and `lineageStatus: "legacy_unresolved" | "resolved"`.
+  - [x] Dynamic runtime triangulation engine in `src/lib/analytics/triangulation.ts` and `supportProfile.ts`.
+  - [x] Segregated `SourceFileRepository` for metadata and blob/text content with quota estimation.
+  - [x] Pass all 14 Phase 0 test requirements (13 new tests in 3 test suites, 217 total tests passing).
 - [x] Day / Night Theme System (`feature/day-night-theme`):
   - [x] Semantic design tokens in `globals.css` with 100% preservation of Night theme baseline.
   - [x] Intentionally designed editorial Day theme (`#f6f8fa` canvas, `#ffffff` surface, `#0f172a` text, `#2563eb` accent).

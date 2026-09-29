@@ -1,4 +1,5 @@
 import type { DemoCase } from "@/lib/types";
+import { DEMO_AUDIT } from "@/lib/storage/normalization";
 
 export const nutritionFieldCase: DemoCase = {
   id: "school-nutrition",
@@ -50,6 +51,8 @@ export const nutritionFieldCase: DemoCase = {
       id: "SRC-NUT-001",
       title: "Staff interview, School A, targeted nutrition model",
       sourceType: "Key informant interview",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-10",
       stakeholderType: "School staff and administrators",
       location: "School A",
@@ -61,6 +64,8 @@ export const nutritionFieldCase: DemoCase = {
       id: "SRC-NUT-002",
       title: "Child focus group, School A, food preference and water concerns",
       sourceType: "Focus group discussion",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-11",
       stakeholderType: "Child participants (Ages 8-12)",
       location: "School A",
@@ -72,6 +77,8 @@ export const nutritionFieldCase: DemoCase = {
       id: "SRC-NUT-003",
       title: "Social worker interview, School A, parent awareness and caregiver roles",
       sourceType: "Key informant interview",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-12",
       stakeholderType: "School social workers",
       location: "School A",
@@ -83,6 +90,8 @@ export const nutritionFieldCase: DemoCase = {
       id: "SRC-NUT-004",
       title: "Staff interview, School B, universal hot meal implementation",
       sourceType: "Key informant interview",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-15",
       stakeholderType: "School staff and volunteer parents",
       location: "School B",
@@ -94,6 +103,8 @@ export const nutritionFieldCase: DemoCase = {
       id: "SRC-NUT-005",
       title: "Child focus group, School B, food safety and peer monitoring",
       sourceType: "Focus group discussion",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-16",
       stakeholderType: "Child participants (Ages 10-14)",
       location: "School B",
@@ -105,6 +116,8 @@ export const nutritionFieldCase: DemoCase = {
       id: "SRC-NUT-006",
       title: "Observation, School B, storage and eating space constraints",
       sourceType: "Field observation log",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-17",
       stakeholderType: "Field monitors",
       location: "School B",
@@ -116,6 +129,8 @@ export const nutritionFieldCase: DemoCase = {
       id: "SRC-NUT-007",
       title: "Staff interview, School C, screening and awareness activities",
       sourceType: "Key informant interview",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-20",
       stakeholderType: "Teachers and healthcare coordinators",
       location: "School C",
@@ -127,6 +142,8 @@ export const nutritionFieldCase: DemoCase = {
       id: "SRC-NUT-008",
       title: "Child session, School C, child participation and awareness tools",
       sourceType: "Observation of activity",
+      materialCategory: "primary_evidence",
+      audit: DEMO_AUDIT,
       date: "2026-03-21",
       stakeholderType: "Child health committee members",
       location: "School C",
@@ -403,6 +420,9 @@ export const nutritionFieldCase: DemoCase = {
       conditionsRequired:
         "Collaborative criteria between school social workers, health officers, and community focal points.",
       evidenceBase: ["EV-NUT-001", "EV-NUT-007"],
+      linkedFindingIds: ["FND-NUT-001"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       transferability:
         "Highly transferable to nutrition and school health projects in low-documentation contexts."
     },
@@ -417,6 +437,9 @@ export const nutritionFieldCase: DemoCase = {
       conditionsRequired:
         "Livelihood-friendly training times, father-inclusive framing, and low-literacy materials.",
       evidenceBase: ["EV-NUT-003", "EV-NUT-010"],
+      linkedFindingIds: ["FND-NUT-003"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       transferability:
         "Relevant for all domestic health and education initiatives with highly gendered household divisions."
     },
@@ -431,6 +454,9 @@ export const nutritionFieldCase: DemoCase = {
       conditionsRequired:
         "Adult supervision fallback, clear peer-monitor guidelines, and positive reinforcement.",
       evidenceBase: ["EV-NUT-004", "EV-NUT-008"],
+      linkedFindingIds: ["FND-NUT-004"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       transferability:
         "Transferable to peer-education or child-led hygiene components in primary education."
     },
@@ -445,6 +471,9 @@ export const nutritionFieldCase: DemoCase = {
       conditionsRequired:
         "Ventilated cupboards, cold-chain checks, and sealed packaging standards.",
       evidenceBase: ["EV-NUT-005", "EV-NUT-009", "EV-NUT-011"],
+      linkedFindingIds: ["FND-NUT-002", "FND-NUT-005"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       transferability:
         "Critical for school feeding programs operating in warm climates with limited electricity grid infrastructure."
     },
@@ -459,6 +488,9 @@ export const nutritionFieldCase: DemoCase = {
       conditionsRequired:
         "Adaptive seasonal rosters, buffer food stocks, and stipend-based cooking positions.",
       evidenceBase: ["EV-NUT-006", "EV-NUT-012"],
+      linkedFindingIds: ["FND-NUT-006"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       transferability:
         "Transferable to community-led programs relying on volunteer community labor."
     }
@@ -472,6 +504,9 @@ export const nutritionFieldCase: DemoCase = {
       whyItWorked:
         "It bypassed documentation barriers, catching marginalized children who lacked clinic health cards.",
       evidenceBase: ["EV-NUT-001", "EV-NUT-007"],
+      linkedFindingIds: ["FND-NUT-001"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       conditionsForReplication:
         "Social worker presence, standardized vulnerability checklists, and local clinic cooperation.",
       risksLimits:
@@ -487,6 +522,9 @@ export const nutritionFieldCase: DemoCase = {
       whyItWorked:
         "Peer-designed posters were more relatable than standard agency templates, increasing handwashing rates.",
       evidenceBase: ["EV-NUT-004", "EV-NUT-008"],
+      linkedFindingIds: ["FND-NUT-004"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       conditionsForReplication:
         "Simple art materials, active teacher coordinators, and clear peer guidelines.",
       risksLimits:
@@ -502,6 +540,9 @@ export const nutritionFieldCase: DemoCase = {
       whyItWorked:
         "Allowed parents to easily understand and prepare alternative nutritious options within tight budget limits.",
       evidenceBase: ["EV-NUT-003", "EV-NUT-010"],
+      linkedFindingIds: ["FND-NUT-003"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       conditionsForReplication:
         "Professional graphic designer, local cost-of-living market research, and community facilitators.",
       risksLimits:
@@ -517,6 +558,9 @@ export const nutritionFieldCase: DemoCase = {
       whyItWorked:
         "It provided an early warning for food safety issues (such as dairy spoilage) before they led to wide outbreaks.",
       evidenceBase: ["EV-NUT-005", "EV-NUT-009"],
+      linkedFindingIds: ["FND-NUT-002", "FND-NUT-005"],
+      lineageStatus: "resolved",
+      audit: DEMO_AUDIT,
       conditionsForReplication:
         "Standardized log template, monthly review routines, and clear focal point.",
       risksLimits:
@@ -531,6 +575,9 @@ export const nutritionFieldCase: DemoCase = {
       recommendation:
         "Strengthen screening and referral pathways for children with nutrition-related needs by establishing joint school-clinic registration protocols.",
       linkedFindingId: "FND-NUT-001",
+      linkedFindingIds: ["FND-NUT-001"],
+      linkedLessonIds: ["LES-NUT-001"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-NUT-001", "EV-NUT-007"],
       responsibleActor: "School health director and local clinic manager",
       priority: "High",
@@ -548,6 +595,9 @@ export const nutritionFieldCase: DemoCase = {
       recommendation:
         "Introduce low-literacy caregiver nutrition sessions with attention to both mothers and fathers, adapting scheduling to avoid farming hours.",
       linkedFindingId: "FND-NUT-003",
+      linkedFindingIds: ["FND-NUT-003"],
+      linkedLessonIds: ["LES-NUT-002"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-NUT-003", "EV-NUT-010"],
       responsibleActor: "School social worker and community outreach coordinators",
       priority: "High",
@@ -565,6 +615,9 @@ export const nutritionFieldCase: DemoCase = {
       recommendation:
         "Create child-friendly visual nutrition awareness materials and supply art materials to child health committees.",
       linkedFindingId: "FND-NUT-004",
+      linkedFindingIds: ["FND-NUT-004"],
+      linkedLessonIds: ["LES-NUT-003"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-NUT-004"],
       responsibleActor: "Curriculum developer and school arts coordinator",
       priority: "Medium",
@@ -582,6 +635,9 @@ export const nutritionFieldCase: DemoCase = {
       recommendation:
         "Review menus for acceptability, safety, and dietary restrictions, moving away from loose dairy to sealed single-portion items.",
       linkedFindingId: "FND-NUT-002",
+      linkedFindingIds: ["FND-NUT-002"],
+      linkedLessonIds: ["LES-NUT-004"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-NUT-002", "EV-NUT-009"],
       responsibleActor: "Nutrition supervisor and procurement officer",
       priority: "High",
@@ -599,6 +655,9 @@ export const nutritionFieldCase: DemoCase = {
       recommendation:
         "Improve school refrigeration, storage, ventilation, and establish dedicated safe eating spaces.",
       linkedFindingId: "FND-NUT-005",
+      linkedFindingIds: ["FND-NUT-005"],
+      linkedLessonIds: ["LES-NUT-004"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-NUT-005", "EV-NUT-011"],
       responsibleActor: "Logistics officer and engineering team",
       priority: "High",
@@ -616,6 +675,9 @@ export const nutritionFieldCase: DemoCase = {
       recommendation:
         "Clarify minimum training and role expectations for teachers or volunteers supporting nutrition delivery.",
       linkedFindingId: "FND-NUT-006",
+      linkedFindingIds: ["FND-NUT-006"],
+      linkedLessonIds: ["LES-NUT-005"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-NUT-012"],
       responsibleActor: "Ministry of Education trainer and school principal",
       priority: "Medium",
@@ -633,6 +695,9 @@ export const nutritionFieldCase: DemoCase = {
       recommendation:
         "Establish a simple monitoring tool linking attendance, meal delivery, child feedback, and follow-up needs.",
       linkedFindingId: "FND-NUT-001",
+      linkedFindingIds: ["FND-NUT-001"],
+      linkedLessonIds: ["LES-NUT-001"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-NUT-006", "EV-NUT-007"],
       responsibleActor: "MEL coordinator and school registrar",
       priority: "Medium",
@@ -650,6 +715,9 @@ export const nutritionFieldCase: DemoCase = {
       recommendation:
         "Add safeguarding-sensitive review steps for health-related meal risks and child feedback, ensuring adult backup.",
       linkedFindingId: "FND-NUT-004",
+      linkedFindingIds: ["FND-NUT-004"],
+      linkedLessonIds: ["LES-NUT-003"],
+      audit: DEMO_AUDIT,
       evidenceBase: ["EV-NUT-008", "EV-NUT-009"],
       responsibleActor: "Safeguarding advisor and school principal",
       priority: "High",

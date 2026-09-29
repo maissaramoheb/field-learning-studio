@@ -2,36 +2,31 @@
 
 ## Current Status
 
-**Production Release v1.1 — Day / Night Theme System** is fully merged into `main` (commit `d2093f5`), deployed to Vercel Production, and verified live on permanent production URL:
-**`https://field-learning-studio.vercel.app`**
+**Phase 0 — Schema, Lineage, and Epistemic Foundation (v1.2 Specification)** is fully implemented on dedicated branch `feature/phase-0-schema-lineage-foundation` based on baseline `ea07102fc1329d9e4d689d35f3ae5741646b8af9`.
 
-1. **Dual Theme Architecture (Night & Day)**:
-   - Official **Night Theme** preserved with 100% visual fidelity compared to the production baseline.
-   - Editorial **Day Theme** (`[data-theme="day"]`) introduced with warm paper canvas (`#f6f8fa`), crisp white cards (`#ffffff`), authoritative slate typography (`#0f172a`), deep cobalt action accent (`#2563eb`), and high-clarity trace accent (`#0284c7`).
-   - Zero layout changes, zero structural shifts, zero methodology or content model modifications.
-   - Synchronous inline `<head>` script evaluates `fls_theme` from `localStorage` or `prefers-color-scheme` to guarantee **zero flash** on initial load.
-   - Zero React hydration mismatch warnings via `useSyncExternalStore` in `ThemeSwitcher.tsx`.
-2. **Accessible Theme Switcher**:
-   - Implemented `ThemeSwitcher.tsx` with Sun and Moon vector icons, explicit `aria-label`, and interactive hover/focus states.
-   - Rendered in both public `LandingPage` navigation (near Launch Studio CTA) and studio `FieldLearningStudioApp` app utility bar.
-   - Persists user choice in `localStorage.getItem('fls_theme')` (`"day"` | `"night"`).
-3. **Dual-Theme Screenshots on Landing Page**:
-   - Synchronized matching 1440×900 Day screenshots for all 4 workflow spaces and final draft preview in `public/screenshots/*-day.png`.
-   - Dynamic CSS classes (`.dark-image` and `.light-image`) automatically display matching screenshots based on active theme without client-side layout shifts.
-4. **Live Production Smoke Test Passed**:
-   - Headless Chrome CDP smoke test run directly against `https://field-learning-studio.vercel.app`:
-     - 0 console errors, 0 hydration warnings, 0 network failures.
-     - Theme toggle and persistence verified across `/` and `/studio`.
-     - Page refresh in Day mode verified with zero flicker.
-     - OS preference fallback (`prefers-color-scheme: light/dark`) verified when storage is cleared.
-     - All 4 Studio spaces verified in both Day and Night themes.
-     - Mobile 390×844 responsive layout verified with zero horizontal scroll overflow.
+1. **Four Locked Architectural Safeguards Implemented**:
+   - **MaterialCategory Safeguard**: Explicit classification (`primary_evidence`, `secondary_evidence`, `supervisory_interpretation`, `legacy_unclassified`). Supervisory debriefs excluded from `independentSourceCount`. Legacy unclassified records trigger qualification warnings without fabricating independent support.
+   - **Centralized Write Normalization**: Pure, idempotent normalizers in `src/lib/storage/normalization.ts` guarantee all required Phase 0 metadata (`audit`, `materialCategory`, `reviewStatus`, `lineageStatus`, `linkedFindingIds`, `linkedLessonIds`) on every write through `studyStore`.
+   - **Recommendation Dual-Write Compatibility**: Strict synchronization invariant enforced on every write: `linkedFindingId = linkedFindingIds[0] ?? linkedFindingId ?? undefined`, preserving compatibility with legacy single-finding consumers and the `by_finding` IndexedDB index.
+   - **Pre-Migration Backup Isolation**: Raw v1 connection used in `src/lib/storage/migrationV2.ts` to export and verify `.fls.json` backup envelopes into `FieldLearningStudioBackupDB` before `FieldLearningStudioDB` opens at version 2. Upgrade halts on backup failure, keeping main DB at v1.
+2. **IndexedDB v2 Architecture**:
+   - Upgraded `DB_VERSION = 2`.
+   - Retained existing 8 stores and added 2 new stores: `sourceFileMetadata` (`[studyId, id]`) and `sourceFileContent` (`[studyId, fileId]`).
+   - Added index `by_reviewStatus` on `evidence` store.
+   - Maintained in-memory lineage traversal within assembled studies; rejected invalid compound multiEntry indexes.
+3. **Dynamic Triangulation & Epistemic Support Engine**:
+   - Dynamic runtime computation in `src/lib/analytics/triangulation.ts` and `supportProfile.ts` without persisting deterministic metrics.
+   - Single-source findings remain validatable with explicit recorded human limitation caveats.
+4. **Source File Storage Abstraction**:
+   - Implemented `src/lib/storage/sourceFileRepository.ts` segregating lightweight metadata from binary/text blobs with quota threshold checks.
 5. **Quality Gates Passed**:
-   - **204/204** Vitest unit and integration tests passing across 19 test files.
+   - **217/217** Vitest unit and integration tests passing across 22 test files (13 new Phase 0 tests in 3 test suites).
    - TypeScript compilation clean (`tsc --noEmit --incremental false` exits 0).
    - ESLint clean (0 errors, 0 warnings).
    - Next.js Turbopack production build succeeds with static prerendered routes.
-   - Rollback tag created and pushed before merge: `pre-day-night-theme-release-2026-09-28`.
+   - `git diff --check` passes cleanly (0 whitespace/conflict issues).
+
+**Production Baseline**: v1.1 Day / Night Theme System remains deployed and verified on `https://field-learning-studio.vercel.app` (commit `ea07102`). Phase 0 changes are isolated to `feature/phase-0-schema-lineage-foundation` with zero production deployment or merge.
 
 
 - **MEP-01 — Close the Formal Claim Boundary**:
@@ -245,12 +240,12 @@ git diff --check
 - `npx tsc --noEmit --incremental false`: passed (0 errors across whole repository).
 - `npm run lint`: passed (0 errors, 0 warnings).
 - `npm run build`: passed (Next.js 16 Turbopack production bundle cleanly compiled).
-- `npm test`: passed (19 test files, 204 passing tests: 191 core tests + 13 DOCX intake tests).
+- `npm test`: passed (22 test files, 217 passing tests: 204 previous tests + 13 Phase 0 tests).
 - `python3 -m json.tool OPS_UPDATE.json`: passed.
 - `git diff --check`: passed (0 whitespace errors).
-- Automated live production CDP smoke test: passed (0 console errors, 0 network failures, mobile 390px 0 overflow).
-- Permanent Vercel Production deployment: https://field-learning-studio.vercel.app/ (Live, HTTP/2 200 OK).
+- Automated live production CDP smoke test: passed on v1.1 baseline (0 console errors, 0 network failures, mobile 390px 0 overflow).
+- Permanent Vercel Production deployment: https://field-learning-studio.vercel.app/ (Live v1.1, HTTP/2 200 OK).
 
 ## Last Update
 
-2026-09-27: v1.0 Public Pilot released to production. Merged `feature/docx-field-intake` and `feature/public-landing-page` onto `main` (commit `c145dad`). Live deployment verified on `https://field-learning-studio.vercel.app` with 0 console errors and 0 network failures. Tagged release: `v1.0-public-pilot`.
+2026-09-29: Phase 0 Schema, Lineage, and Epistemic Foundation implemented on `feature/phase-0-schema-lineage-foundation` against baseline `ea07102`. All 14 test requirements satisfied (217 tests passing across 22 test files). No UI redesign, no production deployment, halted for review.
