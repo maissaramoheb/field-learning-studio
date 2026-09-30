@@ -50,8 +50,19 @@
     - [x] Remove `(Alt+[)` hint from Workspace Left Rail toggle tooltip.
     - [x] Reset evidence review filters upon switching studies and pre-compute $O(1)$ source lookup map.
     - [x] 12 regression tests added to `tests/phase3FieldMaterialWorkspace.test.ts` (27 total, 297/297 total passing tests across 25 files).
-- [ ] Phase 4 Analysis Workspace (Synthesis, Findings Ledger, Lessons & Practices):
-  - [ ] Deep synthesis matrix, pattern note refinement, and automated gap detector enhancements.
+- [x] Phase 4 Analysis Architecture (Synthesis, Triangulation Matrix, Findings Ledger, Lessons) (`feature/phase-4-analysis-architecture`):
+  - [x] Restructure Analysis space into 4 local workspaces: Synthesis Workbench (`synthesis`), Triangulation Matrix (`triangulation`), Findings Ledger (`findings`), Lessons (`lessons`).
+  - [x] Synthesis Workbench: Evidence Explorer with qualified filter defaults, coordinate inspection, View Original Source modal, and sensemaking canvas with 5 reasoning note types (`pattern`, `tension`, `contradiction`, `possible_explanation`, `evidence_gap`).
+  - [x] One-click promotion from Pattern Note to Candidate Finding modal.
+  - [x] Triangulation Matrix: Cross-tabulation grid across themes/questions vs methods/stakeholders/sites/categories, deterministic cell signals (`CONVERGENT`, `MIXED`, `DIVERGENT`, `SPARSE`, `EMPTY`), strict independent source deduplication, supervisory debrief exclusion, and drill-down drawer.
+  - [x] Findings Ledger: Master-detail view, live support profile reconciliation, mandatory limitation note on sparse/single-source/contradictory findings, human evaluator certification, and formal rejection/reopen workflow.
+  - [x] Excluded evidence guard: hard check blocking finding validation if any cited evidence is marked `reviewStatus === "excluded"`.
+  - [x] Lessons & Good Practices: Tabbed workspace with 3-column analysis grid (What Worked/Not, Mechanics/Why, Transferability/Replication).
+  - [x] Grounded parent finding constraint: hard validation guard blocking approval of lessons or practices whose parent finding is not Validated.
+  - [x] Zero AI models or generation (pure human analytical sensemaking and defense).
+  - [x] Maintain DB_VERSION = 2.
+  - [x] 18 unit/integration tests in `tests/phase4AnalysisArchitecture.test.ts` (315/315 total tests passing across 26 files).
+  - [x] Automated CDP visual QA verified across desktop (1440px), tablet (768px), and mobile (390px) with 0 horizontal overflow.
 - [x] Phase 1 Study Library, Demo/Real Separation, and Workspace Identity Foundation (`feature/phase-1-study-library-workspace-shell`):
   - [x] Canonical `StudyLibraryView` with Showcase Studies and My Studies sections.
   - [x] Welcoming `EmptyStudyState` guiding users to create their first real study.

@@ -224,6 +224,11 @@ export function validateArtifact<
             `Cannot approve Finding: Supporting evidence "${evId}" is not yet validated (status: "${ev.validationStatus}"). All supporting evidence must be Validated before a Finding can be approved.`
           );
         }
+        if (ev.reviewStatus === "excluded") {
+          throw new Error(
+            `Cannot approve Finding: Supporting evidence "${evId}" is marked as excluded and cannot support a Finding.`
+          );
+        }
         if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
           throw new Error(
             `Cannot approve Finding: Supporting evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
@@ -309,6 +314,25 @@ export function validateArtifact<
       const ev = evMap.get(evId);
       if (!ev || ev.validationStatus !== "Validated") {
         throw new Error("Cannot approve: All referenced evidence must be Validated first.");
+      }
+      if (ev.reviewStatus === "excluded") {
+        throw new Error(`Cannot approve: Referenced evidence "${evId}" is marked as excluded.`);
+      }
+    }
+  }
+
+  if (Array.isArray(anyArtifact.linkedFindingIds) && anyArtifact.linkedFindingIds.length > 0 && context?.findings) {
+    const fIds = anyArtifact.linkedFindingIds as string[];
+    const fMap = new Map<string, Finding>(context.findings.map((f) => [f.id, f]));
+    for (const fId of fIds) {
+      const f = fMap.get(fId);
+      if (!f) {
+        throw new Error(`Cannot approve: Linked Finding "${fId}" was not found in this study.`);
+      }
+      if (f.validationStatus !== "Validated") {
+        throw new Error(
+          `Cannot approve: Linked Finding "${fId}" is not validated (current status: "${f.validationStatus}"). Parent Finding must be Validated first.`
+        );
       }
     }
   }

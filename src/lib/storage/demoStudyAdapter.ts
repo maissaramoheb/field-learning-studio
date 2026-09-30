@@ -81,18 +81,54 @@ export function adaptDemoCaseToFieldStudy(demoCase: DemoCase): FieldStudy {
     updatedAt: s.updatedAt ?? baseTimestamp,
   }));
 
-  const evidence = (demoCase.evidence || []).map((e) => ({
-    ...e,
-    studyId,
-    reviewStatus: e.reviewStatus ?? mapLegacyValidationToReviewStatus(e.validationStatus),
-    audit: e.audit ?? DEMO_AUDIT,
-    validationStatus: e.validationStatus ?? "Validated",
-    revision: e.revision ?? 1,
-    lastValidatedAt: e.lastValidatedAt ?? baseTimestamp,
-    lastValidatedBy: e.lastValidatedBy ?? "Demo Reviewer",
-    createdAt: e.createdAt ?? baseTimestamp,
-    updatedAt: e.updatedAt ?? baseTimestamp,
-  }));
+  const evidence = (demoCase.evidence || []).map((e) => {
+    const validationStatus = e.validationStatus ?? "Validated";
+    const inferredThemes: string[] = [...(e.frameworkThemeIds || [])];
+    if (inferredThemes.length === 0) {
+      const text = `${e.primaryTheme || ""} ${e.secondaryTheme || ""}`.toLowerCase();
+      if (text.includes("access") || text.includes("barrier") || text.includes("inclusion")) {
+        inferredThemes.push("THM-1");
+      }
+      if (text.includes("safe") || text.includes("space") || text.includes("facilitat") || text.includes("dialogue")) {
+        inferredThemes.push("THM-2");
+      }
+      if (text.includes("youth") || text.includes("efficacy") || text.includes("action") || text.includes("engagement") || text.includes("participation")) {
+        inferredThemes.push("THM-3");
+      }
+      if (text.includes("trust") || text.includes("governance") || text.includes("committee") || text.includes("accountability")) {
+        inferredThemes.push("THM-4");
+      }
+      if (text.includes("equity") || text.includes("fairness") || text.includes("resource") || text.includes("grant") || text.includes("funding")) {
+        inferredThemes.push("THM-5");
+      }
+      if (inferredThemes.length === 0) inferredThemes.push("THM-1");
+    }
+
+    const inferredQuestions: string[] = [...(e.studyQuestionIds || [])];
+    if (inferredQuestions.length === 0) {
+      const numMatch = e.id.match(/EV-0*(\d+)/);
+      const num = numMatch ? parseInt(numMatch[1], 10) : 1;
+      if (num <= 6) inferredQuestions.push("RQ-1");
+      else if (num <= 11) inferredQuestions.push("RQ-2");
+      else if (num <= 16) inferredQuestions.push("RQ-3");
+      else inferredQuestions.push("RQ-4");
+    }
+
+    return {
+      ...e,
+      studyId,
+      frameworkThemeIds: inferredThemes,
+      studyQuestionIds: inferredQuestions,
+      reviewStatus: e.reviewStatus ?? mapLegacyValidationToReviewStatus(validationStatus),
+      audit: e.audit ?? DEMO_AUDIT,
+      validationStatus,
+      revision: e.revision ?? 1,
+      lastValidatedAt: e.lastValidatedAt ?? baseTimestamp,
+      lastValidatedBy: e.lastValidatedBy ?? "Demo Reviewer",
+      createdAt: e.createdAt ?? baseTimestamp,
+      updatedAt: e.updatedAt ?? baseTimestamp,
+    };
+  });
 
   const findings = (demoCase.findings || []).map((f) => ({
     ...f,
@@ -176,7 +212,7 @@ export function adaptDemoCaseToFieldStudy(demoCase: DemoCase): FieldStudy {
     keyMessages: [...(demoCase.keyMessages || [])],
     limitations: [...(demoCase.limitations || [])],
     questions: demoCase.questions ? [...demoCase.questions] : [],
-    patternNotes: [],
+    patternNotes: demoCase.patternNotes ? [...demoCase.patternNotes] : [],
     outputConfig: {
       includeRecommendations: true,
       includeLessons: true,

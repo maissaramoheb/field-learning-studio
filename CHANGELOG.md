@@ -1,5 +1,41 @@
 # Changelog
 
+## Phase 4 - Analysis Architecture & Traceable Validation
+
+- **Analytical Architecture & Local Workspaces (Space 3: Analysis)**:
+  - Redesigned the Analysis space into 4 dedicated, traceable workspaces:
+    - **Synthesis Workbench** (`synthesis`): Sensemaking workspace bridging qualified field material to emerging insights.
+    - **Triangulation Matrix** (`triangulation`): Cross-tabulation matrix assessing evidence distribution and detecting blind spots.
+    - **Findings Ledger** (`findings`): Master-detail claim verification and evaluator validation sign-off.
+    - **Lessons** (`lessons`): Actionable and transferable learning derived strictly from validated findings.
+- **Synthesis Workbench (`SynthesisWorkbenchView.tsx`)**:
+  - **Evidence Explorer (`EvidenceExplorer.tsx`)**: Left-hand browser defaulting to qualified field material (`reviewStatus === "usable"`), multi-filter dimensions (Study Question, Framework Theme, Method, Stakeholder, Site, Sensitivity), document coordinates, and modal for reading original file excerpts in full context (`ViewOriginalSourceModal.tsx`).
+  - **Sensemaking Canvas (`ReasoningWorkspace.tsx`)**: Working pattern note authoring with 5 explicit reasoning types (`pattern`, `tension`, `contradiction`, `possible_explanation`, `evidence_gap`), multi-evidence linking, and direct promotion to a candidate finding.
+- **Triangulation Matrix (`TriangulationMatrixView.tsx`)**:
+  - Cross-tabulation grid evaluating analytical framing (Framework Themes, Study Questions) against triangulation vectors (Methods, Stakeholders, Sites, Categories).
+  - Deterministic cell classification: `CONVERGENT`, `MIXED`, `DIVERGENT`, `SPARSE`, `EMPTY`.
+  - Strict independent source deduplication (multiple observations from the same source record count as 1 source; supervisory debriefs are excluded from independent source counts).
+  - Interactive drill-down drawer inspecting all supporting observations and source records.
+- **Findings Ledger & Review Inspector (`FindingsLedgerView.tsx`)**:
+  - Master-detail ledger: searchable findings list on the left; rich finding inspector on the right.
+  - Live evidence support profile reconciliation (independent sources, method diversity, stakeholder groups, site coverage).
+  - Mandatory limitation note requirement: blocks validation if finding relies on single source, sparse data, or unresolved contradictions unless an explicit limitation note is documented.
+  - Complete validation lifecycle: Draft -> Needs Review -> Validated (human evaluator certification) / Rejected (non-empty rationale, with reopen to Draft).
+  - Excluded evidence guard: rejects validation if any supporting evidence record is marked `reviewStatus === "excluded"`.
+- **Lessons & Practices Workspace (`LessonsWorkspaceView.tsx`)**:
+  - Structured 3-column analysis grid: What Worked / What Did Not, Underlying Mechanics / Why, Conditions for Transferability / Replication.
+  - Grounded parent finding constraint: prevents validating a lesson or good practice unless all linked parent findings are in `validationStatus === "Validated"`.
+- **Epistemic Invariants & Zero-AI Principle**:
+  - Zero AI models, prompts, RAG, or AI generation added. Complete human analytical reasoning and defense preserved.
+  - Maintained `DB_VERSION = 2` without migrations; extended models via optional backward-compatible attributes.
+  - Demo case (`communityBridgesCase`) seeded with 5 multi-type pattern notes (`PAT-001` to `PAT-005`).
+- **Quality Gates & Verification**:
+  - Tests: 315 passing tests across 26 test files (including 18 new tests in `tests/phase4AnalysisArchitecture.test.ts`).
+  - TypeScript: `tsc --noEmit --incremental false` clean (0 errors).
+  - ESLint: clean (0 errors, 0 warnings).
+  - Next.js Turbopack build clean.
+  - Automated CDP visual QA verified across desktop (1440px), tablet (768px), and mobile (390px) with 0 horizontal overflow and copyright notice preserved.
+
 ## Phase 3 - Workspace Rail + Field Material Architecture
 
 - **Workspace Navigation Architecture (Phase 3A)**:

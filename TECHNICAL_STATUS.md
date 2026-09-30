@@ -2,57 +2,50 @@
 
 ## Current Status
 
-**Phase 3 — Workspace Rail + Field Material Architecture** is fully implemented and verified on dedicated feature branch `feature/phase-3-field-material-workspace` based on authoritative production baseline `main @ 0f7e18fb0039a98b73cf65b52e3284be02598a61`.
+**Phase 4 — Analysis Architecture & Traceable Validation** is fully implemented and verified on dedicated feature branch `feature/phase-4-analysis-architecture` based on authoritative production baseline `main @ 4f0097523eaf65734a7145d6247f86fef366cb2d`.
 
-1. **Workspace Navigation Architecture (Phase 3A)**:
-   - Primary left rail (`WorkspaceLeftRail.tsx`): 230px expanded, 64px collapsed, accessible keyboard shortcut (`Alt+[`), smooth CSS transitions, tooltip hover states, and space badges with live counters (e.g. `20 obs · 12 src`, `8 findings`, `10 recs`). Rail state persists to `localStorage` (`fls_rail_collapsed`).
-   - Header tab simplification (`StudyWorkspaceHeader.tsx`): On desktop viewports (>=1024px), redundant primary workspace tabs have been removed from the header, preserving only secondary sub-view tabs. A responsive switcher is rendered on viewports < 1024px.
-2. **Field Material Architecture (Phase 3B)**:
-   - Restructured practitioner spaces:
-     - Space 2 (Field Material): `Field Intake` (`intake`), `Daily Debrief` (`debrief`), `Import & Mapping` (`import`), `Evidence Review` (`evidence`).
-     - Space 3 (Analysis): `Synthesis Workbench` (`synthesis`), `Findings Ledger` (`findings`), `Lessons & Practices` (`lessons`). `Daily Debrief` relocated from Analysis to Field Material.
-   - Tabular CSV/TSV Intake (`src/lib/intake/tabularImporter.ts`, `src/lib/intake/csvParser.ts`):
-     - RFC 4180 parsing handling nested commas, quotes, and newlines in cells, as well as tab-delimited files.
-     - Heuristic column auto-detection (Title, Date, Site, Stakeholder, Method, Collector, Notes).
-     - Transactional batch ingestion via `saveSourceBatch` and `saveEvidenceBatch` in IndexedDB.
-     - Original source files preserved in IndexedDB `sourceFileRepository`.
-   - Unified 3-Mode Import Studio (`src/components/intake/ImportMappingView.tsx`):
-     - Interactive switcher between Tabular CSV/TSV, Word .docx, and Structured Notes.
-     - Column mapping preview with category assignment and batch commit confirmation.
-     - Showcase demo safety lock preventing accidental edits to showcase demo cases.
-   - Canonical Method Harmonization (`src/lib/methodTaxonomy.ts`):
-     - Strict adherence to the 6 canonical collection methods (`Key Informant Interview`, `Focus Group Discussion`, `Direct Observation`, `Document Review`, `Survey`, `Community Meeting`).
-     - Auto-canonicalization via `canonicalizeCollectionMethod(raw)` and `isCanonicalMethod(val)` predicate.
-   - Evidence Review Qualification Gate (`src/components/evidence/StatusFilterPills.tsx`, `EvidenceCard.tsx`, `EvidenceReviewWorkspace.tsx`):
-     - 4-state qualification workflow: `pending` ("Pending Review"), `usable` ("Qualified / Usable"), `needs_clarification` ("Needs Clarification"), `excluded` ("Excluded / Disqualified").
-     - Dimension filters: Theme, Stakeholder, Reliability, Sensitivity, Study Question, Site/Location, Method.
-     - Non-destructive Framework Themes bridge (`frameworkThemeIds` linked without overwriting legacy `primaryTheme`).
-     - Study Questions linkage in Field Material: observations can link/unlink active study questions; archived questions are displayed with `[Archived]` tag without authoring controls.
-   - Epistemic Safeguards (Supervisory Debrief Exclusion):
-     - Relocated Daily Debrief to Field Material with prominent methodological notice.
-     - All debrief entries stamped with `materialCategory: "supervisory_interpretation"`, strictly excluded from triangulation support metrics.
-3. **Post-Implementation Hardening Pass**:
-   - **DOCX Source-File Lineage & Parser Coordinates**: Threaded `sourceFileId` through `importDocxSourcesAndObservations` onto created `SourceRecord` and `EvidenceEntry` records; populated genuine parser coordinates (`blockIndex`, `headingPath`, `segmentType`) without synthetic page or paragraph numbers.
-   - **Atomic Batch Multi-Store Persistence**: Implemented `saveSourceAndEvidenceBatch(studyId, sources, evidence)` in `src/lib/storage/studyStore.ts` executing inside an atomic `["sources", "evidence"]` multi-store transaction with referential integrity validation.
-   - **Study Deletion Cascade**: Hardened `deleteStudy` in `src/lib/storage/studyStore.ts` to include `"sourceFileMetadata"` and `"sourceFileContent"` in `childStores` and the atomic deletion transaction, safely purging study source files without touching other studies.
-   - **2-Step Structured Notes Ingestion**: Converted Structured Notes import in `src/components/intake/ImportMappingView.tsx` from immediate write to a 2-step workflow (Parse -> Preview with validation -> Confirm Ingest / Back to Edit / Cancel).
-   - **Decoupled Qualification & Validation Semantics**: Fully separated `reviewStatus` (`pending`, `usable`, `needs_clarification`, `excluded`) from formal `validationStatus` (`draft`, `in_review`, `validated`, `rejected`). Exclude/Reopen actions in `EvidenceReviewWorkspace.tsx` and `EvidenceCard.tsx` now modify only admissibility without altering evaluator validation state.
-   - **Professionalized Exclusion Copy**: Replaced "Reject" language with "Evidence Qualification", "Exclude Observation from Analysis", and "Confirm Exclusion" in `EvidenceRejectModal.tsx`.
-   - **Framework Theme Inactive Protection**: Prevented tagging observations with archived themes (`isActive === false`) in capture/edit forms while preserving existing linkages with `(Archived)` badges.
-   - **Sole Method Taxonomy Authority**: Deleted duplicate method maps in `csvParser.ts` and `structuredTextParser.ts`, routing all collection method normalization strictly through `canonicalizeCollectionMethod` in `src/lib/methodTaxonomy.ts`.
-   - **Workspace Left Rail Tooltip Cleanup**: Removed `(Alt+[)` hint from the rail toggle button title/aria-label in `WorkspaceLeftRail.tsx`.
-   - **Study Switch Filter Reset & O(1) Optimization**: Automatically reset evidence review filters to defaults on study change, and pre-computed an $O(1)$ source lookup map to eliminate quadratic scans over evidence cards.
-4. **Quality Gates & Verification**:
-   - Tests: **297/297** tests passing across **25** test files (`tests/phase3FieldMaterialWorkspace.test.ts` with 27 dedicated tests).
+1. **Analytical Architecture & Local Workspaces (Space 3: Analysis)**:
+   - Restructured the Analysis practitioner space into 4 purposeful, interconnected workspaces:
+     - **Synthesis Workbench** (`synthesis`): "What patterns, tensions, contradictions, explanations, and gaps can I see?"
+     - **Triangulation Matrix** (`triangulation`): "How is the evidence distributed across perspectives, methods, sites, and sources?"
+     - **Findings Ledger** (`findings`): "What analytical claims are sufficiently reasoned and reviewed to become formal findings?"
+     - **Lessons** (`lessons`): "What transferable learning emerges from validated findings?"
+2. **Synthesis Workbench (`src/components/analysis/SynthesisWorkbenchView.tsx`)**:
+   - **Evidence Explorer (`EvidenceExplorer.tsx`)**: Left-hand evidence browser filtering qualified field material (`reviewStatus === "usable"`) by Study Question, Framework Theme, Method, Stakeholder, Site, and Sensitivity. Includes toggle for inspecting pending/excluded records, full coordinates (`blockIndex`, `csvRowIndex`, etc.), and modal for viewing original file excerpts in full context (`ViewOriginalSourceModal.tsx`).
+   - **Sensemaking Canvas (`ReasoningWorkspace.tsx`)**: Structured pattern authoring managing `PatternNote`s with 5 explicit reasoning badges (`pattern`, `tension`, `contradiction`, `possible_explanation`, `evidence_gap`), multi-evidence selection and linking, and direct promotion to a candidate finding.
+3. **Triangulation Matrix (`src/components/analysis/TriangulationMatrixView.tsx`)**:
+   - Cross-tabulation matrix grid evaluating evidence distribution across analytical framing (Framework Themes, Study Questions) against triangulation vectors (Methods, Stakeholders, Sites, Material Categories).
+   - Cell signals computed deterministically (`CONVERGENT`, `MIXED`, `DIVERGENT`, `SPARSE`, `EMPTY`).
+   - Strict source independence deduplication: multiple observations derived from the same source record count as 1 source; supervisory debriefs (`supervisory_interpretation`) are strictly excluded from independent source counts.
+   - Interactive drill-down drawer showing all contributing observations and source records.
+4. **Findings Ledger & Review Inspector (`src/components/analysis/FindingsLedgerView.tsx`)**:
+   - Master-Detail ledger: searchable and filterable findings list on the left; deep inspection panel on the right.
+   - Live support profile reconciliation: independent source count, method diversity, stakeholder representation, and site coverage.
+   - Transparent limitation flags: enforces mandatory non-empty limitation note / caveat when validating findings with sparse data, single-source reliance, or documented contradictions.
+   - Formal validation lifecycle: Draft -> Needs Review -> Validated (requiring human evaluator identity) / Rejected (requiring non-empty rationale, with reopen to Draft).
+   - Hard validation guard: rejects validation if any supporting evidence record is marked `reviewStatus === "excluded"`.
+5. **Lessons & Practices Workspace (`src/components/analysis/LessonsWorkspaceView.tsx`)**:
+   - Tabbed view for Lessons Learned and Good Practices.
+   - Structured 3-column analysis grid: What Worked / What Did Not, Underlying Mechanics / Why, and Conditions for Transferability / Replication.
+   - Hard parent finding validation guard: enforces that a lesson or good practice can only be certified as Validated if its linked parent finding is already in `validationStatus === "Validated"`.
+6. **Epistemic Invariants & Zero-AI Invariant**:
+   - Zero AI models, providers, RAG, or AI generation implemented. Strictly preserved human evaluator sensemaking and certification.
+   - Preserved `DB_VERSION = 2` without unnecessary migrations; extended models via optional backward-compatible attributes.
+   - Grounded demo case (`communityBridgesCase`) seeded with 5 multi-type pattern notes (`PAT-001` to `PAT-005`).
+7. **Quality Gates & Verification**:
+   - Tests: **315/315** tests passing across **26** test files (`tests/phase4AnalysisArchitecture.test.ts` with 18 comprehensive tests).
    - TypeScript: `npx tsc --noEmit --incremental false` exits with **0 errors**.
    - Linting: `npm run lint` exits with **0 errors, 0 warnings**.
    - Build: Next.js Turbopack `npm run build` succeeds cleanly.
    - Git diff check: `git diff --check` clean.
-   - Visual QA: Verified responsive layouts, modal semantics, and toggle behaviors across desktop, tablet, and mobile.
+   - Visual QA: Automated headless Chrome CDP verification across desktop (1440px), tablet (768px), and mobile (390px) with 0 horizontal overflow and copyright notice preserved across all surfaces.
 
-**Authoritative Baseline**: `main @ 0f7e18fb0039a98b73cf65b52e3284be02598a61` (Phases 0, 1, 2 in production). Phase 3 changes are isolated to `feature/phase-3-field-material-workspace` with zero production deployment or merge.
+**Authoritative Baseline**: `main @ 4f0097523eaf65734a7145d6247f86fef366cb2d` (Phases 0–3 merged in production). Phase 4 changes are isolated to `feature/phase-4-analysis-architecture` with zero production deployment or merge.
 
 ## Historical Milestones
+
+- **Phase 3 — Workspace Rail + Field Material Architecture**:
+
 
 - **Phase 2 — Study Workspace: Study Brief → Questions & Scope → Methods & Sources → Framework & Roles**:
 

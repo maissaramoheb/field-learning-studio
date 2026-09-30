@@ -26,6 +26,9 @@ interface FindingAuthoringModalProps {
   initialEvidenceIds?: EvidenceEntryId[];
   initialQuestionId?: string | null;
   initialStatement?: string;
+  initialExplanation?: string;
+  initialOriginPatternNoteId?: string;
+  initialFrameworkThemeIds?: string[];
   initialContradictionNote?: string;
   initialFinding?: Finding | null;
 }
@@ -51,6 +54,9 @@ function FindingAuthoringModalContent({
   initialEvidenceIds = [],
   initialQuestionId,
   initialStatement = "",
+  initialExplanation = "",
+  initialOriginPatternNoteId,
+  initialFrameworkThemeIds,
   initialContradictionNote = "",
   initialFinding = null,
 }: Omit<FindingAuthoringModalProps, "isOpen">) {
@@ -58,7 +64,7 @@ function FindingAuthoringModalContent({
     initialFinding ? initialFinding.statement : initialStatement
   );
   const [explanation, setExplanation] = useState(
-    initialFinding ? initialFinding.explanation : ""
+    initialFinding ? initialFinding.explanation : initialExplanation
   );
   const [programmeImplication, setProgrammeImplication] = useState(
     initialFinding ? initialFinding.programmeImplication : ""
@@ -162,6 +168,8 @@ function FindingAuthoringModalContent({
       contradictoryEvidence: contradictoryEvidence.trim() || "",
       supportingEvidenceIds,
       studyQuestionId: studyQuestionId || undefined,
+      originPatternNoteId: initialFinding?.originPatternNoteId || initialOriginPatternNoteId,
+      frameworkThemeIds: initialFinding?.frameworkThemeIds || initialFrameworkThemeIds,
       limitationNote: limitationNote.trim() || undefined,
       validationStatus: initialFinding ? initialFinding.validationStatus : "Draft",
       revision: initialFinding ? initialFinding.revision : 1,

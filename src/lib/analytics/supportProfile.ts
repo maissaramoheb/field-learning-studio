@@ -8,20 +8,7 @@ import type {
   EvidenceSupportProfile,
 } from "@/lib/types";
 
-const KNOWN_COLLECTION_METHODS: CollectionMethod[] = [
-  "Key Informant Interview",
-  "Focus Group Discussion",
-  "Direct Observation",
-  "Document Review",
-  "Community Meeting",
-  "Survey / Questionnaire",
-];
-
-function normalizeCollectionMethod(rawType?: string): CollectionMethod | undefined {
-  if (!rawType) return undefined;
-  const trimmed = rawType.trim().toLowerCase();
-  return KNOWN_COLLECTION_METHODS.find((m) => m.toLowerCase() === trimmed);
-}
+import { canonicalizeCollectionMethod, isStandardCollectionMethod } from "@/lib/methodTaxonomy";
 
 export interface SupportProfileContext {
   scope: StudyScopeConfig;
@@ -61,9 +48,12 @@ export function computeSupportProfile(
   }
 
   const supportingEvidenceIds = new Set(finding.supportingEvidenceIds || []);
-  // Reject ineligible/rejected evidence from contributing to support profile
+  // Reject ineligible/rejected/excluded evidence from contributing to support profile
   const supportingEvidence = allEvidence.filter(
-    (e) => supportingEvidenceIds.has(e.id) && e.validationStatus !== "Rejected"
+    (e) =>
+      supportingEvidenceIds.has(e.id) &&
+      e.validationStatus !== "Rejected" &&
+      e.reviewStatus !== "excluded"
   );
 
   // Map sources for fast lookup
@@ -99,8 +89,8 @@ export function computeSupportProfile(
   for (const srcId of uniqueSourceIds) {
     const src = sourceMap.get(srcId);
     if (src && src.sourceType) {
-      const normalized = normalizeCollectionMethod(src.sourceType);
-      if (normalized) {
+      const normalized = canonicalizeCollectionMethod(src.sourceType);
+      if (isStandardCollectionMethod(normalized)) {
         methodsSet.add(normalized);
       }
     }

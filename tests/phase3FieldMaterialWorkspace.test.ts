@@ -94,6 +94,7 @@ describe("Phase 3: Workspace Rail + Field Material Architecture", () => {
       expect(analysisSpace?.stepNumber).toBe("3");
       expect(analysisSpace?.tabs.map((t) => t.id)).toEqual([
         "synthesis",
+        "triangulation",
         "findings",
         "lessons",
       ]);
