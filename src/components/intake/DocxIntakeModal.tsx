@@ -4,12 +4,19 @@ import React, { useState, useRef } from "react";
 import { WorkspaceDialog } from "@/components/WorkspaceDialog";
 import { parseDocxDocument } from "@/lib/intake/docxParser";
 import { importDocxSourcesAndObservations } from "@/lib/intake/docxImporter";
+import { sourceFileRepository } from "@/lib/storage/sourceFileRepository";
 import type {
   DocxSourceCandidate,
   DocxCandidateObservation,
   DocxImportResult,
 } from "@/lib/intake/docxTypes";
-import type { FieldStudy, SensitivityFlag } from "@/lib/types";
+import type {
+  FieldStudy,
+  SensitivityFlag,
+  SourceFileId,
+  SourceFileMetadata,
+  SourceFileContent,
+} from "@/lib/types";
 
 interface DocxIntakeModalProps {
   isOpen: boolean;
@@ -241,9 +248,43 @@ function DocxIntakeModalContent({
         targetStudy = assembled;
       }
 
+      // Preserve original Word document files in local SourceFileRepository
+      const preparedCandidates: DocxSourceCandidate[] = [];
+      for (let i = 0; i < sourceCandidates.length; i++) {
+        const cand = sourceCandidates[i];
+        const file = filesToProcess[i];
+        const sourceFileId =
+          cand.sourceFileId ||
+          (`SF-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` as SourceFileId);
+
+        if (file && !cand.sourceFileId) {
+          const meta: SourceFileMetadata = {
+            id: sourceFileId,
+            studyId: targetStudy.id,
+            filename: file.name,
+            mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            fileSizeBytes: file.size,
+            importedAt: Date.now(),
+            parsingVersion: 1,
+            hasContent: true,
+          };
+          const content: SourceFileContent = {
+            id: sourceFileId,
+            studyId: targetStudy.id,
+            blob: file,
+          };
+          try {
+            await sourceFileRepository.saveFile(meta, content);
+          } catch {
+            // Non-fatal if storage quota restricts blob
+          }
+        }
+        preparedCandidates.push({ ...cand, sourceFileId });
+      }
+
       const result = await importDocxSourcesAndObservations(
         targetStudy,
-        sourceCandidates
+        preparedCandidates
       );
       setImportResult(result);
       setStep(4);

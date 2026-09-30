@@ -4,6 +4,7 @@ import React, { useState, useMemo } from "react";
 import { scanNarrativeSafety } from "@/lib/sandboxParser";
 import { getNextSourceId } from "@/lib/idGenerator";
 import { saveSource } from "@/lib/storage/studyStore";
+import { CANONICAL_COLLECTION_METHODS } from "@/lib/methodTaxonomy";
 import type {
   SourceRecord,
   CollectionMethod,
@@ -11,21 +12,13 @@ import type {
   AnonymizationStatus,
   SensitivityFlag,
   FieldStudy,
+  MaterialCategory,
 } from "@/lib/types";
 
 interface SourceCaptureFormProps {
   study: FieldStudy;
   onSourceSaved: (newSource: SourceRecord) => void;
 }
-
-const COLLECTION_METHODS: CollectionMethod[] = [
-  "Key Informant Interview",
-  "Focus Group Discussion",
-  "Direct Observation",
-  "Document Review",
-  "Community Meeting",
-  "Survey / Questionnaire",
-];
 
 const CONSENT_OPTIONS: ConsentStatus[] = [
   "Written",
@@ -43,17 +36,62 @@ const ANONYMIZATION_OPTIONS: AnonymizationStatus[] = [
 const SENSITIVITY_FLAGS: SensitivityFlag[] = ["None", "Low", "Medium", "High"];
 
 export function SourceCaptureForm({ study, onSourceSaved }: SourceCaptureFormProps) {
+  // Aggregate available sites from study scope and existing sources
+  const availableSites = useMemo(() => {
+    const list: string[] = [];
+    if (study.scope?.targetSites) {
+      study.scope.targetSites.forEach((s) => {
+        if (s && !list.includes(s)) list.push(s);
+      });
+    }
+    study.sources?.forEach((src) => {
+      const s = src.siteId || src.location;
+      if (s && !list.includes(s)) list.push(s);
+    });
+    return list.length > 0 ? list : ["Unspecified Site"];
+  }, [study.scope, study.sources]);
+
+  // Aggregate available stakeholders from study scope and existing sources
+  const availableStakeholders = useMemo(() => {
+    const list: string[] = [];
+    if (study.scope?.targetStakeholderGroups) {
+      study.scope.targetStakeholderGroups.forEach((g) => {
+        if (g && !list.includes(g)) list.push(g);
+      });
+    }
+    study.sources?.forEach((src) => {
+      if (src.stakeholderType && !list.includes(src.stakeholderType)) {
+        list.push(src.stakeholderType);
+      }
+    });
+    return list.length > 0 ? list : ["General Community"];
+  }, [study.scope, study.sources]);
+
+  // Aggregate available team roles
+  const availableRoles = useMemo(() => {
+    const list: string[] = [];
+    if (study.teamRoles) {
+      study.teamRoles.forEach((r) => {
+        const actorName = r.actor?.displayName;
+        const title = actorName ? `${actorName} (${r.role})` : r.role;
+        if (title && !list.includes(title)) list.push(title);
+      });
+    }
+    return list;
+  }, [study.teamRoles]);
+
   const [title, setTitle] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [site, setSite] = useState(() => study.scope.targetSites[0] || "");
+  const [site, setSite] = useState(() => availableSites[0] || "");
   const [customSite, setCustomSite] = useState("");
-  const [stakeholder, setStakeholder] = useState(
-    () => study.scope.targetStakeholderGroups[0] || ""
-  );
+  const [stakeholder, setStakeholder] = useState(() => availableStakeholders[0] || "");
   const [customStakeholder, setCustomStakeholder] = useState("");
-  const [sourceType, setSourceType] = useState<CollectionMethod>(
-    study.scope.expectedMethods?.[0] || "Key Informant Interview"
-  );
+  const [sourceType, setSourceType] = useState<CollectionMethod>(() => {
+    return (study.scope?.expectedMethods?.[0] as CollectionMethod) || "Key Informant Interview";
+  });
+  const [materialCategory, setMaterialCategory] = useState<MaterialCategory>(() => {
+    return sourceType === "Document Review" ? "secondary_evidence" : "primary_evidence";
+  });
   const [collectorName, setCollectorName] = useState("");
   const [consentStatus, setConsentStatus] = useState<ConsentStatus>("Written");
   const [anonymizationStatus, setAnonymizationStatus] =
@@ -106,6 +144,7 @@ export function SourceCaptureForm({ study, onSourceSaved }: SourceCaptureFormPro
         consentStatus,
         anonymizationStatus,
         sensitivityFlag,
+        materialCategory,
         summary:
           rawText.length > 200
             ? `${rawText.trim().slice(0, 197)}...`
@@ -196,7 +235,7 @@ export function SourceCaptureForm({ study, onSourceSaved }: SourceCaptureFormPro
               onChange={(e) => setSite(e.target.value)}
               className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
             >
-              {study.scope.targetSites.map((s) => (
+              {availableSites.map((s) => (
                 <option key={s} value={s}>
                   {s}
                 </option>
@@ -224,7 +263,7 @@ export function SourceCaptureForm({ study, onSourceSaved }: SourceCaptureFormPro
               onChange={(e) => setStakeholder(e.target.value)}
               className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
             >
-              {study.scope.targetStakeholderGroups.map((sg) => (
+              {availableStakeholders.map((sg) => (
                 <option key={sg} value={sg}>
                   {sg}
                 </option>
@@ -252,15 +291,59 @@ export function SourceCaptureForm({ study, onSourceSaved }: SourceCaptureFormPro
             </label>
             <select
               value={sourceType}
-              onChange={(e) => setSourceType(e.target.value as CollectionMethod)}
+              onChange={(e) => {
+                const m = e.target.value as CollectionMethod;
+                setSourceType(m);
+                if (m === "Document Review") {
+                  setMaterialCategory("secondary_evidence");
+                } else {
+                  setMaterialCategory("primary_evidence");
+                }
+              }}
               className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
             >
-              {COLLECTION_METHODS.map((m) => (
+              {CANONICAL_COLLECTION_METHODS.map((m) => (
                 <option key={m} value={m}>
                   {m}
                 </option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[var(--foreground)]">
+              Material Category
+            </label>
+            <select
+              value={materialCategory}
+              onChange={(e) => setMaterialCategory(e.target.value as MaterialCategory)}
+              className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
+            >
+              <option value="primary_evidence">Primary Field Observation / Interview</option>
+              <option value="secondary_evidence">Secondary Document / Review</option>
+              <option value="supervisory_interpretation">Supervisory Reflection / Debrief</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[var(--foreground)]">
+              Collector / Practitioner Role
+            </label>
+            <input
+              type="text"
+              list="study-roles-list"
+              value={collectorName}
+              onChange={(e) => setCollectorName(e.target.value)}
+              placeholder="e.g. Lead Evaluator or Field Officer"
+              className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
+            />
+            {availableRoles.length > 0 && (
+              <datalist id="study-roles-list">
+                {availableRoles.map((role) => (
+                  <option key={role} value={role} />
+                ))}
+              </datalist>
+            )}
           </div>
 
           <div>
@@ -278,19 +361,6 @@ export function SourceCaptureForm({ study, onSourceSaved }: SourceCaptureFormPro
                 </option>
               ))}
             </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-[var(--foreground)]">
-              Collector Name (Optional)
-            </label>
-            <input
-              type="text"
-              value={collectorName}
-              onChange={(e) => setCollectorName(e.target.value)}
-              placeholder="e.g. Lead Evaluator"
-              className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
-            />
           </div>
         </div>
 

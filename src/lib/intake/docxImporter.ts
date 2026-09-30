@@ -8,7 +8,7 @@ import {
   getNextSequenceOfSourceIds,
   getNextSequenceOfEvidenceIds,
 } from "@/lib/idGenerator";
-import { saveSourceBatch, saveEvidenceBatch } from "@/lib/storage/studyStore";
+import { saveSourceAndEvidenceBatch } from "@/lib/storage/studyStore";
 import type {
   DocxSourceCandidate,
   DocxImportResult,
@@ -55,6 +55,7 @@ export async function importDocxSourcesAndObservations(
   const candidateObservationQueue: Array<{
     candidate: DocxCandidateObservation;
     parentSourceId: SourceRecordId;
+    sourceFileId?: SourceRecord["sourceFileId"];
     siteId: string;
     stakeholderType: string;
     fallbackSensitivity: SourceRecord["sensitivityFlag"];
@@ -89,6 +90,8 @@ export async function importDocxSourcesAndObservations(
       consentStatus: candidate.consentStatus,
       anonymizationStatus: candidate.anonymizationStatus,
       sensitivityFlag: candidate.sensitivityFlag,
+      materialCategory: "primary_evidence",
+      sourceFileId: candidate.sourceFileId,
       summary:
         candidate.rawText.slice(0, 200).replace(/\s+/g, " ") +
         (candidate.rawText.length > 200 ? "…" : ""),
@@ -109,6 +112,7 @@ export async function importDocxSourcesAndObservations(
       candidateObservationQueue.push({
         candidate: obs,
         parentSourceId: sourceId,
+        sourceFileId: candidate.sourceFileId,
         siteId,
         stakeholderType,
         fallbackSensitivity: candidate.sensitivityFlag,
@@ -147,6 +151,15 @@ export async function importDocxSourcesAndObservations(
       potentialFinding: obs.locationClue ? `[DOCX: ${obs.locationClue}]` : "",
       qaStatus: "Needs Review",
       validationStatus: "Draft",
+      reviewStatus: "pending",
+      materialCategory: "primary_evidence",
+      sourceFileId: item.sourceFileId,
+      sourceCoordinate: {
+        sourceType: "docx_extracted",
+        blockIndex: obs.segmentIndex,
+        headingPath: obs.headingContext ? [obs.headingContext] : undefined,
+        segmentType: obs.segmentType,
+      },
       revision: 1,
       createdAt: now,
       updatedAt: now,
@@ -155,13 +168,13 @@ export async function importDocxSourcesAndObservations(
     evidenceRecordsToSave.push(evidenceEntry);
   });
 
-  // 4. Atomic batch persistence
-  // Save sources first, then evidence. If anything fails, error bubbles up.
+  // 4. Atomic batch persistence in single multi-store transaction
   try {
-    await saveSourceBatch(study.id, sourceRecordsToSave);
-    if (evidenceRecordsToSave.length > 0) {
-      await saveEvidenceBatch(study.id, evidenceRecordsToSave);
-    }
+    await saveSourceAndEvidenceBatch(
+      study.id,
+      sourceRecordsToSave,
+      evidenceRecordsToSave
+    );
   } catch (err) {
     throw new DocxImportError(
       `Failed to persist imported batch: ${err instanceof Error ? err.message : String(err)}`

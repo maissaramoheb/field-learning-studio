@@ -9,6 +9,8 @@ export const STANDARD_COLLECTION_METHODS: CollectionMethod[] = [
   "Survey / Questionnaire",
 ];
 
+export const CANONICAL_COLLECTION_METHODS = STANDARD_COLLECTION_METHODS;
+
 const KNOWN_METHOD_ALIASES: Record<string, CollectionMethod> = {
   // Key Informant Interview
   "kii": "Key Informant Interview",
@@ -54,11 +56,13 @@ const KNOWN_METHOD_ALIASES: Record<string, CollectionMethod> = {
   "desk review": "Document Review",
   "literature review": "Document Review",
   "document analysis": "Document Review",
+  "review": "Document Review",
 
   // Community Meeting
   "community meeting": "Community Meeting",
   "community meetings": "Community Meeting",
   "town hall": "Community Meeting",
+  "townhall": "Community Meeting",
   "public meeting": "Community Meeting",
   "community assembly": "Community Meeting",
 };
@@ -101,6 +105,8 @@ export function canonicalizeCollectionMethod(rawType?: string | null): string {
 export function isStandardCollectionMethod(method: string): method is CollectionMethod {
   return STANDARD_COLLECTION_METHODS.includes(method as CollectionMethod);
 }
+
+export const isCanonicalMethod = isStandardCollectionMethod;
 
 /**
  * Returns the planned source collection target, falling back to legacy plannedCount if targetSourceCount is not set.

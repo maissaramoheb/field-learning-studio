@@ -934,6 +934,9 @@ export function LandingPage() {
             </a>
           </div>
         </div>
+        <div className="mx-auto max-w-6xl mt-4 pt-4 border-t border-[var(--border)] text-[11.5px] font-normal text-[var(--muted)] text-center sm:text-left">
+          © 2026 Maissara Selim. Field Learning Studio. All rights reserved.
+        </div>
       </footer>
     </div>
   );

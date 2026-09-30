@@ -373,6 +373,8 @@ export interface EvidenceEntry {
   audit?: OriginMetadata;
   contradictionIds?: EvidenceEntryId[];
   studyQuestionIds?: string[];
+  frameworkThemeIds?: string[];
+  exclusionReason?: string;
   revision?: number;
   rejectionReason?: string;
   lastValidatedAt?: number;

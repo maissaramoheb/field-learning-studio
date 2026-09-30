@@ -22,8 +22,36 @@
     - [x] Readiness banner default collapsed for ready studies with async hydration sync.
   - [x] 35 total unit/integration tests in `tests/phase2StudyWorkspace.test.ts` (15 baseline + 20 post-audit regression tests, 270/270 total passing tests).
   - [x] Visual QA verified across 11 baseline + 6 post-hardening desktop and mobile screenshots.
-- [ ] Phase 3 Field Material Workspace:
-  - [ ] Source Inventory, Field Intake, and Material Qualification workflows.
+- [x] Phase 3 Workspace Rail + Field Material Architecture (`feature/phase-3-field-material-workspace`):
+  - [x] Phase 3A: Workspace Navigation Architecture:
+    - [x] Collapsible Left Rail (`WorkspaceLeftRail.tsx`, 230px/64px) with keyboard shortcut (`Alt+[`), tooltips, and live metric badges.
+    - [x] Desktop header tab simplification (removed redundant horizontal workspace tabs from desktop header, preserved responsive switcher for <1024px).
+  - [x] Phase 3B: Field Material Architecture:
+    - [x] Reorganized practitioner spaces: Field Material (`intake`, `debrief`, `import`, `evidence`) and Analysis (`synthesis`, `findings`, `lessons`).
+    - [x] Relocated Daily Debrief from Analysis to Field Material with supervisory notice and `materialCategory: "supervisory_interpretation"`.
+    - [x] Tabular CSV/TSV intake & column mapping with RFC 4180 parsing, column auto-detection, batch persistence, and `sourceFileRepository` retention.
+    - [x] Unified 3-Mode Import Studio (`ImportMappingView.tsx`) with demo protection lock.
+    - [x] Canonical method taxonomy harmonization (`CANONICAL_COLLECTION_METHODS` and `isCanonicalMethod`).
+    - [x] 4-state qualification workflow (`pending`, `usable`, `needs_clarification`, `excluded`).
+    - [x] Dimension filters in Evidence Review (Theme, Stakeholder, Reliability, Sensitivity, Study Question, Site/Location, Method).
+    - [x] Non-destructive Framework Themes bridge (`frameworkThemeIds`).
+    - [x] Read-only Study Questions linkage in Field Material (active questions linkable/unlinkable, archived questions read-only, strict NO question authoring controls).
+    - [x] 15 unit/integration tests in `tests/phase3FieldMaterialWorkspace.test.ts` (285/285 passing tests).
+    - [x] Headless Chrome CDP visual QA across desktop, tablet, and mobile.
+  - [x] Phase 3 Post-Audit Hardening Pass:
+    - [x] Thread `sourceFileId` through DOCX ingestion and stamp genuine parser coordinates (`blockIndex`, `headingPath`, `segmentType`).
+    - [x] Implement atomic multi-store `saveSourceAndEvidenceBatch(studyId, sources, evidence)` in `studyStore.ts`.
+    - [x] Extend `deleteStudy` transaction to cascade deletion of `sourceFileMetadata` and `sourceFileContent` stores safely.
+    - [x] Convert Structured Notes import to a 2-step Parse -> Preview -> Ingest flow with Back/Cancel controls.
+    - [x] Decouple `reviewStatus` qualification gate from `validationStatus` evaluator lifecycle.
+    - [x] Align UI copy to "Evidence Qualification", "Exclude Observation from Analysis", and "Confirm Exclusion".
+    - [x] Prevent tagging with archived framework themes (`isActive === false`) while preserving existing links.
+    - [x] Consolidate method taxonomy mapping to `canonicalizeCollectionMethod` in `methodTaxonomy.ts`.
+    - [x] Remove `(Alt+[)` hint from Workspace Left Rail toggle tooltip.
+    - [x] Reset evidence review filters upon switching studies and pre-compute $O(1)$ source lookup map.
+    - [x] 12 regression tests added to `tests/phase3FieldMaterialWorkspace.test.ts` (27 total, 297/297 total passing tests across 25 files).
+- [ ] Phase 4 Analysis Workspace (Synthesis, Findings Ledger, Lessons & Practices):
+  - [ ] Deep synthesis matrix, pattern note refinement, and automated gap detector enhancements.
 - [x] Phase 1 Study Library, Demo/Real Separation, and Workspace Identity Foundation (`feature/phase-1-study-library-workspace-shell`):
   - [x] Canonical `StudyLibraryView` with Showcase Studies and My Studies sections.
   - [x] Welcoming `EmptyStudyState` guiding users to create their first real study.

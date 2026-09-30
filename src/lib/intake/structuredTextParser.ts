@@ -8,6 +8,7 @@ import type {
   SourceRecordId,
 } from "@/lib/types";
 import { scanNarrativeSafety, type SafetyScanResult } from "@/lib/sandboxParser";
+import { canonicalizeCollectionMethod } from "@/lib/methodTaxonomy";
 import { checkSourceDuplicate, type DuplicateCheckResult } from "./duplicateDetector";
 
 export interface ParsedSourceCandidate {
@@ -37,23 +38,6 @@ export interface ParsedSourceCandidate {
   status: "ready" | "needs_review" | "duplicate" | "error";
   isSkipped: boolean;
 }
-
-const KNOWN_METHODS: Record<string, CollectionMethod> = {
-  "key informant interview": "Key Informant Interview",
-  "kii": "Key Informant Interview",
-  "interview": "Key Informant Interview",
-  "focus group discussion": "Focus Group Discussion",
-  "fgd": "Focus Group Discussion",
-  "focus group": "Focus Group Discussion",
-  "direct observation": "Direct Observation",
-  "observation": "Direct Observation",
-  "document review": "Document Review",
-  "document": "Document Review",
-  "community meeting": "Community Meeting",
-  "survey / questionnaire": "Survey / Questionnaire",
-  "survey": "Survey / Questionnaire",
-  "questionnaire": "Survey / Questionnaire",
-};
 
 const KNOWN_CONSENT: Record<string, ConsentStatus> = {
   "written": "Written",
@@ -175,8 +159,10 @@ export function parseStructuredSourceBlocks(
     const collectorName = headers["collector"] || headers["interviewer"] || headers["researcher"] || undefined;
 
     // Normalizing method: Unknown metadata remains unknown (no silent KII default)
-    const rawMethod = (headers["method"] || headers["sourcetype"] || headers["type"] || "").toLowerCase().trim();
-    const collectionMethod = KNOWN_METHODS[rawMethod] || (rawMethod ? headers["method"] : "Unspecified Method");
+    const rawMethod = (headers["method"] || headers["sourcetype"] || headers["type"] || "").trim();
+    const collectionMethod = rawMethod
+      ? canonicalizeCollectionMethod(rawMethod)
+      : "Unspecified Method";
     if (!rawMethod) {
       warnings.push("Collection method omitted; recorded as 'Unspecified Method'.");
     }

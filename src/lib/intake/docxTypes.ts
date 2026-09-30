@@ -6,6 +6,7 @@ import type {
   SensitivityFlag,
   ConsentStatus,
   AnonymizationStatus,
+  SourceFileId,
 } from "@/lib/types";
 
 export type DocxCandidateStatus = "accepted" | "edited" | "skipped";
@@ -34,6 +35,7 @@ export interface DocxSourceCandidate {
   filename: string;
   fileSizeBytes: number;
   importedAt: number;
+  sourceFileId?: SourceFileId;
   title: string;
   date: string;
   isDateUnknown: boolean;

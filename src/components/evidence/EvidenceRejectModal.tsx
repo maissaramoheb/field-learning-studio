@@ -44,7 +44,7 @@ function EvidenceRejectModalContent({
     e.preventDefault();
     const trimmed = reason.trim();
     if (!trimmed) {
-      setError("Please provide a specific reason for rejection.");
+      setError("Please provide a specific reason for exclusion.");
       return;
     }
 
@@ -54,7 +54,7 @@ function EvidenceRejectModalContent({
       await onConfirmReject(trimmed);
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to record rejection.");
+      setError(err instanceof Error ? err.message : "Failed to record exclusion.");
     } finally {
       setIsSubmitting(false);
     }
@@ -66,10 +66,10 @@ function EvidenceRejectModalContent({
         <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
           <div>
             <span className="text-xs font-semibold uppercase tracking-wider text-rose-400">
-              Evidence Review
+              Evidence Qualification
             </span>
             <h3 className="mt-0.5 text-lg font-bold text-[var(--foreground)]">
-              Reject Evidence ({evidenceId})
+              Exclude Observation from Analysis ({evidenceId})
             </h3>
           </div>
           <button
@@ -83,12 +83,12 @@ function EvidenceRejectModalContent({
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
           <p className="text-xs leading-relaxed text-[var(--muted)]">
-            A rejected evidence item will be flagged as <span className="font-semibold text-rose-400">Rejected</span> and excluded from validated findings. State the methodological rationale, missing corroboration, or safeguarding reason:
+            An excluded observation will be flagged as <span className="font-semibold text-rose-400">Excluded</span> and removed from analytical synthesis. State the methodological rationale, data quality issue, or safeguarding reason:
           </p>
 
           <div>
             <label className="block text-xs font-semibold text-[var(--foreground)]">
-              Rejection Reason <span className="text-rose-400">*</span>
+              Exclusion Reason <span className="text-rose-400">*</span>
             </label>
             <textarea
               rows={4}
@@ -119,7 +119,7 @@ function EvidenceRejectModalContent({
               disabled={isSubmitting || !reason.trim()}
               className="rounded-lg border border-rose-600 bg-rose-700 px-4 py-2 text-xs font-semibold text-white shadow hover:bg-rose-600 disabled:opacity-50 cursor-pointer"
             >
-              {isSubmitting ? "Recording..." : "Confirm Rejection"}
+              {isSubmitting ? "Recording..." : "Confirm Exclusion"}
             </button>
           </div>
         </form>

@@ -3,7 +3,6 @@
 import React from "react";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import type {
-  PractitionerSpaceId,
   WorkspaceTabId,
   PractitionerSpace,
 } from "@/components/FieldLearningStudioApp";
@@ -50,9 +49,6 @@ export function StudyWorkspaceHeader({
   onBackToLibrary,
   onCreateNewStudy,
   onOpenBackupRestore,
-  evidenceCount,
-  findingsCount,
-  recommendationsCount,
 }: StudyWorkspaceHeaderProps) {
   const activeSpaceId = getSpaceForTab(activeTab);
   const activeSpace: PractitionerSpace =
@@ -132,74 +128,41 @@ export function StudyWorkspaceHeader({
         </div>
       </div>
 
-      {/* LEVEL 2 & LEVEL 3: Practitioner Space Navigation & Sub-Views */}
+      {/* LEVEL 2: Mobile Workspace Switcher (< lg) & Local Sub-View Navigation */}
       <nav
-        aria-label="Field Learning Studio practitioner spaces"
+        aria-label="Field Learning Studio local views"
         className="fls-space-nav"
       >
         <div className="fls-frame">
+          {/* Mobile Workspace Switcher: Visible only on tablet/mobile (< 1024px) */}
           <div
-            className="fls-primary-tabs"
+            className="fls-mobile-space-tabs lg:hidden"
             role="tablist"
-            aria-label="Practitioner spaces"
-            onKeyDown={handleNavigationKeys}
+            aria-label="Mobile practitioner spaces"
           >
-            {PRACTITIONER_SPACES.map((space, idx) => {
+            {PRACTITIONER_SPACES.map((space) => {
               const isActive = space.id === activeSpaceId;
-              const count =
-                space.id === "field-material"
-                  ? evidenceCount
-                  : space.id === "analysis"
-                  ? findingsCount
-                  : space.id === "deliverables"
-                  ? recommendationsCount
-                  : undefined;
-
-              const purposeLabels: Record<PractitionerSpaceId, string> = {
-                study: "Define",
-                "field-material": "Capture",
-                analysis: "Interpret",
-                deliverables: "Communicate",
-              };
-
               return (
-                <React.Fragment key={space.id}>
-                  {idx > 0 && (
-                    <span className="fls-space-arrow self-center" aria-hidden="true">
-                      →
-                    </span>
-                  )}
-                  <button
-                    role="tab"
-                    aria-selected={isActive}
-                    tabIndex={isActive ? 0 : -1}
-                    id={space.id === "study" ? "workspace-tab-overview" : `space-${space.id}`}
-                    aria-controls="workspace-panel"
-                    data-space-id={space.id}
-                    type="button"
-                    title={space.description}
-                    onClick={() => {
-                      if (!isActive) onTabChange(space.defaultTab);
-                    }}
-                    className="fls-space-tab"
-                  >
-                    <span className="fls-space-tab-step">{space.stepNumber}.</span>
-                    <span>{space.label}</span>
-                    <span className="fls-space-tab-purpose">
-                      ({purposeLabels[space.id]})
-                    </span>
-                    {count !== undefined && (
-                      <span className="fls-nav-count" aria-hidden="true">
-                        {count}
-                      </span>
-                    )}
-                  </button>
-                </React.Fragment>
+                <button
+                  key={space.id}
+                  id={`mobile-space-${space.id}`}
+                  role="tab"
+                  aria-selected={isActive}
+                  type="button"
+                  onClick={() => {
+                    if (!isActive) onTabChange(space.defaultTab);
+                  }}
+                  className={`fls-mobile-space-btn ${isActive ? "active" : ""}`}
+                >
+                  <span className="fls-mobile-space-icon" aria-hidden="true">{space.icon}</span>
+                  <span className="fls-mobile-space-name">{space.label}</span>
+                </button>
               );
             })}
           </div>
 
-          {activeSpace.tabs.length > 1 && (
+          {/* Local Sub-Views Navigation */}
+          {activeSpace.tabs.length > 0 && (
             <div
               className="fls-secondary-tabs"
               role="tablist"

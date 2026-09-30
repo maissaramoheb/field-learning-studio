@@ -6,17 +6,17 @@ import type {
   Finding,
   SourceRecord,
   FieldStudy,
+  StudyQuestion,
 } from "@/lib/types";
 import {
   submitForReview,
   validateArtifact,
-  rejectArtifact,
-  reopenRejectedArtifact,
 } from "@/lib/validation";
 import { saveEvidence } from "@/lib/storage/studyStore";
 import { EvidenceCard } from "./EvidenceCard";
 import { EvidenceEditModal } from "./EvidenceEditModal";
 import { EvidenceRejectModal } from "./EvidenceRejectModal";
+import { CANONICAL_COLLECTION_METHODS } from "@/lib/methodTaxonomy";
 import { ReviewerIdentityBar } from "./ReviewerIdentityBar";
 import { StatusFilterPills, type StatusCounts } from "./StatusFilterPills";
 import { ValidationStatusBadge } from "./ValidationStatusBadge";
@@ -27,6 +27,10 @@ export type EvidenceFilters = {
   evidenceStrength: string;
   sensitivityFlag: string;
   validationStatus?: string;
+  reviewStatus?: string;
+  studyQuestionId?: string;
+  siteId?: string;
+  collectionMethod?: string;
 };
 
 interface EvidenceReviewWorkspaceProps {
@@ -121,6 +125,10 @@ export function EvidenceReviewWorkspace({
     let needsReview = 0;
     let validated = 0;
     let rejected = 0;
+    let pending = 0;
+    let usable = 0;
+    let needsClarification = 0;
+    let excluded = 0;
 
     for (const e of rawEvidenceList) {
       const s = e.validationStatus || (isDemoCase ? "Validated" : "Draft");
@@ -128,6 +136,18 @@ export function EvidenceReviewWorkspace({
       else if (s === "Needs Review") needsReview++;
       else if (s === "Validated") validated++;
       else if (s === "Rejected") rejected++;
+
+      const rev =
+        e.reviewStatus ||
+        (s === "Validated"
+          ? "usable"
+          : s === "Rejected"
+          ? "excluded"
+          : "pending");
+      if (rev === "pending") pending++;
+      else if (rev === "usable") usable++;
+      else if (rev === "needs_clarification") needsClarification++;
+      else if (rev === "excluded") excluded++;
     }
 
     return {
@@ -136,8 +156,32 @@ export function EvidenceReviewWorkspace({
       needsReview,
       validated,
       rejected,
+      pending,
+      usable,
+      needsClarification,
+      excluded,
     };
   }, [rawEvidenceList, isDemoCase]);
+
+  // Derive available study questions
+  const availableQuestions = useMemo(() => {
+    return currentStudy?.questions || [];
+  }, [currentStudy?.questions]);
+
+  // Derive available sites
+  const availableSites = useMemo(() => {
+    const set = new Set<string>();
+    if (currentStudy?.scope?.targetSites) {
+      currentStudy.scope.targetSites.forEach((s) => set.add(s));
+    }
+    sources.forEach((src) => {
+      if (src.location) set.add(src.location);
+    });
+    rawEvidenceList.forEach((ev) => {
+      if (ev.siteId) set.add(ev.siteId);
+    });
+    return Array.from(set).sort();
+  }, [currentStudy, sources, rawEvidenceList]);
 
   // Handle Reviewer Name change
   const handleReviewerNameChange = (name: string) => {
@@ -180,6 +224,38 @@ export function EvidenceReviewWorkspace({
     }
   };
 
+  // Action: Qualify (admissibility gate: sets reviewStatus = "usable" without modifying validationStatus)
+  const handleQualify = async (entry: EvidenceEntry) => {
+    if (!currentStudy) return;
+    try {
+      const qualified: EvidenceEntry = {
+        ...entry,
+        reviewStatus: "usable",
+      };
+      await saveEvidence({ ...qualified, studyId: currentStudy.id });
+      await onRefreshStudy();
+      showToast(`Evidence ${entry.id} qualified as usable.`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to qualify evidence.");
+    }
+  };
+
+  // Action: Flag for Clarification (sets reviewStatus = "needs_clarification" without modifying validationStatus)
+  const handleFlagClarification = async (entry: EvidenceEntry) => {
+    if (!currentStudy) return;
+    try {
+      const updated: EvidenceEntry = {
+        ...entry,
+        reviewStatus: "needs_clarification",
+      };
+      await saveEvidence({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+      showToast(`Evidence ${entry.id} flagged for team clarification.`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to flag evidence.");
+    }
+  };
+
   const handleConfirmValidateWithReviewer = async (name: string) => {
     if (!pendingValidateEntry || !currentStudy) return;
     const trimmed = name.trim();
@@ -199,29 +275,101 @@ export function EvidenceReviewWorkspace({
     }
   };
 
-  // Action: Reject
+  // Action: Exclude (sets reviewStatus = "excluded" and records exclusionReason without modifying validationStatus)
   const handleRejectConfirm = async (reason: string) => {
     if (!rejectingEntry || !currentStudy) return;
     try {
-      const updated = rejectArtifact(rejectingEntry, reason);
-      await saveEvidence({ ...updated, studyId: currentStudy.id });
+      const excluded: EvidenceEntry = {
+        ...rejectingEntry,
+        reviewStatus: "excluded",
+        exclusionReason: reason,
+      };
+      await saveEvidence({ ...excluded, studyId: currentStudy.id });
       await onRefreshStudy();
-      showToast(`Evidence ${rejectingEntry.id} marked as Rejected.`);
+      showToast(`Evidence ${rejectingEntry.id} marked as excluded.`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to reject evidence.");
+      alert(err instanceof Error ? err.message : "Failed to exclude evidence.");
     }
   };
 
-  // Action: Reopen
+  // Action: Reopen / Restore to Pending (sets reviewStatus = "pending" and clears exclusionReason without modifying validationStatus)
   const handleReopen = async (entry: EvidenceEntry) => {
     if (!currentStudy) return;
     try {
-      const updated = reopenRejectedArtifact(entry);
+      const updated: EvidenceEntry = {
+        ...entry,
+        reviewStatus: "pending",
+        exclusionReason: undefined,
+      };
       await saveEvidence({ ...updated, studyId: currentStudy.id });
       await onRefreshStudy();
-      showToast(`Evidence ${entry.id} reopened as Draft for revision.`);
+      showToast(`Evidence ${entry.id} restored to pending review.`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to reopen evidence.");
+      alert(err instanceof Error ? err.message : "Failed to restore evidence.");
+    }
+  };
+
+  // Action: Map Framework Theme
+  const handleMapTheme = async (entry: EvidenceEntry, themeId: string) => {
+    if (!currentStudy) return;
+    try {
+      const frameworkThemes = currentStudy.framework?.themes || [];
+      const matchedTheme = frameworkThemes.find((th) => th.id === themeId);
+      if (matchedTheme && matchedTheme.isActive === false) {
+        alert("Cannot map an archived framework theme.");
+        return;
+      }
+      const existingThemes = entry.frameworkThemeIds || [];
+      if (existingThemes.includes(themeId)) return;
+      const updatedThemes = [...existingThemes, themeId];
+      const updated: EvidenceEntry = {
+        ...entry,
+        frameworkThemeIds: updatedThemes,
+        primaryTheme:
+          (!entry.primaryTheme || entry.primaryTheme === "Uncategorized") && matchedTheme
+            ? matchedTheme.name
+            : entry.primaryTheme,
+      };
+      await saveEvidence({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+      showToast(`Evidence ${entry.id} mapped to framework theme ${matchedTheme?.name || themeId}.`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to map framework theme.");
+    }
+  };
+
+  // Action: Link Study Question
+  const handleLinkQuestion = async (entry: EvidenceEntry, questionId: string) => {
+    if (!currentStudy) return;
+    try {
+      const existing = entry.studyQuestionIds || [];
+      if (existing.includes(questionId)) return;
+      const updated: EvidenceEntry = {
+        ...entry,
+        studyQuestionIds: [...existing, questionId],
+      };
+      await saveEvidence({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+      showToast(`Evidence ${entry.id} linked to study question ${questionId}.`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to link question.");
+    }
+  };
+
+  // Action: Unlink Study Question
+  const handleUnlinkQuestion = async (entry: EvidenceEntry, questionId: string) => {
+    if (!currentStudy) return;
+    try {
+      const existing = entry.studyQuestionIds || [];
+      const updated: EvidenceEntry = {
+        ...entry,
+        studyQuestionIds: existing.filter((qid) => qid !== questionId),
+      };
+      await saveEvidence({ ...updated, studyId: currentStudy.id });
+      await onRefreshStudy();
+      showToast(`Study question ${questionId} unlinked from ${entry.id}.`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to unlink question.");
     }
   };
 
@@ -319,18 +467,22 @@ export function EvidenceReviewWorkspace({
         />
       )}
 
-      {/* Validation Status Filter Pills */}
+      {/* Validation / Qualification Status Filter Pills */}
       <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 space-y-4">
         <StatusFilterPills
-          selectedStatus={filters.validationStatus || "All"}
-          onSelectStatus={(validationStatus) =>
-            onFiltersChange({ ...filters, validationStatus })
+          selectedStatus={filters.reviewStatus || filters.validationStatus || "All"}
+          onSelectStatus={(status) =>
+            onFiltersChange({
+              ...filters,
+              reviewStatus: status,
+              validationStatus: status,
+            })
           }
           counts={statusCounts}
         />
 
         {/* Analytical Dimension Filters */}
-        <div className="grid gap-3 pt-3 border-t border-[var(--border)] grid-cols-2 md:grid-cols-4">
+        <div className="grid gap-3 pt-3 border-t border-[var(--border)] grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
           <div>
             <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
               Theme
@@ -377,7 +529,7 @@ export function EvidenceReviewWorkspace({
 
           <div>
             <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
-              Observation Reliability
+              Reliability
             </label>
             <select
               value={filters.evidenceStrength}
@@ -416,6 +568,69 @@ export function EvidenceReviewWorkspace({
                     {s}
                   </option>
                 ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
+              Study Question
+            </label>
+            <select
+              value={filters.studyQuestionId || "All"}
+              onChange={(e) =>
+                onFiltersChange({ ...filters, studyQuestionId: e.target.value })
+              }
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
+            >
+              <option value="All">All Questions</option>
+              {availableQuestions.map((q: StudyQuestion) => {
+                const label = q.shortLabel || q.question || q.id;
+                return (
+                  <option key={q.id} value={q.id}>
+                    [{q.id}] {label.length > 24 ? label.slice(0, 24) + "…" : label}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
+              Site / Location
+            </label>
+            <select
+              value={filters.siteId || "All"}
+              onChange={(e) =>
+                onFiltersChange({ ...filters, siteId: e.target.value })
+              }
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
+            >
+              <option value="All">All Sites</option>
+              {availableSites.map((site) => (
+                <option key={site} value={site}>
+                  {site}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
+              Method
+            </label>
+            <select
+              value={filters.collectionMethod || "All"}
+              onChange={(e) =>
+                onFiltersChange({ ...filters, collectionMethod: e.target.value })
+              }
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
+            >
+              <option value="All">All Methods</option>
+              {CANONICAL_COLLECTION_METHODS.map((method) => (
+                <option key={method} value={method}>
+                  {method}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -531,6 +746,7 @@ export function EvidenceReviewWorkspace({
                 linkedFinding={findings.find((f) =>
                   f.supportingEvidenceIds.includes(activeSelectedEntry.id)
                 )}
+                currentStudy={currentStudy}
                 isHighlighted={traceHandlers.highlightedId === activeSelectedEntry.id}
                 isDemoCase={isDemoCase}
                 onTraceSelect={traceHandlers.onTraceSelect}
@@ -539,6 +755,11 @@ export function EvidenceReviewWorkspace({
                 onValidate={handleValidate}
                 onReject={(e) => setRejectingEntry(e)}
                 onReopen={handleReopen}
+                onQualify={handleQualify}
+                onFlagClarification={handleFlagClarification}
+                onMapTheme={handleMapTheme}
+                onLinkQuestion={handleLinkQuestion}
+                onUnlinkQuestion={handleUnlinkQuestion}
               />
             ) : (
               <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-8 text-center text-xs text-[var(--muted)]">
@@ -563,6 +784,7 @@ export function EvidenceReviewWorkspace({
                 entry={entry}
                 source={source}
                 linkedFinding={linkedFinding}
+                currentStudy={currentStudy}
                 isHighlighted={isHighlighted}
                 isDemoCase={isDemoCase}
                 onTraceSelect={traceHandlers.onTraceSelect}
@@ -571,6 +793,11 @@ export function EvidenceReviewWorkspace({
                 onValidate={handleValidate}
                 onReject={(e) => setRejectingEntry(e)}
                 onReopen={handleReopen}
+                onQualify={handleQualify}
+                onFlagClarification={handleFlagClarification}
+                onMapTheme={handleMapTheme}
+                onLinkQuestion={handleLinkQuestion}
+                onUnlinkQuestion={handleUnlinkQuestion}
               />
             );
           })}

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { getNextEvidenceId } from "@/lib/idGenerator";
 import { saveEvidence } from "@/lib/storage/studyStore";
 import { BatchObservationBuilder } from "./BatchObservationBuilder";
@@ -10,6 +10,8 @@ import type {
   EvidenceStrength,
   SensitivityFlag,
   FieldStudy,
+  StudyQuestion,
+  FrameworkTheme,
 } from "@/lib/types";
 
 interface ObservationCaptureFormProps {
@@ -30,15 +32,26 @@ export function ObservationCaptureForm({
 }: ObservationCaptureFormProps) {
   const [isBatchMode, setIsBatchMode] = useState(false);
   const [rawObservation, setRawObservation] = useState("");
+  const [contextNotes, setContextNotes] = useState("");
   const [interpretation, setInterpretation] = useState("");
   const [primaryTheme, setPrimaryTheme] = useState("");
   const [secondaryTheme, setSecondaryTheme] = useState("");
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
+  const [selectedFrameworkThemeIds, setSelectedFrameworkThemeIds] = useState<string[]>([]);
   const [evidenceStrength, setEvidenceStrength] = useState<EvidenceStrength>("Medium");
   const [sensitivityFlag, setSensitivityFlag] = useState<SensitivityFlag>(
     activeSource.sensitivityFlag || "None"
   );
   const [isSaving, setIsSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const activeQuestions: StudyQuestion[] = useMemo(() => {
+    return (study.questions || []).filter((q) => q.isActive !== false);
+  }, [study.questions]);
+
+  const frameworkThemes: FrameworkTheme[] = useMemo(() => {
+    return (study.framework?.themes || []).filter((th) => th.isActive !== false);
+  }, [study.framework?.themes]);
 
   // Reset form fields on study or active source change to prevent cross-study state leakage
   const prevContextRef = React.useRef(`${study.id}:${activeSource.id}`);
@@ -47,9 +60,12 @@ export function ObservationCaptureForm({
     if (prevContextRef.current !== currentContext) {
       prevContextRef.current = currentContext;
       setRawObservation("");
+      setContextNotes("");
       setInterpretation("");
       setPrimaryTheme("");
       setSecondaryTheme("");
+      setSelectedQuestionIds([]);
+      setSelectedFrameworkThemeIds([]);
       setSuccessMsg(null);
       setIsBatchMode(false);
     }
@@ -100,9 +116,13 @@ export function ObservationCaptureForm({
         secondaryTheme: secondaryTheme.trim() || "General",
         evidenceStrength,
         sensitivityFlag,
-        potentialFinding: interpretation.trim() || "",
+        potentialFinding: contextNotes.trim() || interpretation.trim() || "",
         qaStatus: "Needs Review",
         validationStatus: "Draft",
+        reviewStatus: "pending",
+        materialCategory: activeSource.materialCategory || "primary_evidence",
+        studyQuestionIds: selectedQuestionIds.length > 0 ? selectedQuestionIds : undefined,
+        frameworkThemeIds: selectedFrameworkThemeIds.length > 0 ? selectedFrameworkThemeIds : undefined,
         revision: 1,
         createdAt: now,
         updatedAt: now,
@@ -111,10 +131,13 @@ export function ObservationCaptureForm({
       await saveEvidence(newEntry);
       onEvidenceCreated(newEntry);
 
-      setSuccessMsg(`Extracted observation ${nextId} saved as Draft.`);
+      setSuccessMsg(`Extracted observation ${nextId} saved as Draft (Pending Qualification).`);
       setRawObservation("");
+      setContextNotes("");
       setInterpretation("");
       setSecondaryTheme("");
+      setSelectedQuestionIds([]);
+      setSelectedFrameworkThemeIds([]);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to save observation.");
     } finally {
@@ -238,11 +261,124 @@ export function ObservationCaptureForm({
             />
           </div>
 
+          {/* Context & Setting Notes */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--muted)]">
+                Context & Setting Notes (Optional)
+              </label>
+              <span className="text-[10px] text-[var(--muted)]">Operational setting</span>
+            </div>
+            <textarea
+              rows={2}
+              value={contextNotes}
+              onChange={(e) => setContextNotes(e.target.value)}
+              placeholder="Environmental conditions, operational backdrop, room atmosphere, or attendee dynamics..."
+              className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] p-2.5 text-xs text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none"
+            />
+          </div>
+
+          {/* Immediate Qualification Preview: Study Questions & Framework Themes */}
+          {(activeQuestions.length > 0 || frameworkThemes.length > 0) && (
+            <div className="rounded-lg border border-sky-500/30 bg-sky-950/10 p-3.5 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--trace)]">
+                  Immediate Qualification Preview
+                </span>
+                <span className="text-[10px] text-[var(--muted)]">
+                  Provisional linking to study charter
+                </span>
+              </div>
+
+              {activeQuestions.length > 0 && (
+                <div>
+                  <span className="block text-xs font-semibold text-[var(--foreground)] mb-1.5">
+                    Study Questions this material informs:
+                  </span>
+                  <div className="grid gap-1.5 sm:grid-cols-2 max-h-36 overflow-y-auto pr-1">
+                    {activeQuestions.map((q) => {
+                      const isChecked = selectedQuestionIds.includes(q.id);
+                      return (
+                        <label
+                          key={q.id}
+                          className={`flex items-start gap-2 rounded border p-2 text-xs transition cursor-pointer ${
+                            isChecked
+                              ? "border-[var(--trace)] bg-[var(--trace-wash)] text-[var(--foreground)] font-medium"
+                              : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--border-strong)]"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedQuestionIds([...selectedQuestionIds, q.id]);
+                              } else {
+                                setSelectedQuestionIds(selectedQuestionIds.filter((id) => id !== q.id));
+                              }
+                            }}
+                            className="mt-0.5 rounded border-[var(--border)]"
+                          />
+                          <div className="min-w-0">
+                            <span className="font-mono text-[10px] font-bold text-[var(--trace)] block">
+                              {q.id}
+                            </span>
+                            <span className="text-[11px] line-clamp-1">
+                              {q.shortLabel || q.question}
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {frameworkThemes.length > 0 && (
+                <div>
+                  <span className="block text-xs font-semibold text-[var(--foreground)] mb-1.5">
+                    Suggested Framework Themes (Analytical Lenses):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {frameworkThemes.map((th) => {
+                      const isSelected = selectedFrameworkThemeIds.includes(th.id);
+                      return (
+                        <button
+                          key={th.id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedFrameworkThemeIds(
+                                selectedFrameworkThemeIds.filter((id) => id !== th.id)
+                              );
+                            } else {
+                              setSelectedFrameworkThemeIds([...selectedFrameworkThemeIds, th.id]);
+                              if (!primaryTheme.trim() || primaryTheme === "Uncategorized") {
+                                setPrimaryTheme(th.name);
+                              }
+                            }
+                          }}
+                          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition cursor-pointer ${
+                            isSelected
+                              ? "border-[var(--trace)] bg-[var(--trace)] text-white font-semibold"
+                              : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--trace)] hover:text-[var(--foreground)]"
+                          }`}
+                        >
+                          <span>{th.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Interpretation */}
           <div className="rounded-lg border border-[var(--border-strong)] bg-slate-900/40 p-3.5">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-sky-300">
-                Analytical Interpretation (Provisional / Optional during intake)
+                Analytical Interpretation / Observer Reflection (Provisional during intake)
               </label>
               <span className="rounded bg-sky-950/60 px-2 py-0.5 text-[10px] font-medium text-sky-400">
                 Draft sensemaking
@@ -252,11 +388,11 @@ export function ObservationCaptureForm({
               rows={3}
               value={interpretation}
               onChange={(e) => setInterpretation(e.target.value)}
-              placeholder="Record your working analytical interpretation. This will not alter or replace the raw observation, and does not automatically become a validated finding."
+              placeholder="Record your observer reflection or working analytical interpretation. This will not alter or replace the raw observation, and does not automatically become a validated finding."
               className="mt-2 w-full rounded border border-[var(--border)] bg-[var(--surface)] p-3 text-xs text-[var(--foreground)] placeholder-[var(--muted)] focus:border-sky-400 focus:outline-none"
             />
             <p className="mt-1.5 text-[11px] text-[var(--muted)]">
-              Interpretation is captured as provisional working hypothesis (`validationStatus = Draft`).
+              Observer impressions and reflections are captured as provisional working hypothesis (`validationStatus = Draft`).
             </p>
           </div>
 

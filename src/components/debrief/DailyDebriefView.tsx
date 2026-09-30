@@ -94,6 +94,10 @@ export function DailyDebriefView({
               >
                 {study.isDemoCase ? "Read-Only Demo Template" : "Active Field Study"}
               </span>
+              <span className="text-xs text-[var(--muted)]">•</span>
+              <span className="rounded border border-sky-500/30 bg-sky-950/20 px-2 py-0.5 text-[10px] font-semibold text-sky-300">
+                Supervisory Capture
+              </span>
             </div>
             <h2 className="mt-1 text-xl font-bold text-[var(--foreground)]">
               Daily Field Debrief Studio
@@ -101,6 +105,12 @@ export function DailyDebriefView({
             <p className="mt-0.5 text-xs text-[var(--muted)]">
               Structured end-of-day sensemaking to capture surprises, contradictions, researcher biases, and tomorrow&apos;s field priorities.
             </p>
+            <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-[11px] text-[var(--muted)]">
+              <span>ℹ️</span>
+              <span>
+                <strong>Methodological Role:</strong> Debrief notes are supervisory and reflective field material. They guide ongoing fieldwork without counting as independent empirical sources in triangulation.
+              </span>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
