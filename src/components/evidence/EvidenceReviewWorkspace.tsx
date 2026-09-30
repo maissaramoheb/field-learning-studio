@@ -11,8 +11,6 @@ import type {
 import {
   submitForReview,
   validateArtifact,
-  rejectArtifact,
-  reopenRejectedArtifact,
 } from "@/lib/validation";
 import { saveEvidence } from "@/lib/storage/studyStore";
 import { EvidenceCard } from "./EvidenceCard";
@@ -226,38 +224,29 @@ export function EvidenceReviewWorkspace({
     }
   };
 
-  // Action: Qualify (unified qualification gate)
+  // Action: Qualify (admissibility gate: sets reviewStatus = "usable" without modifying validationStatus)
   const handleQualify = async (entry: EvidenceEntry) => {
     if (!currentStudy) return;
-    const activeReviewer = reviewerName.trim();
-    if (!activeReviewer) {
-      setPendingValidateEntry(entry);
-      setReviewerPromptOpen(true);
-      return;
-    }
-
     try {
-      const updated = validateArtifact(entry, activeReviewer);
       const qualified: EvidenceEntry = {
-        ...updated,
+        ...entry,
         reviewStatus: "usable",
       };
       await saveEvidence({ ...qualified, studyId: currentStudy.id });
       await onRefreshStudy();
-      showToast(`Evidence ${entry.id} qualified as usable by ${activeReviewer}.`);
+      showToast(`Evidence ${entry.id} qualified as usable.`);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to qualify evidence.");
     }
   };
 
-  // Action: Flag for Clarification
+  // Action: Flag for Clarification (sets reviewStatus = "needs_clarification" without modifying validationStatus)
   const handleFlagClarification = async (entry: EvidenceEntry) => {
     if (!currentStudy) return;
     try {
       const updated: EvidenceEntry = {
         ...entry,
         reviewStatus: "needs_clarification",
-        validationStatus: "Needs Review",
       };
       await saveEvidence({ ...updated, studyId: currentStudy.id });
       await onRefreshStudy();
@@ -275,13 +264,9 @@ export function EvidenceReviewWorkspace({
     handleReviewerNameChange(trimmed);
     try {
       const updated = validateArtifact(pendingValidateEntry, trimmed);
-      const qualified: EvidenceEntry = {
-        ...updated,
-        reviewStatus: "usable",
-      };
-      await saveEvidence({ ...qualified, studyId: currentStudy.id });
+      await saveEvidence({ ...updated, studyId: currentStudy.id });
       await onRefreshStudy();
-      showToast(`Evidence ${pendingValidateEntry.id} qualified by ${trimmed}.`);
+      showToast(`Evidence ${pendingValidateEntry.id} validated by ${trimmed}.`);
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to validate evidence.");
     } finally {
@@ -290,34 +275,37 @@ export function EvidenceReviewWorkspace({
     }
   };
 
-  // Action: Reject / Exclude
+  // Action: Exclude (sets reviewStatus = "excluded" and records exclusionReason without modifying validationStatus)
   const handleRejectConfirm = async (reason: string) => {
     if (!rejectingEntry || !currentStudy) return;
     try {
-      const updated = rejectArtifact(rejectingEntry, reason);
-      const rejected: EvidenceEntry = {
-        ...updated,
+      const excluded: EvidenceEntry = {
+        ...rejectingEntry,
         reviewStatus: "excluded",
         exclusionReason: reason,
       };
-      await saveEvidence({ ...rejected, studyId: currentStudy.id });
+      await saveEvidence({ ...excluded, studyId: currentStudy.id });
       await onRefreshStudy();
       showToast(`Evidence ${rejectingEntry.id} marked as excluded.`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to reject evidence.");
+      alert(err instanceof Error ? err.message : "Failed to exclude evidence.");
     }
   };
 
-  // Action: Reopen
+  // Action: Reopen / Restore to Pending (sets reviewStatus = "pending" and clears exclusionReason without modifying validationStatus)
   const handleReopen = async (entry: EvidenceEntry) => {
     if (!currentStudy) return;
     try {
-      const updated = reopenRejectedArtifact(entry);
+      const updated: EvidenceEntry = {
+        ...entry,
+        reviewStatus: "pending",
+        exclusionReason: undefined,
+      };
       await saveEvidence({ ...updated, studyId: currentStudy.id });
       await onRefreshStudy();
-      showToast(`Evidence ${entry.id} reopened as Draft for revision.`);
+      showToast(`Evidence ${entry.id} restored to pending review.`);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to reopen evidence.");
+      alert(err instanceof Error ? err.message : "Failed to restore evidence.");
     }
   };
 
@@ -325,11 +313,15 @@ export function EvidenceReviewWorkspace({
   const handleMapTheme = async (entry: EvidenceEntry, themeId: string) => {
     if (!currentStudy) return;
     try {
+      const frameworkThemes = currentStudy.framework?.themes || [];
+      const matchedTheme = frameworkThemes.find((th) => th.id === themeId);
+      if (matchedTheme && matchedTheme.isActive === false) {
+        alert("Cannot map an archived framework theme.");
+        return;
+      }
       const existingThemes = entry.frameworkThemeIds || [];
       if (existingThemes.includes(themeId)) return;
       const updatedThemes = [...existingThemes, themeId];
-      const frameworkThemes = currentStudy.framework?.themes || [];
-      const matchedTheme = frameworkThemes.find((th) => th.id === themeId);
       const updated: EvidenceEntry = {
         ...entry,
         frameworkThemeIds: updatedThemes,

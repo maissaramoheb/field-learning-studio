@@ -29,14 +29,24 @@
   - **Epistemic Safeguards (Supervisory Debrief Exclusion)**:
     - Relocated Daily Debrief to Field Material with prominent methodological notice.
     - All debrief entries stamped with `materialCategory: "supervisory_interpretation"`, strictly excluded from triangulation support metrics.
+- **Post-Audit Hardening Pass**:
+  - **DOCX Source File Lineage & Genuine Coordinates**: Threaded `sourceFileId` through DOCX ingestion to created `SourceRecord` and `EvidenceEntry` records; populated genuine parser coordinates (`blockIndex`, `headingPath`, `segmentType`) without inventing synthetic page numbers or Word paragraph IDs.
+  - **Multi-Store Atomic Transaction**: Implemented `saveSourceAndEvidenceBatch` in `studyStore.ts` ensuring sources and evidence are committed together in a single `["sources", "evidence"]` transaction with referential integrity checks.
+  - **Cascading Study Deletion**: Extended `deleteStudy` transaction to safely delete study source files from `sourceFileMetadata` and `sourceFileContent` stores without affecting other studies.
+  - **2-Step Structured Notes Flow**: Converted Structured Notes import into a safe 2-step flow: parse and validate without writing, display extraction preview with "Back to Edit" / "Cancel", and ingest atomically on user confirmation.
+  - **Decoupled Qualification & Validation**: Separated `reviewStatus` (`pending`, `usable`, `needs_clarification`, `excluded`) from formal `validationStatus` (`draft`, `in_review`, `validated`, `rejected`). Exclusion/reopening now modifies admissibility only.
+  - **Evidence Qualification UI Copy**: Replaced "Reject" language with "Evidence Qualification", "Exclude Observation from Analysis", and "Confirm Exclusion" in `EvidenceRejectModal.tsx`.
+  - **Framework Theme Inactive Guard**: Filtered out inactive themes (`isActive === false`) from tagging in capture/edit forms while preserving historical tags with an `(Archived)` badge.
+  - **Unified Collection Method Taxonomy**: Eliminated duplicate mapping tables in CSV and structured text parsers, routing all method canonicalization strictly through `canonicalizeCollectionMethod` in `methodTaxonomy.ts`.
+  - **Workspace Left Rail Tooltip Polish**: Removed `(Alt+[)` hint from the rail toggle button title/aria-label in `WorkspaceLeftRail.tsx`.
+  - **Study Switch Filter Reset & O(1) Performance**: Reset evidence review filters upon switching studies, and pre-computed an $O(1)$ source lookup map to eliminate quadratic scans over evidence cards.
 - **Quality Gates & Verification**:
-  - Added 15 comprehensive unit and integration tests in `tests/phase3FieldMaterialWorkspace.test.ts`.
-  - Total passing tests: 285 across 25 test files.
+  - Total passing tests: 297 across 25 test files (including 27 dedicated tests in `phase3FieldMaterialWorkspace.test.ts`).
   - TypeScript compilation clean (`tsc --noEmit --incremental false` exits 0).
   - ESLint clean (0 errors, 0 warnings).
   - Next.js Turbopack production build succeeds cleanly.
   - `git diff --check` clean (0 whitespace issues).
-  - Headless Chrome CDP visual QA verified 5 Phase 3A screenshots and 8 Phase 3B screenshots across desktop, tablet, and mobile.
+  - Verified responsive layouts, modal semantics, and toggle behaviors across desktop, tablet, and mobile.
 
 ## Phase 2 - Study Workspace: Study Brief, Questions & Scope, Methods & Sources, Framework & Roles
 

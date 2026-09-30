@@ -505,6 +505,8 @@ export async function deleteStudy(studyId: StudyId): Promise<void> {
       "lessons",
       "goodPractices",
       "recommendations",
+      "sourceFileMetadata",
+      "sourceFileContent",
     ],
     "readwrite"
   );
@@ -517,6 +519,8 @@ export async function deleteStudy(studyId: StudyId): Promise<void> {
     "lessons",
     "goodPractices",
     "recommendations",
+    "sourceFileMetadata",
+    "sourceFileContent",
   ] as const;
 
   for (const storeName of childStores) {
@@ -721,6 +725,73 @@ export async function saveEvidenceBatch(
   for (const item of cascadeEvidenceIds) {
     await cascadeEvidenceInvalidationToFindings(db, item.studyId, item.id);
   }
+}
+
+/**
+ * Atomically commits a confirmed batch of sources and evidence records
+ * within a single multi-store IndexedDB transaction (["sources", "evidence"]).
+ * If any write fails, neither set is partially persisted.
+ */
+export async function saveSourceAndEvidenceBatch(
+  studyId: StudyId,
+  sources: SourceRecord[],
+  evidence: EvidenceEntry[]
+): Promise<void> {
+  if (!studyId || !studyId.trim()) {
+    throw new Error("Cannot save batch: Study ID is required.");
+  }
+  if (sources.length === 0 && evidence.length === 0) return;
+
+  // Validate duplicate source IDs within batch
+  const seenSourceIds = new Set<string>();
+  for (const src of sources) {
+    if (seenSourceIds.has(src.id)) {
+      throw new Error(`Batch mutation rejected: Duplicate Source ID "${src.id}" found in batch.`);
+    }
+    seenSourceIds.add(src.id);
+  }
+
+  // Validate duplicate evidence IDs within batch
+  const seenEvidenceIds = new Set<string>();
+  for (const ev of evidence) {
+    if (seenEvidenceIds.has(ev.id)) {
+      throw new Error(`Batch mutation rejected: Duplicate Evidence ID "${ev.id}" found in batch.`);
+    }
+    seenEvidenceIds.add(ev.id);
+  }
+
+  const db = await getDb();
+
+  // Validate that every evidence item points to an existing source in DB or within this batch
+  for (const ev of evidence) {
+    if (!ev.sourceId || !ev.sourceId.trim()) {
+      throw new Error(`Evidence "${ev.id}" is missing required sourceId.`);
+    }
+    if (!seenSourceIds.has(ev.sourceId)) {
+      const existingSource = await db.get("sources", [studyId, ev.sourceId]);
+      if (!existingSource) {
+        throw new Error(
+          `Integrity Violation: Evidence "${ev.id}" references sourceId "${ev.sourceId}" which does not exist in study "${studyId}".`
+        );
+      }
+    }
+  }
+
+  const tx = db.transaction(["sources", "evidence"], "readwrite");
+  const sourceStore = tx.objectStore("sources");
+  const evidenceStore = tx.objectStore("evidence");
+
+  for (const src of sources) {
+    const normalized = normalizeSourceRecord({ ...src, studyId }, false);
+    sourceStore.put(normalized as SourceRecord & { studyId: StudyId });
+  }
+
+  for (const ev of evidence) {
+    const normalized = normalizeEvidenceEntry({ ...ev, studyId }, false);
+    evidenceStore.put(normalized as EvidenceEntry & { studyId: StudyId });
+  }
+
+  await tx.done;
 }
 
 export async function getEvidence(

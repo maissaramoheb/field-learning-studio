@@ -38,6 +38,18 @@
     - [x] Read-only Study Questions linkage in Field Material (active questions linkable/unlinkable, archived questions read-only, strict NO question authoring controls).
     - [x] 15 unit/integration tests in `tests/phase3FieldMaterialWorkspace.test.ts` (285/285 passing tests).
     - [x] Headless Chrome CDP visual QA across desktop, tablet, and mobile.
+  - [x] Phase 3 Post-Audit Hardening Pass:
+    - [x] Thread `sourceFileId` through DOCX ingestion and stamp genuine parser coordinates (`blockIndex`, `headingPath`, `segmentType`).
+    - [x] Implement atomic multi-store `saveSourceAndEvidenceBatch(studyId, sources, evidence)` in `studyStore.ts`.
+    - [x] Extend `deleteStudy` transaction to cascade deletion of `sourceFileMetadata` and `sourceFileContent` stores safely.
+    - [x] Convert Structured Notes import to a 2-step Parse -> Preview -> Ingest flow with Back/Cancel controls.
+    - [x] Decouple `reviewStatus` qualification gate from `validationStatus` evaluator lifecycle.
+    - [x] Align UI copy to "Evidence Qualification", "Exclude Observation from Analysis", and "Confirm Exclusion".
+    - [x] Prevent tagging with archived framework themes (`isActive === false`) while preserving existing links.
+    - [x] Consolidate method taxonomy mapping to `canonicalizeCollectionMethod` in `methodTaxonomy.ts`.
+    - [x] Remove `(Alt+[)` hint from Workspace Left Rail toggle tooltip.
+    - [x] Reset evidence review filters upon switching studies and pre-compute $O(1)$ source lookup map.
+    - [x] 12 regression tests added to `tests/phase3FieldMaterialWorkspace.test.ts` (27 total, 297/297 total passing tests across 25 files).
 - [ ] Phase 4 Analysis Workspace (Synthesis, Findings Ledger, Lessons & Practices):
   - [ ] Deep synthesis matrix, pattern note refinement, and automated gap detector enhancements.
 - [x] Phase 1 Study Library, Demo/Real Separation, and Workspace Identity Foundation (`feature/phase-1-study-library-workspace-shell`):

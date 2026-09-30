@@ -11,8 +11,6 @@ import type {
 import { canonicalizeCollectionMethod } from "@/lib/methodTaxonomy";
 import { mapLegacyValidationToReviewStatus } from "@/lib/storage/normalization";
 import {
-  canReject,
-  canReopen,
   requiresRevalidation,
 } from "@/lib/validation";
 
@@ -110,7 +108,7 @@ export function EvidenceCard({
     if (activeFrameworkThemes.length > 0 || !entry.primaryTheme) return null;
     const lowerPrimary = entry.primaryTheme.trim().toLowerCase();
     if (lowerPrimary === "uncategorized" || lowerPrimary === "operational execution") return null;
-    return frameworkThemes.find((th) => th.name.trim().toLowerCase() === lowerPrimary) || null;
+    return frameworkThemes.find((th) => th.isActive !== false && th.name.trim().toLowerCase() === lowerPrimary) || null;
   }, [activeFrameworkThemes.length, entry.primaryTheme, frameworkThemes]);
 
   return (
@@ -308,6 +306,11 @@ export function EvidenceCard({
                       className="inline-flex items-center gap-1 rounded-full border border-sky-500/40 bg-sky-950/40 px-2 py-0.5 text-[10.5px] font-medium text-sky-200"
                     >
                       <span>{th.name}</span>
+                      {th.isActive === false && (
+                        <span className="rounded border border-amber-500/40 bg-amber-950/20 px-1 py-0.2 text-[9px] font-semibold text-amber-300">
+                          Archived
+                        </span>
+                      )}
                     </span>
                   ))}
                 </div>
@@ -510,7 +513,7 @@ export function EvidenceCard({
                 </button>
               )}
 
-              {canReject(entry) && (
+              {onReject && effectiveReviewStatus !== "excluded" && (
                 <button
                   type="button"
                   onClick={() => onReject(entry)}
@@ -521,11 +524,12 @@ export function EvidenceCard({
                 </button>
               )}
 
-              {canReopen(entry) && (
+              {onReopen && effectiveReviewStatus === "excluded" && (
                 <button
                   type="button"
                   onClick={() => onReopen(entry)}
                   className="rounded bg-slate-700 px-2 py-1 text-xs font-semibold text-slate-200 hover:bg-slate-600 cursor-pointer shadow-sm"
+                  title="Restore to Pending Review"
                 >
                   ↺ Reopen
                 </button>

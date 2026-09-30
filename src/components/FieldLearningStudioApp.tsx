@@ -98,6 +98,18 @@ type EvidenceFilters = {
   collectionMethod?: string;
 };
 
+export const DEFAULT_EVIDENCE_FILTERS: EvidenceFilters = {
+  theme: "All",
+  stakeholderType: "All",
+  evidenceStrength: "All",
+  sensitivityFlag: "All",
+  validationStatus: "All",
+  reviewStatus: "All",
+  studyQuestionId: "All",
+  siteId: "All",
+  collectionMethod: "All",
+};
+
 export type WorkspaceTabId =
   | "overview"
   | "study-brief"
@@ -395,23 +407,20 @@ export function FieldLearningStudioApp({
   const [activeTab, setActiveTab] = useState<WorkspaceTabId>("study-brief");
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [pendingTraceId, setPendingTraceId] = useState<string | null>(null);
-  const [filters, setFilters] = useState<EvidenceFilters>({
-    theme: "All",
-    stakeholderType: "All",
-    evidenceStrength: "All",
-    sensitivityFlag: "All",
-    validationStatus: "All",
-    reviewStatus: "All",
-    studyQuestionId: "All",
-    siteId: "All",
-    collectionMethod: "All",
-  });
+  const [filters, setFilters] = useState<EvidenceFilters>(DEFAULT_EVIDENCE_FILTERS);
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
     "idle",
   );
 
   // Multi-case architecture states
   const [selectedCaseId, setSelectedCaseId] = useState<string>(demoCase.id);
+  const prevCaseIdRef = React.useRef(selectedCaseId);
+  React.useEffect(() => {
+    if (prevCaseIdRef.current !== selectedCaseId) {
+      prevCaseIdRef.current = selectedCaseId;
+      setFilters(DEFAULT_EVIDENCE_FILTERS);
+    }
+  }, [selectedCaseId]);
   const [allStudies, setAllStudies] = useState<StudyMeta[]>([]);
   const [currentStudy, setCurrentStudy] = useState<FieldStudy | null>(null);
   const [isNewStudyModalOpen, setIsNewStudyModalOpen] = useState(false);
@@ -746,6 +755,15 @@ export function FieldLearningStudioApp({
     [activeDemoCase.evidence],
   );
 
+  // Memoized sourceMap to eliminate O(N * M) lookup during evidence filtering
+  const sourceMap = useMemo(() => {
+    const map = new Map<string, SourceRecord>();
+    for (const s of activeDemoCase.sources) {
+      map.set(s.id, s);
+    }
+    return map;
+  }, [activeDemoCase.sources]);
+
   const filteredEvidence = useMemo(
     () =>
       activeDemoCase.evidence.filter((entry) => {
@@ -783,8 +801,8 @@ export function FieldLearningStudioApp({
           filters.studyQuestionId === "All" ||
           (entry.studyQuestionIds && entry.studyQuestionIds.includes(filters.studyQuestionId));
 
-        // Site filter
-        const entrySource = activeDemoCase.sources.find((s) => s.id === entry.sourceId);
+        // Site filter (O(1) lookup)
+        const entrySource = sourceMap.get(entry.sourceId);
         const entrySite = entry.siteId || entrySource?.location || "";
         const matchesSite =
           !filters.siteId ||
@@ -812,7 +830,7 @@ export function FieldLearningStudioApp({
           matchesMethod
         );
       }),
-    [activeDemoCase.evidence, activeDemoCase.sources, filters, currentStudy?.isDemoCase],
+    [activeDemoCase.evidence, sourceMap, filters, currentStudy?.isDemoCase],
   );
 
   const currentQaItems = useMemo(() => {

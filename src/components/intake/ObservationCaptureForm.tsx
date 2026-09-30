@@ -50,7 +50,7 @@ export function ObservationCaptureForm({
   }, [study.questions]);
 
   const frameworkThemes: FrameworkTheme[] = useMemo(() => {
-    return study.framework?.themes || [];
+    return (study.framework?.themes || []).filter((th) => th.isActive !== false);
   }, [study.framework?.themes]);
 
   // Reset form fields on study or active source change to prevent cross-study state leakage

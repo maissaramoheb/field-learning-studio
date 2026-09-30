@@ -2,12 +2,12 @@ import type {
   ConsentStatus,
   AnonymizationStatus,
   SensitivityFlag,
-  CollectionMethod,
   StudyScopeConfig,
   SourceRecord,
   SourceRecordId,
 } from "@/lib/types";
 import { scanNarrativeSafety } from "@/lib/sandboxParser";
+import { canonicalizeCollectionMethod } from "@/lib/methodTaxonomy";
 import { checkSourceDuplicate } from "./duplicateDetector";
 import type { ParsedSourceCandidate } from "./structuredTextParser";
 
@@ -174,23 +174,6 @@ export function suggestColumnMappings(
   return mapping;
 }
 
-const KNOWN_METHODS: Record<string, CollectionMethod> = {
-  "key informant interview": "Key Informant Interview",
-  "kii": "Key Informant Interview",
-  "interview": "Key Informant Interview",
-  "focus group discussion": "Focus Group Discussion",
-  "fgd": "Focus Group Discussion",
-  "focus group": "Focus Group Discussion",
-  "direct observation": "Direct Observation",
-  "observation": "Direct Observation",
-  "document review": "Document Review",
-  "document": "Document Review",
-  "community meeting": "Community Meeting",
-  "survey / questionnaire": "Survey / Questionnaire",
-  "survey": "Survey / Questionnaire",
-  "questionnaire": "Survey / Questionnaire",
-};
-
 const KNOWN_CONSENT: Record<string, ConsentStatus> = {
   "written": "Written",
   "oral": "Oral",
@@ -271,8 +254,10 @@ export function convertTabularRowsToSourceCandidates(
     const narrative = fieldMap.narrative || "";
 
     // Method normalization: Unknown metadata remains unknown (no silent KII default)
-    const rawMethod = (fieldMap.collectionMethod || "").toLowerCase().trim();
-    const collectionMethod = KNOWN_METHODS[rawMethod] || (rawMethod ? fieldMap.collectionMethod! : "Unspecified Method");
+    const rawMethod = (fieldMap.collectionMethod || "").trim();
+    const collectionMethod = rawMethod
+      ? canonicalizeCollectionMethod(rawMethod)
+      : "Unspecified Method";
     if (!rawMethod) {
       warnings.push("Collection method omitted; recorded as 'Unspecified Method'.");
     }

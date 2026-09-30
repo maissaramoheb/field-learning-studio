@@ -26,8 +26,8 @@ import {
 import { parseDocxDocument } from "@/lib/intake/docxParser";
 import { importDocxSourcesAndObservations } from "@/lib/intake/docxImporter";
 import type { DocxSourceCandidate } from "@/lib/intake/docxTypes";
-import { parseStructuredSourceBlocks } from "@/lib/intake/structuredTextParser";
-import { saveSourceBatch, saveEvidenceBatch } from "@/lib/storage/studyStore";
+import { parseStructuredSourceBlocks, type ParsedSourceCandidate } from "@/lib/intake/structuredTextParser";
+import { saveSourceAndEvidenceBatch } from "@/lib/storage/studyStore";
 import { getNextSequenceOfSourceIds, getNextSequenceOfEvidenceIds } from "@/lib/idGenerator";
 
 interface ImportMappingViewProps {
@@ -73,6 +73,8 @@ export function ImportMappingView({
   // Structured text state
   const [rawStructuredText, setRawStructuredText] = useState("");
   const [isTextImporting, setIsTextImporting] = useState(false);
+  const [parsedStructuredCandidates, setParsedStructuredCandidates] = useState<ParsedSourceCandidate[] | null>(null);
+  const [structuredParseError, setStructuredParseError] = useState<string | null>(null);
 
   // Receipt state
   const [importReceipt, setImportReceipt] = useState<{
@@ -207,38 +209,44 @@ export function ImportMappingView({
       setIsDocxImporting(true);
 
       // Save file preservation copies in SourceFileRepository
-      for (let i = 0; i < docxFiles.length; i++) {
+      const preparedCandidates: DocxSourceCandidate[] = [];
+      for (let i = 0; i < docxCandidates.length; i++) {
         const file = docxFiles[i];
-        const sourceFileId = `SF-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` as SourceFileId;
-        const meta: SourceFileMetadata = {
-          id: sourceFileId,
-          studyId: study.id,
-          filename: file.name,
-          mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-          fileSizeBytes: file.size,
-          importedAt: Date.now(),
-          parsingVersion: 1,
-          hasContent: true,
-        };
-        const content: SourceFileContent = {
-          id: sourceFileId,
-          studyId: study.id,
-          blob: file,
-        };
-        try {
-          await sourceFileRepository.saveFile(meta, content);
-        } catch {
-          // Non-fatal
+        const cand = docxCandidates[i];
+        const sourceFileId = (cand?.sourceFileId || `SF-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`) as SourceFileId;
+        if (file && !cand.sourceFileId) {
+          const meta: SourceFileMetadata = {
+            id: sourceFileId,
+            studyId: study.id,
+            filename: file.name,
+            mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            fileSizeBytes: file.size,
+            importedAt: Date.now(),
+            parsingVersion: 1,
+            hasContent: true,
+          };
+          const content: SourceFileContent = {
+            id: sourceFileId,
+            studyId: study.id,
+            blob: file,
+          };
+          try {
+            await sourceFileRepository.saveFile(meta, content);
+          } catch {
+            // Non-fatal
+          }
         }
+        preparedCandidates.push({ ...cand, sourceFileId });
       }
 
-      const res = await importDocxSourcesAndObservations(study, docxCandidates);
+      const res = await importDocxSourcesAndObservations(study, preparedCandidates);
       await onRefreshStudy();
 
       setImportReceipt({
         mode: "Word Documents (.docx)",
         sourcesCount: res.sourcesCount,
         evidenceCount: res.evidenceCount,
+        sourceFileId: preparedCandidates[0]?.sourceFileId,
       });
       setDocxCandidates([]);
       setDocxFiles([]);
@@ -249,17 +257,33 @@ export function ImportMappingView({
     }
   };
 
-  // --- STRUCTURED TEXT HANDLER ---
-  const handleConfirmStructuredTextImport = async () => {
+  // --- STRUCTURED TEXT HANDLERS (2-step Parse -> Preview -> Confirm) ---
+  const handleParseStructuredText = () => {
     if (!rawStructuredText.trim()) return;
+    setStructuredParseError(null);
+    try {
+      const parsed = parseStructuredSourceBlocks(rawStructuredText, study.scope);
+      if (parsed.length === 0) {
+        setStructuredParseError("No valid structured blocks found. Ensure blocks start with Title and Narrative.");
+        return;
+      }
+      setParsedStructuredCandidates(parsed);
+    } catch (err) {
+      setStructuredParseError(err instanceof Error ? err.message : "Failed to parse structured notes.");
+    }
+  };
+
+  const handleCancelStructuredPreview = () => {
+    setParsedStructuredCandidates(null);
+    setStructuredParseError(null);
+  };
+
+  const handleConfirmStructuredTextImport = async () => {
+    if (!parsedStructuredCandidates || parsedStructuredCandidates.length === 0) return;
 
     try {
       setIsTextImporting(true);
-      const parsed = parseStructuredSourceBlocks(rawStructuredText, study.scope);
-      if (parsed.length === 0) {
-        alert("No valid structured blocks found. Ensure blocks start with Title and Narrative.");
-        return;
-      }
+      const parsed = parsedStructuredCandidates;
 
       const existingSourceIds = (study.sources || []).map((s) => s.id);
       const existingEvidenceIds = (study.evidence || []).map((e) => e.id);
@@ -317,8 +341,7 @@ export function ImportMappingView({
         });
       });
 
-      await saveSourceBatch(study.id, sourcesToSave);
-      await saveEvidenceBatch(study.id, evidenceToSave);
+      await saveSourceAndEvidenceBatch(study.id, sourcesToSave, evidenceToSave);
       await onRefreshStudy();
 
       setImportReceipt({
@@ -326,6 +349,7 @@ export function ImportMappingView({
         sourcesCount: sourcesToSave.length,
         evidenceCount: evidenceToSave.length,
       });
+      setParsedStructuredCandidates(null);
       setRawStructuredText("");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to import structured notes.");
@@ -739,33 +763,132 @@ export function ImportMappingView({
           {/* STRUCTURED TEXT / NOTES INTAKE MODE */}
           {activeMode === "structured_text" && (
             <div className="space-y-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
-              <div>
-                <h3 className="text-sm font-semibold text-[var(--foreground)]">
-                  Structured Text Ingestion
-                </h3>
-                <p className="text-xs text-[var(--muted)]">
-                  Paste structured field note blocks separated by &quot;---&quot;.
-                </p>
-              </div>
+              {!parsedStructuredCandidates ? (
+                // Step 1: Input & Parse
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-[var(--foreground)]">
+                      Structured Text Ingestion
+                    </h3>
+                    <p className="text-xs text-[var(--muted)]">
+                      Paste structured field note blocks separated by &quot;---&quot;. Click &quot;Parse Structured Notes&quot; to review extracted observations before persistence.
+                    </p>
+                  </div>
 
-              <textarea
-                rows={10}
-                value={rawStructuredText}
-                onChange={(e) => setRawStructuredText(e.target.value)}
-                placeholder={`---\nTitle: KII with Health Coordinator\nDate: 2026-09-21\nSite: Assiut\nStakeholder: Health Workers\nMethod: Key Informant Interview\n\nNotes:\nVaccine refrigerator temperature logs were recorded daily but backup battery was unserviced.\n---`}
-                className="w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] p-3 font-mono text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
-              />
+                  {structuredParseError && (
+                    <div className="rounded-lg border border-rose-500/40 bg-rose-950/30 p-3 text-xs text-rose-300">
+                      {structuredParseError}
+                    </div>
+                  )}
 
-              <div className="flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  disabled={isTextImporting || !rawStructuredText.trim()}
-                  onClick={handleConfirmStructuredTextImport}
-                  className="fls-button fls-button-primary text-xs cursor-pointer shadow disabled:opacity-50"
-                >
-                  {isTextImporting ? "Ingesting..." : "Parse & Ingest Structured Blocks"}
-                </button>
-              </div>
+                  <textarea
+                    rows={10}
+                    value={rawStructuredText}
+                    onChange={(e) => setRawStructuredText(e.target.value)}
+                    placeholder={`---\nTitle: KII with Health Coordinator\nDate: 2026-09-21\nSite: Assiut\nStakeholder: Health Workers\nMethod: Key Informant Interview\n\nNotes:\nVaccine refrigerator temperature logs were recorded daily but backup battery was unserviced.\n---`}
+                    className="w-full rounded border border-[var(--border)] bg-[var(--surface-elevated)] p-3 font-mono text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
+                  />
+
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      type="button"
+                      disabled={!rawStructuredText.trim()}
+                      onClick={handleParseStructuredText}
+                      className="fls-button fls-button-primary text-xs cursor-pointer shadow disabled:opacity-50"
+                    >
+                      Parse Structured Notes &rarr;
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                // Step 2: Extraction Preview & Ingestion Confirmation
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-[var(--foreground)]">
+                        Structured Notes Extraction Preview
+                      </h3>
+                      <p className="text-xs text-[var(--muted)]">
+                        {parsedStructuredCandidates.length} structured observation block{parsedStructuredCandidates.length === 1 ? "" : "s"} ready for review. Nothing has been committed to database storage.
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-emerald-950/40 border border-emerald-500/40 px-2.5 py-0.5 text-xs font-semibold text-emerald-300">
+                      {parsedStructuredCandidates.length} Blocks Parsed
+                    </span>
+                  </div>
+
+                  <div className="max-h-[50vh] overflow-y-auto space-y-3 pr-1">
+                    {parsedStructuredCandidates.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-3 text-xs space-y-2"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <span className="font-semibold text-[var(--foreground)] text-sm">
+                              {item.title}
+                            </span>
+                            <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-[var(--muted)]">
+                              <span>📅 {item.date || "Unknown Date"}</span>
+                              <span>•</span>
+                              <span>📍 {item.siteId}</span>
+                              <span>•</span>
+                              <span>👥 {item.stakeholderType}</span>
+                              <span>•</span>
+                              <span className="font-medium text-[var(--trace)]">🔍 {item.collectionMethod}</span>
+                            </div>
+                          </div>
+                          <span className="font-mono text-[10px] text-[var(--muted)]">
+                            #{idx + 1}
+                          </span>
+                        </div>
+
+                        <div className="rounded bg-[var(--surface)] p-2.5 border border-[var(--border)] text-xs text-[var(--foreground)] leading-relaxed">
+                          {item.narrative}
+                        </div>
+
+                        {item.warnings && item.warnings.length > 0 && (
+                          <div className="text-[11px] text-amber-300 bg-amber-950/20 rounded p-1.5 border border-amber-500/30">
+                            {item.warnings.join("; ")}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 pt-3 border-t border-[var(--border)]">
+                    <button
+                      type="button"
+                      disabled={isTextImporting}
+                      onClick={handleCancelStructuredPreview}
+                      className="rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--foreground)] cursor-pointer"
+                    >
+                      &larr; Back to Edit
+                    </button>
+
+                    <div className="flex items-center gap-3">
+                      <button
+                        type="button"
+                        disabled={isTextImporting}
+                        onClick={handleCancelStructuredPreview}
+                        className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isTextImporting}
+                        onClick={handleConfirmStructuredTextImport}
+                        className="fls-button fls-button-primary text-xs cursor-pointer shadow disabled:opacity-50"
+                      >
+                        {isTextImporting
+                          ? "Ingesting..."
+                          : `Confirm & Ingest ${parsedStructuredCandidates.length} Records`}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </>

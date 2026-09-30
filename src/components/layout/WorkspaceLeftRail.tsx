@@ -83,7 +83,7 @@ export function WorkspaceLeftRail({
           type="button"
           onClick={onToggleCollapse}
           className="fls-rail-toggle-btn p-1.5 rounded text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-elevated)] transition flex items-center justify-center"
-          title={isCollapsed ? "Expand workspace rail (Alt+[)" : "Collapse workspace rail (Alt+[)"}
+          title={isCollapsed ? "Expand workspace rail" : "Collapse workspace rail"}
           aria-label={isCollapsed ? "Expand workspace rail" : "Collapse workspace rail"}
           aria-expanded={!isCollapsed}
         >

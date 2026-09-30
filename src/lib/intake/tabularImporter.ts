@@ -13,7 +13,7 @@ import {
 } from "@/lib/idGenerator";
 import { canonicalizeCollectionMethod } from "@/lib/methodTaxonomy";
 import { sourceFileRepository } from "@/lib/storage/sourceFileRepository";
-import { saveSourceBatch, saveEvidenceBatch } from "@/lib/storage/studyStore";
+import { saveSourceAndEvidenceBatch } from "@/lib/storage/studyStore";
 import type { StandardSourceField, TabularParseResult } from "./csvParser";
 
 export interface TabularCandidateRow {
@@ -247,9 +247,8 @@ export async function importTabularCandidates(
     evidenceToSave.push(evidenceEntry);
   });
 
-  // 3. Transactional persistence
-  await saveSourceBatch(study.id, sourcesToSave);
-  await saveEvidenceBatch(study.id, evidenceToSave);
+  // 3. Transactional persistence in a single multi-store transaction
+  await saveSourceAndEvidenceBatch(study.id, sourcesToSave, evidenceToSave);
 
   return {
     studyId: study.id,

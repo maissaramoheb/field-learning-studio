@@ -31,13 +31,24 @@
    - Epistemic Safeguards (Supervisory Debrief Exclusion):
      - Relocated Daily Debrief to Field Material with prominent methodological notice.
      - All debrief entries stamped with `materialCategory: "supervisory_interpretation"`, strictly excluded from triangulation support metrics.
-3. **Quality Gates & Verification**:
-   - Tests: **285/285** tests passing across **25** test files (`tests/phase3FieldMaterialWorkspace.test.ts` with 15 dedicated integration tests).
+3. **Post-Implementation Hardening Pass**:
+   - **DOCX Source-File Lineage & Parser Coordinates**: Threaded `sourceFileId` through `importDocxSourcesAndObservations` onto created `SourceRecord` and `EvidenceEntry` records; populated genuine parser coordinates (`blockIndex`, `headingPath`, `segmentType`) without synthetic page or paragraph numbers.
+   - **Atomic Batch Multi-Store Persistence**: Implemented `saveSourceAndEvidenceBatch(studyId, sources, evidence)` in `src/lib/storage/studyStore.ts` executing inside an atomic `["sources", "evidence"]` multi-store transaction with referential integrity validation.
+   - **Study Deletion Cascade**: Hardened `deleteStudy` in `src/lib/storage/studyStore.ts` to include `"sourceFileMetadata"` and `"sourceFileContent"` in `childStores` and the atomic deletion transaction, safely purging study source files without touching other studies.
+   - **2-Step Structured Notes Ingestion**: Converted Structured Notes import in `src/components/intake/ImportMappingView.tsx` from immediate write to a 2-step workflow (Parse -> Preview with validation -> Confirm Ingest / Back to Edit / Cancel).
+   - **Decoupled Qualification & Validation Semantics**: Fully separated `reviewStatus` (`pending`, `usable`, `needs_clarification`, `excluded`) from formal `validationStatus` (`draft`, `in_review`, `validated`, `rejected`). Exclude/Reopen actions in `EvidenceReviewWorkspace.tsx` and `EvidenceCard.tsx` now modify only admissibility without altering evaluator validation state.
+   - **Professionalized Exclusion Copy**: Replaced "Reject" language with "Evidence Qualification", "Exclude Observation from Analysis", and "Confirm Exclusion" in `EvidenceRejectModal.tsx`.
+   - **Framework Theme Inactive Protection**: Prevented tagging observations with archived themes (`isActive === false`) in capture/edit forms while preserving existing linkages with `(Archived)` badges.
+   - **Sole Method Taxonomy Authority**: Deleted duplicate method maps in `csvParser.ts` and `structuredTextParser.ts`, routing all collection method normalization strictly through `canonicalizeCollectionMethod` in `src/lib/methodTaxonomy.ts`.
+   - **Workspace Left Rail Tooltip Cleanup**: Removed `(Alt+[)` hint from the rail toggle button title/aria-label in `WorkspaceLeftRail.tsx`.
+   - **Study Switch Filter Reset & O(1) Optimization**: Automatically reset evidence review filters to defaults on study change, and pre-computed an $O(1)$ source lookup map to eliminate quadratic scans over evidence cards.
+4. **Quality Gates & Verification**:
+   - Tests: **297/297** tests passing across **25** test files (`tests/phase3FieldMaterialWorkspace.test.ts` with 27 dedicated tests).
    - TypeScript: `npx tsc --noEmit --incremental false` exits with **0 errors**.
    - Linting: `npm run lint` exits with **0 errors, 0 warnings**.
    - Build: Next.js Turbopack `npm run build` succeeds cleanly.
    - Git diff check: `git diff --check` clean.
-   - Visual QA: 5 Phase 3A screenshots and 8 Phase 3B screenshots captured via Headless Chrome CDP verifying desktop (1440px), tablet (768px), and mobile (390px) responsive layout with zero horizontal overflow.
+   - Visual QA: Verified responsive layouts, modal semantics, and toggle behaviors across desktop, tablet, and mobile.
 
 **Authoritative Baseline**: `main @ 0f7e18fb0039a98b73cf65b52e3284be02598a61` (Phases 0, 1, 2 in production). Phase 3 changes are isolated to `feature/phase-3-field-material-workspace` with zero production deployment or merge.
 

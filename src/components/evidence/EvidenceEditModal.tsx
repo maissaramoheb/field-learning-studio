@@ -85,10 +85,13 @@ function EvidenceEditModalContent({
     return (study?.questions || []).filter((q) => q.isActive !== false);
   }, [study?.questions]);
 
-  // Framework themes from Study workspace
+  // Framework themes from Study workspace: show active themes plus any already-linked inactive themes
   const frameworkThemes = useMemo(() => {
-    return study?.framework?.themes || [];
-  }, [study?.framework?.themes]);
+    const all = study?.framework?.themes || [];
+    return all.filter(
+      (th) => th.isActive !== false || (entry.frameworkThemeIds || []).includes(th.id)
+    );
+  }, [study?.framework?.themes, entry.frameworkThemeIds]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -264,7 +267,7 @@ function EvidenceEditModalContent({
                           : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--trace)] hover:text-[var(--foreground)]"
                       }`}
                     >
-                      <span>{th.name}</span>
+                      <span>{th.name}{th.isActive === false ? " (Archived)" : ""}</span>
                     </button>
                   );
                 })}
