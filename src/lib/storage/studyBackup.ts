@@ -475,6 +475,10 @@ export async function importStudyBackup(
     id: targetStudyId,
     title: targetTitle,
     isDemoCase,
+    patternNotes: envelope.study.patternNotes?.map((note) => ({
+      ...note,
+      studyId: targetStudyId,
+    })),
     updatedAt: Date.now(),
   };
 

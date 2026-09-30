@@ -248,6 +248,7 @@ describe("Phase 1: Study Library & Workspace Identity Foundation", () => {
         import: "field-material",
         evidence: "field-material",
         synthesis: "analysis",
+        triangulation: "analysis",
         findings: "analysis",
         lessons: "analysis",
         recommendations: "deliverables",

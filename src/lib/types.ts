@@ -280,14 +280,27 @@ export interface StudyRoleAssignment {
   assignedAt?: number;
 }
 
+export type ReasoningType =
+  | "pattern"
+  | "tension"
+  | "contradiction"
+  | "possible_explanation"
+  | "alternative_interpretation"
+  | "evidence_gap"
+  | "analyst_note";
+
 export interface PatternNote {
   id: string;
   studyId: StudyId;
   statement: string;
+  reasoningType?: ReasoningType;
+  explanation?: string;
   evidenceIds: EvidenceEntryId[];
   questionId?: string;
   theme?: string;
+  frameworkThemeIds?: string[];
   contradictionNote?: string;
+  audit?: OriginMetadata;
   createdAt: number;
   updatedAt: number;
 }
@@ -422,12 +435,17 @@ export interface Finding {
   validationStatus?: ValidationStatus;
   supersededByFindingId?: FindingId;
   supersededAt?: number;
+  supersedesFindingId?: FindingId;
   triangulationSuggestion?: TriangulationSuggestion;
   triangulationAssessment?: TriangulationAssessment;
   audit?: OriginMetadata;
   isStakeholderSpecific?: boolean;
   targetStakeholderGroup?: string;
   studyQuestionId?: string;
+  frameworkThemeIds?: string[];
+  qualifyingEvidenceIds?: EvidenceEntryId[];
+  alternativeInterpretations?: string;
+  originPatternNoteId?: string;
   limitationNote?: string;
   revision?: number;
   rejectionReason?: string;
@@ -563,6 +581,7 @@ export interface DemoCase {
   timeframe?: string;
   ownerLead?: string;
   questions?: StudyQuestion[];
+  patternNotes?: PatternNote[];
   scopeConfig?: Partial<StudyScopeConfig>;
   framework?: AnalyticalFrameworkConfig;
   teamRoles?: StudyRoleAssignment[];

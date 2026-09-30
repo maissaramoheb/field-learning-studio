@@ -169,7 +169,7 @@ describe("MEP-01 Defect Reproduction Suite", () => {
       validateArtifact(unreviewedFinding, "Senior Evaluator", undefined, {
         evidence: [evidenceInDb!],
       });
-    }).toThrow(/Supporting evidence.*not yet validated/i);
+    }).toThrow(/Supporting evidence.*not yet (validated|qualified for analytical use)/i);
   });
 
   // ============================================================================

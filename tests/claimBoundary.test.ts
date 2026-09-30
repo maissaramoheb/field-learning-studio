@@ -199,7 +199,7 @@ describe("MEP-01: Formal Claim Boundary & Export Parity Verification", () => {
           evidence: [evInDb!],
           sources: [sampleSource],
         });
-      }).toThrow(/Supporting evidence "EV-101" is not yet validated/i);
+      }).toThrow(/Supporting evidence "EV-101" is not yet (validated|qualified for analytical use)/i);
     });
   });
 

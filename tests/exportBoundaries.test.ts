@@ -9,7 +9,7 @@ describe("v0.8 Baseline: Export Boundaries & Fixtures Characterization", () => {
   describe("Community Bridges Case Baseline", () => {
     it("preserves exact baseline entity counts", () => {
       expect(communityBridgesCase.sources).toHaveLength(12);
-      expect(communityBridgesCase.evidence).toHaveLength(20);
+      expect(communityBridgesCase.evidence).toHaveLength(21);
       expect(communityBridgesCase.findings).toHaveLength(8);
       expect(communityBridgesCase.lessons).toHaveLength(7);
       expect(communityBridgesCase.goodPractices).toHaveLength(4);

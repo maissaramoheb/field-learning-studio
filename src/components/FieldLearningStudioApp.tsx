@@ -38,7 +38,12 @@ import { MinimalStudyModal } from "@/components/studies/MinimalStudyModal";
 import { BackupRestoreModal } from "@/components/studies/BackupRestoreModal";
 import { EvidenceReviewWorkspace } from "@/components/evidence";
 import { DailyDebriefView } from "@/components/debrief";
-import { SynthesisWorkbench } from "@/components/synthesis";
+import {
+  SynthesisWorkbenchView,
+  TriangulationMatrixView,
+  FindingsLedgerView,
+  LessonsWorkspaceView,
+} from "@/components/analysis";
 import { ImportMappingView } from "@/components/intake/ImportMappingView";
 import { canonicalizeCollectionMethod } from "@/lib/methodTaxonomy";
 import {
@@ -121,6 +126,7 @@ export type WorkspaceTabId =
   | "import"
   | "evidence"
   | "synthesis"
+  | "triangulation"
   | "findings"
   | "lessons"
   | "recommendations"
@@ -183,8 +189,9 @@ export const PRACTITIONER_SPACES: PractitionerSpace[] = [
     defaultTab: "synthesis",
     tabs: [
       { id: "synthesis", label: "Synthesis Workbench", shortLabel: "Synthesis" },
+      { id: "triangulation", label: "Triangulation Matrix", shortLabel: "Triangulation" },
       { id: "findings", label: "Findings Ledger", shortLabel: "Findings" },
-      { id: "lessons", label: "Lessons & Practices", shortLabel: "Lessons" },
+      { id: "lessons", label: "Lessons", shortLabel: "Lessons" },
     ],
   },
   {
@@ -318,7 +325,7 @@ export function computeNextAction(study: FieldStudy | null, demoCase: DemoCase) 
   };
 }
 
-type TraceHandlers = {
+export type TraceHandlers = {
   highlightedId: string | null;
   onTraceSelect: (id: string) => void;
 };
@@ -1638,7 +1645,7 @@ export function FieldLearningStudioApp({
           ) : null}
           {activeTab === "synthesis" ? (
             currentStudy ? (
-              <SynthesisWorkbench
+              <SynthesisWorkbenchView
                 study={currentStudy}
                 onRefreshStudy={handleRefreshCurrentStudy}
                 onInspectTrace={setDrawerItemId}
@@ -1650,21 +1657,52 @@ export function FieldLearningStudioApp({
               </div>
             )
           ) : null}
+          {activeTab === "triangulation" ? (
+            currentStudy ? (
+              <TriangulationMatrixView
+                study={currentStudy}
+                onInspectTrace={setDrawerItemId}
+                onOpenTab={(tab) => handleTabChange(tab as WorkspaceTabId)}
+              />
+            ) : (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center text-xs text-[var(--muted)]">
+                Loading study repository...
+              </div>
+            )
+          ) : null}
           {activeTab === "findings" ? (
-            <FindingsSection
-              findings={activeDemoCase.findings}
-              traceHandlers={traceHandlers}
-              demoCase={activeDemoCase}
-              currentStudy={currentStudy}
-              onRefreshStudy={handleRefreshCurrentStudy}
-            />
+            currentStudy ? (
+              <FindingsLedgerView
+                study={currentStudy}
+                traceHandlers={traceHandlers}
+                onRefreshStudy={handleRefreshCurrentStudy}
+                onOpenTab={(tab) => handleTabChange(tab as WorkspaceTabId)}
+              />
+            ) : (
+              <FindingsSection
+                findings={activeDemoCase.findings}
+                traceHandlers={traceHandlers}
+                demoCase={activeDemoCase}
+                currentStudy={currentStudy}
+                onRefreshStudy={handleRefreshCurrentStudy}
+              />
+            )
           ) : null}
           {activeTab === "lessons" ? (
-            <LessonsAndPractices
-              goodPractices={currentBaseCase.goodPractices}
-              lessons={currentBaseCase.lessons}
-              traceHandlers={traceHandlers}
-            />
+            currentStudy ? (
+              <LessonsWorkspaceView
+                study={currentStudy}
+                traceHandlers={traceHandlers}
+                onRefreshStudy={handleRefreshCurrentStudy}
+                onOpenTab={(tab) => handleTabChange(tab as WorkspaceTabId)}
+              />
+            ) : (
+              <LessonsAndPractices
+                goodPractices={currentBaseCase.goodPractices}
+                lessons={currentBaseCase.lessons}
+                traceHandlers={traceHandlers}
+              />
+            )
           ) : null}
           {activeTab === "recommendations" ? (
             <RecommendationsSection

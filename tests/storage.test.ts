@@ -503,7 +503,7 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
       expect(cb).toBeDefined();
       expect(cb?.isDemoCase).toBe(true);
       expect(cb?.sources.length).toBe(12);
-      expect(cb?.evidence.length).toBe(20);
+      expect(cb?.evidence.length).toBe(21);
       expect(cb?.findings.length).toBe(8);
       expect(cb?.lessons.length).toBe(7);
       expect(cb?.goodPractices.length).toBe(4);
@@ -521,7 +521,7 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
       expect(studiesAfter.length).toBe(2);
 
       const cbAfter = await assembleStudy("community-bridges");
-      expect(cbAfter?.evidence.length).toBe(20); // No duplicates
+      expect(cbAfter?.evidence.length).toBe(21); // No duplicates
     });
 
     it("prevents deletion of demo template studies", async () => {
@@ -592,7 +592,7 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
       expect(typeof envelope.exportedAt).toBe("number");
       expect(envelope.warning).toContain("WARNING: This export contains unencrypted field study records");
       expect(envelope.study.id).toBe("community-bridges");
-      expect(envelope.evidence.length).toBe(20);
+      expect(envelope.evidence.length).toBe(21);
 
       // Clear all stores to simulate fresh database / different machine
       await clearAllStores();
@@ -607,7 +607,7 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
       const restored = await assembleStudy("community-bridges");
       expect(restored).toBeDefined();
       expect(restored?.title).toBe("Community Bridges Initiative");
-      expect(restored?.evidence.length).toBe(20);
+      expect(restored?.evidence.length).toBe(21);
       expect(restored?.findings.length).toBe(8);
       expect(restored?.recommendations.length).toBe(10);
     });
@@ -632,7 +632,7 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
       expect(newStudy).toBeDefined();
       expect(newStudy?.title).toBe("Community Bridges Initiative (Imported)");
       expect(newStudy?.isDemoCase).toBe(false);
-      expect(newStudy?.evidence.length).toBe(20);
+      expect(newStudy?.evidence.length).toBe(21);
       expect(newStudy?.evidence.every((e) => e.studyId === importNewResult.studyId)).toBe(true);
 
       // 3. overwrite replaces existing records cleanly
@@ -640,7 +640,7 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
       expect(overwriteResult.success).toBe(true);
       expect(overwriteResult.studyId).toBe("community-bridges");
       const overwritten = await assembleStudy("community-bridges");
-      expect(overwritten?.evidence.length).toBe(20);
+      expect(overwritten?.evidence.length).toBe(21);
     });
   });
 
