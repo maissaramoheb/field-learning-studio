@@ -212,6 +212,7 @@ export function DebriefForm({
         tomorrowPriorities: [...tomorrowPriorities],
         linkedSourceIds: (linkedSourceIds || []) as SourceRecordId[],
         linkedEvidenceIds: (linkedEvidenceIds || []) as EvidenceEntryId[],
+        materialCategory: "supervisory_interpretation",
         createdAt: initialDebrief?.createdAt || now,
         updatedAt: now,
       };

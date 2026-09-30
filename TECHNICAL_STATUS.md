@@ -2,43 +2,48 @@
 
 ## Current Status
 
-**Phase 2 — Study Workspace: Study Brief → Questions & Scope → Methods & Sources → Framework & Roles** is fully implemented on dedicated branch `feature/phase-2-study-workspace` based on authoritative baseline `main @ 9117a5868df4b0a21b4e541a2d884af0d7dc7e07`.
+**Phase 3 — Workspace Rail + Field Material Architecture** is fully implemented and verified on dedicated feature branch `feature/phase-3-field-material-workspace` based on authoritative production baseline `main @ 0f7e18fb0039a98b73cf65b52e3284be02598a61`.
 
-1. **Study Workspace Architecture & Sub-navigation**:
-   - Sub-divided Space 1 (Study) into 4 distinct, purposeful sub-views:
-     - **Study Brief** (`study-brief`, default tab): Evaluation charter document defining purpose, background, intended audience, decision use, geography, timeframe, owner/lead, and known limitations. Includes inline editing for editable studies and a cloning CTA for read-only showcase demos.
-     - **Questions & Scope** (`study-questions`): Canonical authoring and ordering of `StudyQuestion` entities (primary flag, sub-questions, up/down reordering) alongside explicit scope boundaries (scope statement, in-scope, out-of-scope, assumptions, constraints).
-     - **Methods & Sources** (`study-methods`): Configuration of planned methods and target source/evidence counts, with live dynamic in-memory reconciliation against actual field sources (`useMemo`). Zero derived counts are persisted to storage.
-     - **Framework & Roles** (`study-framework`): Analytical framework configuration (evaluation lenses with descriptions and active status) alongside a team governance matrix (`Lead Evaluator`, `Field Researcher`, `Peer Reviewer`, `QA Approver`, `Focal Point`).
-2. **Canonical Question Ownership Migration**:
-   - Transferred authoring, ordering, and deletion of `StudyQuestion` entities canonically into `Study -> Questions & Scope`.
-   - Updated `SynthesisWorkbench` to retain question filtering, matrix association, and active selection, enhanced with a "Manage in Study Blueprint →" action navigating directly to `study-questions`.
-3. **Dynamic Study Readiness Checklist**:
-   - Implemented pure, rule-based readiness calculation in `src/lib/analytics/studyReadiness.ts` evaluating 9 deterministic criteria across Brief, Questions, Methods, Framework, and Roles.
-   - Designed collapsible `StudyReadinessBanner` with score badge (e.g. 9/9 Ready, 6/9 In Progress), progress bar, missing-item checklist, and direct deep-link buttons to the corresponding sub-view tabs.
-   - Dynamic readiness metrics are computed entirely at runtime; no scores or check statuses are written to IndexedDB.
-4. **Showcase Case Enrichment**:
-   - Enriched both demo fixtures (`communityBridgesCase` and `nutritionFieldCase`) with comprehensive, credible Phase 2 evaluation charters, structured primary and secondary questions, planned method quotas, analytical lenses, and team governance roles.
-   - Extended `adaptDemoCaseToFieldStudy` to map all Phase 2 properties into runtime studies while strictly maintaining showcase data immutability.
-5. **Post-Implementation Audit Hardening**:
-   - **Study Question Referential Integrity & Lineage Protection**: Hardened `deleteStudyQuestion` in `src/lib/storage/studyStore.ts` via `getStudyQuestionUsage` to strictly block hard deletion if referenced by downstream records (`EvidenceEntry.studyQuestionIds`, `Finding.studyQuestionId`, `PatternNote.questionId`). Added `archiveStudyQuestion` (`isActive = false`) to preserve question IDs, evidence links, and analytical lineage without cascading deletions or orphaning. Added user-facing domain alert in `StudyQuestionsScopeView`.
-   - **Study Blueprint as Sole Question Authoring Home**: Removed Add/Edit/Delete actions from `SynthesisWorkbench` and `StudyQuestionSelector`, leaving selection, filtering, and `[Archived]` indicator with deep link "Manage in Study Blueprint →".
-   - **Canonical Method Normalization**: Implemented `src/lib/methodTaxonomy.ts` with `canonicalizeCollectionMethod(rawType)` mapping variants (e.g. "Focus group discussion", "FGD", "Observation notes", "Field observation log") to standard collection methods (`KII`, `FGD`, `Direct Observation`, `Survey`), preventing false mapping of arbitrary document titles to Document Review.
-   - **Planned Method Target Standardization**: Standardized `PlannedMethodTarget` on canonical `targetSourceCount?: number`, deprecating `plannedCount` and dual-writing on save for backward compatibility. Removed `targetEvidenceCount` as planning quota.
-   - **Actual Count Semantics**: Corrected actual counts so source count is primary from `SourceRecord` (unaffected by rejected evidence), while observation count excludes excluded/rejected evidence records (`reviewStatus === 'excluded'` or `validationStatus === 'Rejected'`).
-   - **Demo Method Reconciliation**: Resolved duplicate "Behind Target" / "Unplanned" rows in both showcase demo cases (`communityBridgesCase` and `nutritionFieldCase`), cleanly reconciling planned quotas and field-emergent methods.
-   - **Readiness Banner UX**: Default collapsed when `readiness.state === 'ready'`, expanded otherwise, with async hydration state synchronization.
-6. **Quality Gates & Verification**:
-   - **270/270** Vitest unit and integration tests passing across 24 test files (35 comprehensive tests in `tests/phase2StudyWorkspace.test.ts` including 20 new audit regression tests).
-   - TypeScript compilation clean (`tsc --noEmit --incremental false` exits 0).
-   - ESLint clean (0 errors, 0 warnings).
-   - Next.js Turbopack production build succeeds cleanly.
-   - `git diff --check` clean (0 whitespace issues).
-   - Headless Chrome CDP visual QA verified 6 targeted post-hardening screenshots in `phase2_hardening_qa/` in addition to the 11 baseline screenshots.
+1. **Workspace Navigation Architecture (Phase 3A)**:
+   - Primary left rail (`WorkspaceLeftRail.tsx`): 230px expanded, 64px collapsed, accessible keyboard shortcut (`Alt+[`), smooth CSS transitions, tooltip hover states, and space badges with live counters (e.g. `20 obs · 12 src`, `8 findings`, `10 recs`). Rail state persists to `localStorage` (`fls_rail_collapsed`).
+   - Header tab simplification (`StudyWorkspaceHeader.tsx`): On desktop viewports (>=1024px), redundant primary workspace tabs have been removed from the header, preserving only secondary sub-view tabs. A responsive switcher is rendered on viewports < 1024px.
+2. **Field Material Architecture (Phase 3B)**:
+   - Restructured practitioner spaces:
+     - Space 2 (Field Material): `Field Intake` (`intake`), `Daily Debrief` (`debrief`), `Import & Mapping` (`import`), `Evidence Review` (`evidence`).
+     - Space 3 (Analysis): `Synthesis Workbench` (`synthesis`), `Findings Ledger` (`findings`), `Lessons & Practices` (`lessons`). `Daily Debrief` relocated from Analysis to Field Material.
+   - Tabular CSV/TSV Intake (`src/lib/intake/tabularImporter.ts`, `src/lib/intake/csvParser.ts`):
+     - RFC 4180 parsing handling nested commas, quotes, and newlines in cells, as well as tab-delimited files.
+     - Heuristic column auto-detection (Title, Date, Site, Stakeholder, Method, Collector, Notes).
+     - Transactional batch ingestion via `saveSourceBatch` and `saveEvidenceBatch` in IndexedDB.
+     - Original source files preserved in IndexedDB `sourceFileRepository`.
+   - Unified 3-Mode Import Studio (`src/components/intake/ImportMappingView.tsx`):
+     - Interactive switcher between Tabular CSV/TSV, Word .docx, and Structured Notes.
+     - Column mapping preview with category assignment and batch commit confirmation.
+     - Showcase demo safety lock preventing accidental edits to showcase demo cases.
+   - Canonical Method Harmonization (`src/lib/methodTaxonomy.ts`):
+     - Strict adherence to the 6 canonical collection methods (`Key Informant Interview`, `Focus Group Discussion`, `Direct Observation`, `Document Review`, `Survey`, `Community Meeting`).
+     - Auto-canonicalization via `canonicalizeCollectionMethod(raw)` and `isCanonicalMethod(val)` predicate.
+   - Evidence Review Qualification Gate (`src/components/evidence/StatusFilterPills.tsx`, `EvidenceCard.tsx`, `EvidenceReviewWorkspace.tsx`):
+     - 4-state qualification workflow: `pending` ("Pending Review"), `usable` ("Qualified / Usable"), `needs_clarification` ("Needs Clarification"), `excluded` ("Excluded / Disqualified").
+     - Dimension filters: Theme, Stakeholder, Reliability, Sensitivity, Study Question, Site/Location, Method.
+     - Non-destructive Framework Themes bridge (`frameworkThemeIds` linked without overwriting legacy `primaryTheme`).
+     - Study Questions linkage in Field Material: observations can link/unlink active study questions; archived questions are displayed with `[Archived]` tag without authoring controls.
+   - Epistemic Safeguards (Supervisory Debrief Exclusion):
+     - Relocated Daily Debrief to Field Material with prominent methodological notice.
+     - All debrief entries stamped with `materialCategory: "supervisory_interpretation"`, strictly excluded from triangulation support metrics.
+3. **Quality Gates & Verification**:
+   - Tests: **285/285** tests passing across **25** test files (`tests/phase3FieldMaterialWorkspace.test.ts` with 15 dedicated integration tests).
+   - TypeScript: `npx tsc --noEmit --incremental false` exits with **0 errors**.
+   - Linting: `npm run lint` exits with **0 errors, 0 warnings**.
+   - Build: Next.js Turbopack `npm run build` succeeds cleanly.
+   - Git diff check: `git diff --check` clean.
+   - Visual QA: 5 Phase 3A screenshots and 8 Phase 3B screenshots captured via Headless Chrome CDP verifying desktop (1440px), tablet (768px), and mobile (390px) responsive layout with zero horizontal overflow.
 
-**Authoritative Baseline**: `main @ 9117a5868df4b0a21b4e541a2d884af0d7dc7e07` (Phase 1 merged). Phase 2 changes are isolated to `feature/phase-2-study-workspace` with zero production deployment or merge.
+**Authoritative Baseline**: `main @ 0f7e18fb0039a98b73cf65b52e3284be02598a61` (Phases 0, 1, 2 in production). Phase 3 changes are isolated to `feature/phase-3-field-material-workspace` with zero production deployment or merge.
 
 ## Historical Milestones
+
+- **Phase 2 — Study Workspace: Study Brief → Questions & Scope → Methods & Sources → Framework & Roles**:
 
 - **Phase 1 — Study Library, Demo/Real Separation, and Workspace Identity Foundation**:
   - Implemented `StudyLibraryView` establishing canonical landing space with Showcase Studies and My Studies.

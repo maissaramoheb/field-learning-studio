@@ -1,10 +1,10 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "phase_2_study_workspace_hardened",
+  "status": "phase_3_field_material_workspace_verified",
   "priority": "high",
-  "current_phase": "Phase 2 Study Workspace: Post-Implementation Audit Hardening",
-  "next_action": "Review Phase 2 post-audit hardening report before merge or proceeding to Phase 3.",
+  "current_phase": "Phase 3 Workspace Rail + Field Material Architecture",
+  "next_action": "Review Phase 3 verification report before merging to main.",
   "blocker": null,
   "decision_needed": null,
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
@@ -18,12 +18,12 @@
     "json": "passed",
     "diff_check": "passed",
     "local_http": "passed",
-    "tests": "270_passed_24_files",
-    "prod_smoke_cdp": "passed_phase2_hardening_visual_qa"
+    "tests": "285_passed_25_files",
+    "prod_smoke_cdp": "passed_phase3_visual_qa"
   },
   "remaining_risks": [
-    "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported (mitigated in Phase 0 via SourceFileRepository quota estimation and threshold warnings)."
+    "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported (mitigated via SourceFileRepository quota estimation and threshold warnings)."
   ],
-  "recommended_next_step": "Phase 2 post-implementation audit hardening complete on feature/phase-2-study-workspace; ready for final review.",
-  "notion_page_update": "Field Learning Studio Phase 2 (Study Workspace) audit hardening complete on feature/phase-2-study-workspace based on main @ 9117a58. Hardened study question lineage protection (blocked hard deletion if referenced by downstream evidence/findings/notes with archival support), migrated question authoring solely to Study Blueprint, introduced canonical method taxonomy and normalization (canonicalizeCollectionMethod), standardized planned quotas on targetSourceCount with backward-compatible dual-write, corrected actual source/evidence count semantics, reconciled showcase demo methods without duplicate rows, and collapsed readiness banner for ready studies. All 270 tests pass across 24 test files with 0 TypeScript and 0 lint errors, and 6 visual QA screenshots verified via Headless Chrome CDP."
+  "recommended_next_step": "Phase 3 implementation and quality verification complete on feature/phase-3-field-material-workspace; ready for user review.",
+  "notion_page_update": "Field Learning Studio Phase 3 (Workspace Rail + Field Material Architecture) completed on feature/phase-3-field-material-workspace based on main @ 0f7e18f. Phase 3A introduced collapsible primary Left Rail (230px/64px) with keyboard shortcut (Alt+[) and badge counters, simplifying desktop header tabs. Phase 3B restructured Field Material into 4 sub-views (Field Intake, Daily Debrief, Import & Mapping, Evidence Review), relocated Daily Debrief to Field Material with supervisory epistemic isolation, implemented tabular CSV/TSV ingestion with RFC 4180 parsing and source file retention, harmonized canonical collection methods, instituted 4-state qualification workflow (pending, usable, needs_clarification, excluded), established non-destructive Framework Themes bridge, and added read-only Study Questions linkage without authoring controls. All 285 tests pass across 25 test files with 0 TypeScript and 0 lint errors, Next.js build clean, and responsive visual QA validated across desktop (1440px), tablet (768px), and mobile (390px)."
 }

@@ -152,7 +152,7 @@ export function suggestColumnMappings(
       mapping[index] = "date";
     } else if (/site|location/i.test(norm) || /^(district|community|school|place)$/.test(norm)) {
       mapping[index] = "siteId";
-    } else if (/stakeholder/i.test(norm) || /^(role|participant|respondent|group)$/.test(norm)) {
+    } else if (/stakeholder|participant|respondent/i.test(norm) || /^(role|group)$/.test(norm)) {
       mapping[index] = "stakeholderType";
     } else if (/method/i.test(norm) || /^(sourcetype|type)$/.test(norm)) {
       mapping[index] = "collectionMethod";
@@ -164,7 +164,7 @@ export function suggestColumnMappings(
       mapping[index] = "anonymizationStatus";
     } else if (/sensit/i.test(norm) || /^(risk|flag)$/.test(norm)) {
       mapping[index] = "sensitivityFlag";
-    } else if (/note|narrative|transcript|content/i.test(norm) || /^(text|observation|summary)$/.test(norm)) {
+    } else if (/note|narrative|transcript|content|observation|quote|excerpt/i.test(norm) || /^(text|summary)$/.test(norm)) {
       mapping[index] = "narrative";
     } else {
       mapping[index] = "ignore";

@@ -1,16 +1,19 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import type {
   EvidenceEntry,
   EvidenceStrength,
   SensitivityFlag,
+  MaterialCategory,
+  FieldStudy,
 } from "@/lib/types";
 import { applySubstantiveEvidenceEdit } from "@/lib/validation";
 
 interface EvidenceEditModalProps {
   isOpen: boolean;
   entry: EvidenceEntry | null;
+  study?: FieldStudy | null;
   onClose: () => void;
   onSave: (updated: EvidenceEntry, requiredRevalidation: boolean) => Promise<void> | void;
 }
@@ -18,6 +21,7 @@ interface EvidenceEditModalProps {
 export function EvidenceEditModal({
   isOpen,
   entry,
+  study,
   onClose,
   onSave,
 }: EvidenceEditModalProps) {
@@ -27,6 +31,7 @@ export function EvidenceEditModal({
     <EvidenceEditModalContent
       key={entry.id}
       entry={entry}
+      study={study}
       onClose={onClose}
       onSave={onSave}
     />
@@ -35,10 +40,12 @@ export function EvidenceEditModal({
 
 function EvidenceEditModalContent({
   entry,
+  study,
   onClose,
   onSave,
 }: {
   entry: EvidenceEntry;
+  study?: FieldStudy | null;
   onClose: () => void;
   onSave: (updated: EvidenceEntry, requiredRevalidation: boolean) => Promise<void> | void;
 }) {
@@ -57,12 +64,31 @@ function EvidenceEditModalContent({
   const [sensitivityFlag, setSensitivityFlag] = useState<SensitivityFlag>(
     () => entry.sensitivityFlag || "None"
   );
+  const [materialCategory, setMaterialCategory] = useState<MaterialCategory>(
+    () => entry.materialCategory || "primary_evidence"
+  );
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>(
+    () => entry.studyQuestionIds || []
+  );
+  const [selectedFrameworkThemeIds, setSelectedFrameworkThemeIds] = useState<string[]>(
+    () => entry.frameworkThemeIds || []
+  );
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const isValidated = entry.validationStatus === "Validated";
   const currentRevision = entry.revision ?? 1;
+
+  // Active questions from Study workspace
+  const activeQuestions = useMemo(() => {
+    return (study?.questions || []).filter((q) => q.isActive !== false);
+  }, [study?.questions]);
+
+  // Framework themes from Study workspace
+  const frameworkThemes = useMemo(() => {
+    return study?.framework?.themes || [];
+  }, [study?.framework?.themes]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,6 +118,9 @@ function EvidenceEditModalContent({
         stakeholderType: stakeholderType.trim() || entry.stakeholderType,
         evidenceStrength,
         sensitivityFlag,
+        materialCategory,
+        studyQuestionIds: selectedQuestionIds,
+        frameworkThemeIds: selectedFrameworkThemeIds,
       };
 
       const result = applySubstantiveEvidenceEdit(entry, updates);
@@ -135,116 +164,199 @@ function EvidenceEditModalContent({
           </button>
         </div>
 
-        {/* Warning if Editing Validated Evidence */}
+        {/* Warning if modifying validated artifact */}
         {isValidated && (
-          <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-950/25 p-3.5 text-xs text-amber-300 flex items-start gap-2.5">
-            <span className="text-base leading-none">⚠️</span>
-            <div>
-              <p className="font-semibold text-amber-200">
-                Re-validation Warning: Validated Item
-              </p>
-              <p className="mt-0.5 text-[11px] leading-relaxed text-amber-300/90">
-                This evidence was previously validated by{" "}
-                <span className="font-semibold text-amber-100">
-                  {entry.lastValidatedBy || "an evaluator"}
-                </span>
-                . Making substantive changes will advance this item to{" "}
-                <span className="font-semibold text-amber-100">Revision {currentRevision + 1}</span>,
-                reset its status to <span className="font-semibold text-amber-100">&quot;Needs Review&quot;</span>, and require formal re-validation.
-              </p>
-            </div>
+          <div className="mt-4 rounded-lg border border-amber-500/40 bg-amber-950/30 p-3 text-xs text-amber-300">
+            <span className="font-semibold text-amber-200">Notice:</span> Substantive edits to this validated evidence item will increment it to <span className="font-semibold text-amber-100">Revision {currentRevision + 1}</span> and reset its status to <span className="font-semibold text-amber-100">Needs Review</span>, requiring evaluator re-validation.
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          {/* Observation Text */}
+          {/* Raw Observation */}
           <div>
             <label className="block text-xs font-semibold text-[var(--foreground)]">
-              Raw Observation / Empirical Note <span className="text-rose-400">*</span>
-            </label>
-            <textarea
-              rows={4}
-              required
-              value={rawObservation}
-              onChange={(e) => setRawObservation(e.target.value)}
-              className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-3 text-xs text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none focus:ring-1 focus:ring-[var(--trace)] font-sans"
-            />
-            <span className="text-[11px] text-[var(--muted)]">
-              What was observed or stated, separate from subjective inferences.
-            </span>
-          </div>
-
-          {/* Interpretation */}
-          <div>
-            <label className="block text-xs font-semibold text-[var(--foreground)]">
-              Evaluator Interpretation / Analytical Reading
+              Raw Observation (Factual excerpt) <span className="text-rose-400">*</span>
             </label>
             <textarea
               rows={3}
-              value={interpretation}
-              onChange={(e) => setInterpretation(e.target.value)}
-              placeholder="What does this observation indicate about project implementation or outcomes?"
-              className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-3 text-xs text-[var(--foreground)] placeholder-[var(--muted)] focus:border-[var(--trace)] focus:outline-none focus:ring-1 focus:ring-[var(--trace)] font-sans"
+              required
+              value={rawObservation}
+              onChange={(e) => setRawObservation(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-3 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
             />
           </div>
 
-          {/* Themes */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          {/* Analytical Interpretation */}
+          <div>
+            <label className="block text-xs font-semibold text-sky-400">
+              Analytical Interpretation / Observer Reflection
+            </label>
+            <textarea
+              rows={2}
+              value={interpretation}
+              onChange={(e) => setInterpretation(e.target.value)}
+              placeholder="Record analytical working interpretation or reflection notes..."
+              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-3 text-xs text-[var(--foreground)] placeholder-[var(--muted)] focus:border-sky-400 focus:outline-none"
+            />
+          </div>
+
+          {/* Material Category & Reliability Row */}
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold text-[var(--foreground)]">
-                Primary Theme <span className="text-rose-400">*</span>
+                Material Category
+              </label>
+              <select
+                value={materialCategory}
+                onChange={(e) => setMaterialCategory(e.target.value as MaterialCategory)}
+                className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
+              >
+                <option value="primary_evidence">Primary Observation / Interview</option>
+                <option value="secondary_evidence">Secondary Document / Report</option>
+                <option value="supervisory_interpretation">Supervisory Reflection / Debrief</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[var(--foreground)]">
+                Epistemic Reliability <span className="text-rose-400">*</span>
+              </label>
+              <select
+                value={evidenceStrength}
+                onChange={(e) => setEvidenceStrength(e.target.value as EvidenceStrength)}
+                className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
+              >
+                <option value="High">High (Direct observation, verbatim quote)</option>
+                <option value="Medium">Medium (Secondary account, summary)</option>
+                <option value="Low">Low (Unverified assertion, rumor)</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Framework Themes Selector */}
+          {frameworkThemes.length > 0 && (
+            <div className="rounded-lg border border-sky-500/20 bg-sky-950/10 p-3 space-y-2">
+              <span className="block text-xs font-semibold text-sky-300">
+                Study Framework Themes:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {frameworkThemes.map((th) => {
+                  const isSelected = selectedFrameworkThemeIds.includes(th.id);
+                  return (
+                    <button
+                      key={th.id}
+                      type="button"
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedFrameworkThemeIds(
+                            selectedFrameworkThemeIds.filter((id) => id !== th.id)
+                          );
+                        } else {
+                          setSelectedFrameworkThemeIds([...selectedFrameworkThemeIds, th.id]);
+                          if (!primaryTheme || primaryTheme === "Uncategorized") {
+                            setPrimaryTheme(th.name);
+                          }
+                        }
+                      }}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition cursor-pointer ${
+                        isSelected
+                          ? "border-[var(--trace)] bg-[var(--trace)] text-white font-semibold"
+                          : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--trace)] hover:text-[var(--foreground)]"
+                      }`}
+                    >
+                      <span>{th.name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Study Questions Linking */}
+          {activeQuestions.length > 0 && (
+            <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] p-3 space-y-2">
+              <span className="block text-xs font-semibold text-[var(--foreground)]">
+                Linked Active Study Questions:
+              </span>
+              <div className="grid gap-1.5 sm:grid-cols-2 max-h-36 overflow-y-auto pr-1">
+                {activeQuestions.map((q) => {
+                  const isChecked = selectedQuestionIds.includes(q.id);
+                  return (
+                    <label
+                      key={q.id}
+                      className={`flex items-start gap-2 rounded border p-2 text-xs transition cursor-pointer ${
+                        isChecked
+                          ? "border-[var(--trace)] bg-[var(--trace-wash)] text-[var(--foreground)] font-medium"
+                          : "border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--border-strong)]"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedQuestionIds([...selectedQuestionIds, q.id]);
+                          } else {
+                            setSelectedQuestionIds(selectedQuestionIds.filter((id) => id !== q.id));
+                          }
+                        }}
+                        className="mt-0.5 rounded border-[var(--border)]"
+                      />
+                      <div className="min-w-0">
+                        <span className="font-mono text-[10px] font-bold text-[var(--trace)] block">
+                          {q.id}
+                        </span>
+                        <span className="text-[11px] line-clamp-1">{q.shortLabel || q.question}</span>
+                      </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Primary & Secondary Theme (String tags preserved) */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--foreground)]">
+                Primary Theme Tag <span className="text-rose-400">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={primaryTheme}
                 onChange={(e) => setPrimaryTheme(e.target.value)}
-                placeholder="e.g. Access, Infrastructure, Governance"
-                className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none focus:ring-1 focus:ring-[var(--trace)]"
+                className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
               />
             </div>
+
             <div>
               <label className="block text-xs font-semibold text-[var(--foreground)]">
-                Secondary Theme
+                Secondary Theme Tag (Optional)
               </label>
               <input
                 type="text"
                 value={secondaryTheme}
                 onChange={(e) => setSecondaryTheme(e.target.value)}
-                placeholder="e.g. Community Buy-in, Cost"
-                className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none focus:ring-1 focus:ring-[var(--trace)]"
+                className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
               />
             </div>
           </div>
 
-          {/* Classification & Metadata */}
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {/* Stakeholder & Sensitivity */}
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-semibold text-[var(--foreground)]">
-                Stakeholder Group
+                Stakeholder Perspective
               </label>
               <input
                 type="text"
                 value={stakeholderType}
                 onChange={(e) => setStakeholderType(e.target.value)}
-                placeholder="e.g. Teachers, Parents"
-                className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none focus:ring-1 focus:ring-[var(--trace)]"
+                className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-[var(--foreground)]">
-                Observation Reliability (researcher assessment)
-              </label>
-              <select
-                value={evidenceStrength}
-                onChange={(e) => setEvidenceStrength(e.target.value as EvidenceStrength)}
-                className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none focus:ring-1 focus:ring-[var(--trace)]"
-              >
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-            </div>
+
             <div>
               <label className="block text-xs font-semibold text-[var(--foreground)]">
                 Sensitivity Flag
@@ -252,7 +364,7 @@ function EvidenceEditModalContent({
               <select
                 value={sensitivityFlag}
                 onChange={(e) => setSensitivityFlag(e.target.value as SensitivityFlag)}
-                className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-2 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none focus:ring-1 focus:ring-[var(--trace)]"
+                className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-elevated)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
               >
                 <option value="None">None</option>
                 <option value="Low">Low</option>
@@ -268,7 +380,7 @@ function EvidenceEditModalContent({
             </div>
           )}
 
-          {/* Form Actions */}
+          {/* Modal Footer */}
           <div className="flex items-center justify-end gap-3 pt-3 border-t border-[var(--border)]">
             <button
               type="button"
@@ -279,10 +391,10 @@ function EvidenceEditModalContent({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || !rawObservation.trim() || !primaryTheme.trim()}
-              className="rounded-lg border border-[var(--trace-border)] bg-[var(--trace)] px-4 py-2 text-xs font-semibold text-[var(--trace-ink)] shadow hover:bg-[var(--trace-text)] disabled:opacity-50 cursor-pointer"
+              disabled={isSubmitting}
+              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white shadow hover:bg-blue-600 disabled:opacity-50 cursor-pointer"
             >
-              {isSubmitting ? "Saving..." : isValidated ? "Save & Request Re-validation" : "Save Changes"}
+              {isSubmitting ? "Saving..." : "Save Changes"}
             </button>
           </div>
         </form>

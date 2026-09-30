@@ -89,6 +89,7 @@ export async function importDocxSourcesAndObservations(
       consentStatus: candidate.consentStatus,
       anonymizationStatus: candidate.anonymizationStatus,
       sensitivityFlag: candidate.sensitivityFlag,
+      materialCategory: "primary_evidence",
       summary:
         candidate.rawText.slice(0, 200).replace(/\s+/g, " ") +
         (candidate.rawText.length > 200 ? "…" : ""),
@@ -147,6 +148,8 @@ export async function importDocxSourcesAndObservations(
       potentialFinding: obs.locationClue ? `[DOCX: ${obs.locationClue}]` : "",
       qaStatus: "Needs Review",
       validationStatus: "Draft",
+      reviewStatus: "pending",
+      materialCategory: "primary_evidence",
       revision: 1,
       createdAt: now,
       updatedAt: now,

@@ -329,10 +329,77 @@ html[data-theme="day"] .fls-dark-workbench {
 .fls-space-tab[aria-selected="true"] .fls-space-tab-purpose { color: inherit; opacity: 0.85; }
 .fls-space-arrow { color: var(--border-strong); font-size: 11px; user-select: none; }
 .fls-nav-count { font-size: 11px; color: var(--muted-soft); font-variant-numeric: tabular-nums; }
-.fls-secondary-tabs { gap: 20px; border-top: 1px solid var(--border); }
-.fls-view-tab { min-height: 34px; padding: 6px 2px; border-bottom: 2px solid transparent; color: var(--muted-soft); font-size: 12px; white-space: nowrap; cursor: pointer; }
-.fls-view-tab[aria-selected="true"] { color: var(--foreground); border-bottom-color: var(--muted-soft); }
+.fls-secondary-tabs { gap: 20px; }
+.fls-view-tab { min-height: 38px; padding: 8px 2px; border-bottom: 2px solid transparent; color: var(--muted-soft); font-size: 12px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: color 120ms ease, border-color 120ms ease; }
+.fls-view-tab[aria-selected="true"] { color: var(--foreground); border-bottom-color: var(--accent); }
 .fls-workspace { padding-block: 20px 48px; scroll-margin-top: 200px; outline: none; }
+
+/* Phase 3A: Left Workspace Rail & Mobile Workspace Navigation */
+.fls-workspace-rail {
+  min-height: calc(100vh - 90px);
+  position: sticky;
+  top: 90px;
+  align-self: flex-start;
+  z-index: 20;
+}
+.fls-mobile-space-tabs {
+  display: none;
+}
+@media (max-width: 1023px) {
+  .fls-mobile-space-tabs {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--border);
+  }
+}
+.fls-mobile-space-tabs::-webkit-scrollbar {
+  display: none;
+}
+.fls-mobile-space-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+.fls-mobile-space-btn.active {
+  color: var(--foreground);
+  border-color: var(--accent);
+  background: var(--surface-elevated);
+  font-weight: 600;
+}
+.fls-mobile-space-btn[id*="study"].active {
+  border-color: var(--workspace-study-accent);
+  background: var(--workspace-study-wash);
+  color: var(--workspace-study-text);
+}
+.fls-mobile-space-btn[id*="field-material"].active {
+  border-color: var(--workspace-field-accent);
+  background: var(--workspace-field-wash);
+  color: var(--workspace-field-text);
+}
+.fls-mobile-space-btn[id*="analysis"].active {
+  border-color: var(--workspace-analysis-accent);
+  background: var(--workspace-analysis-wash);
+  color: var(--workspace-analysis-text);
+}
+.fls-mobile-space-btn[id*="deliverables"].active {
+  border-color: var(--workspace-deliverables-accent);
+  background: var(--workspace-deliverables-wash);
+  color: var(--workspace-deliverables-text);
+}
 .fls-page-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
 .fls-page-heading h1, .fls-page-heading h2 { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.3; letter-spacing: -.02em; }
 .fls-page-heading p { margin-top: 4px; max-width: 75ch; color: var(--muted-soft); font-size: 12.5px; line-height: 1.5; }

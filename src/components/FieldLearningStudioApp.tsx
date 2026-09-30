@@ -39,6 +39,8 @@ import { BackupRestoreModal } from "@/components/studies/BackupRestoreModal";
 import { EvidenceReviewWorkspace } from "@/components/evidence";
 import { DailyDebriefView } from "@/components/debrief";
 import { SynthesisWorkbench } from "@/components/synthesis";
+import { ImportMappingView } from "@/components/intake/ImportMappingView";
+import { canonicalizeCollectionMethod } from "@/lib/methodTaxonomy";
 import {
   submitForReview,
   validateArtifact,
@@ -71,7 +73,7 @@ import {
   deleteStudyRole,
 } from "@/lib/storage";
 import { StudyLibraryView } from "@/components/library/StudyLibraryView";
-import { StudyWorkspaceHeader } from "@/components/layout/StudyWorkspaceHeader";
+import { StudyWorkspaceHeader, WorkspaceLeftRail } from "@/components/layout";
 import { WorkspaceContextHeader } from "@/components/layout/WorkspaceContextHeader";
 import {
   StudyBriefView,
@@ -90,6 +92,10 @@ type EvidenceFilters = {
   evidenceStrength: string;
   sensitivityFlag: string;
   validationStatus?: string;
+  reviewStatus?: string;
+  studyQuestionId?: string;
+  siteId?: string;
+  collectionMethod?: string;
 };
 
 export type WorkspaceTabId =
@@ -99,8 +105,9 @@ export type WorkspaceTabId =
   | "study-methods"
   | "study-framework"
   | "intake"
-  | "evidence"
   | "debrief"
+  | "import"
+  | "evidence"
   | "synthesis"
   | "findings"
   | "lessons"
@@ -145,26 +152,27 @@ export const PRACTITIONER_SPACES: PractitionerSpace[] = [
     id: "field-material",
     stepNumber: "2",
     label: "Field Material",
-    description: "Sources, Observations & Review",
+    description: "Capture & Qualify",
     icon: "📋",
-    defaultTab: "evidence",
+    defaultTab: "intake",
     tabs: [
-      { id: "evidence", label: "Evidence", shortLabel: "Evidence" },
-      { id: "intake", label: "Field Intake", shortLabel: "Field Intake" },
+      { id: "intake", label: "Field Intake", shortLabel: "Intake" },
+      { id: "debrief", label: "Daily Debrief", shortLabel: "Debrief" },
+      { id: "import", label: "Import & Mapping", shortLabel: "Import" },
+      { id: "evidence", label: "Evidence Review", shortLabel: "Evidence Review" },
     ],
   },
   {
     id: "analysis",
     stepNumber: "3",
     label: "Analysis",
-    description: "Synthesis, Coverage & Findings",
+    description: "Interpret & Validate",
     icon: "🔬",
     defaultTab: "synthesis",
     tabs: [
       { id: "synthesis", label: "Synthesis Workbench", shortLabel: "Synthesis" },
       { id: "findings", label: "Findings Ledger", shortLabel: "Findings" },
-      { id: "debrief", label: "Daily Debrief", shortLabel: "Debrief" },
-      { id: "lessons", label: "Lessons", shortLabel: "Lessons" },
+      { id: "lessons", label: "Lessons & Practices", shortLabel: "Lessons" },
     ],
   },
   {
@@ -393,6 +401,10 @@ export function FieldLearningStudioApp({
     evidenceStrength: "All",
     sensitivityFlag: "All",
     validationStatus: "All",
+    reviewStatus: "All",
+    studyQuestionId: "All",
+    siteId: "All",
+    collectionMethod: "All",
   });
   const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">(
     "idle",
@@ -410,6 +422,30 @@ export function FieldLearningStudioApp({
     evidenceCount: number;
     needsReviewCount: number;
   } | null>(null);
+
+  // Phase 3A: Left Workspace Rail state with localStorage persistence
+  const [isRailCollapsed, setIsRailCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      try {
+        return localStorage.getItem("fls_rail_collapsed") === "true";
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  });
+
+  const handleToggleRail = () => {
+    setIsRailCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("fls_rail_collapsed", String(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   // Phase 1: View mode (workspace vs study library)
   const [viewMode, setViewMode] = useState<"workspace" | "library">(() => {
@@ -715,6 +751,53 @@ export function FieldLearningStudioApp({
       activeDemoCase.evidence.filter((entry) => {
         const itemStatus =
           entry.validationStatus || (currentStudy?.isDemoCase ? "Validated" : "Draft");
+
+        // Qualification review status
+        const reviewStatus =
+          entry.reviewStatus ||
+          (itemStatus === "Validated"
+            ? "usable"
+            : itemStatus === "Rejected"
+            ? "excluded"
+            : "pending");
+
+        const matchesReviewStatus =
+          !filters.reviewStatus ||
+          filters.reviewStatus === "All" ||
+          reviewStatus === filters.reviewStatus;
+
+        const matchesValidationStatus =
+          !filters.validationStatus ||
+          filters.validationStatus === "All" ||
+          itemStatus === filters.validationStatus ||
+          reviewStatus === filters.validationStatus;
+
+        const statusMatch =
+          filters.reviewStatus && filters.reviewStatus !== "All"
+            ? matchesReviewStatus
+            : matchesValidationStatus;
+
+        // Study Question filter
+        const matchesQuestion =
+          !filters.studyQuestionId ||
+          filters.studyQuestionId === "All" ||
+          (entry.studyQuestionIds && entry.studyQuestionIds.includes(filters.studyQuestionId));
+
+        // Site filter
+        const entrySource = activeDemoCase.sources.find((s) => s.id === entry.sourceId);
+        const entrySite = entry.siteId || entrySource?.location || "";
+        const matchesSite =
+          !filters.siteId ||
+          filters.siteId === "All" ||
+          entrySite === filters.siteId;
+
+        // Collection Method filter
+        const method = canonicalizeCollectionMethod(entrySource?.sourceType || "Direct Observation");
+        const matchesMethod =
+          !filters.collectionMethod ||
+          filters.collectionMethod === "All" ||
+          method === filters.collectionMethod;
+
         return (
           (filters.theme === "All" || entry.primaryTheme === filters.theme) &&
           (filters.stakeholderType === "All" ||
@@ -723,12 +806,13 @@ export function FieldLearningStudioApp({
             entry.evidenceStrength === filters.evidenceStrength) &&
           (filters.sensitivityFlag === "All" ||
             entry.sensitivityFlag === filters.sensitivityFlag) &&
-          (!filters.validationStatus ||
-            filters.validationStatus === "All" ||
-            itemStatus === filters.validationStatus)
+          statusMatch &&
+          matchesQuestion &&
+          matchesSite &&
+          matchesMethod
         );
       }),
-    [activeDemoCase.evidence, filters, currentStudy?.isDemoCase],
+    [activeDemoCase.evidence, activeDemoCase.sources, filters, currentStudy?.isDemoCase],
   );
 
   const currentQaItems = useMemo(() => {
@@ -1338,7 +1422,7 @@ export function FieldLearningStudioApp({
   }
 
   return (
-    <main className="fls-dark-workbench min-h-screen text-[var(--foreground)]">
+    <main className="fls-dark-workbench min-h-screen text-[var(--foreground)] flex flex-col">
       <a className="fls-skip-link" href="#workspace-panel">Skip to workspace</a>
       <div className="fls-sticky-frame">
         <StudyWorkspaceHeader
@@ -1355,8 +1439,28 @@ export function FieldLearningStudioApp({
         />
       </div>
 
-      <div className="fls-frame">
-        <div className="fls-workspace" id="workspace-panel" role="tabpanel" aria-labelledby={`workspace-tab-${activeTab}`} tabIndex={-1}>
+      <div className="fls-workbench-body flex flex-1 w-full min-w-0">
+        {/* Desktop Collapsible Left Rail (>= lg) */}
+        <div className="hidden lg:block shrink-0 sticky top-[90px] self-start h-[calc(100vh-90px)] overflow-y-auto">
+          <WorkspaceLeftRail
+            activeSpaceId={activeSpaceId}
+            onSpaceChange={(spaceId) => {
+              const space = PRACTITIONER_SPACES.find((s) => s.id === spaceId);
+              if (space) handleTabChange(space.defaultTab);
+            }}
+            isCollapsed={isRailCollapsed}
+            onToggleCollapse={handleToggleRail}
+            sourcesCount={currentStudy?.sources.length ?? activeDemoCase.sources.length}
+            evidenceCount={currentStudy?.evidence.length ?? activeDemoCase.evidence.length}
+            findingsCount={currentStudy?.findings.length ?? activeDemoCase.findings.length}
+            recommendationsCount={currentStudy?.recommendations.length ?? activeDemoCase.recommendations.length}
+          />
+        </div>
+
+        {/* Workspace Main Content Area */}
+        <div className="fls-workspace-main flex-1 min-w-0">
+          <div className="fls-frame">
+            <div className="fls-workspace" id="workspace-panel" role="tabpanel" aria-labelledby={`workspace-tab-${activeTab}`} tabIndex={-1}>
           <WorkspaceContextHeader
             spaceId={activeSpaceId}
             activeTab={activeTab}
@@ -1500,6 +1604,20 @@ export function FieldLearningStudioApp({
               </div>
             )
           ) : null}
+          {activeTab === "import" ? (
+            currentStudy ? (
+              <ImportMappingView
+                study={currentStudy}
+                onRefreshStudy={handleRefreshCurrentStudy}
+                onStudyChange={handleSelectCase}
+                onNavigateToTab={(tab) => handleTabChange(tab as WorkspaceTabId)}
+              />
+            ) : (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center text-xs text-[var(--muted)]">
+                Loading study repository...
+              </div>
+            )
+          ) : null}
           {activeTab === "synthesis" ? (
             currentStudy ? (
               <SynthesisWorkbench
@@ -1567,6 +1685,8 @@ export function FieldLearningStudioApp({
 
         {renderDrawer()}
       </div>
+    </div>
+  </div>
 
       <MinimalStudyModal
         isOpen={isNewStudyModalOpen}
