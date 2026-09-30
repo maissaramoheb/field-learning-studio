@@ -211,11 +211,11 @@ export async function assertFindingEvidenceApprovalIntegrity(
       );
     } else if (ev.reviewStatus === "pending" || ev.reviewStatus === "needs_clarification") {
       throw new Error(
-        `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" is not yet validated (reviewStatus: "${ev.reviewStatus}"). All supporting evidence must be qualified and validated before a Finding can be approved.`
+        `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" is not yet qualified for analytical use (reviewStatus: "${ev.reviewStatus}"). Evidence must have reviewStatus 'usable' before it can support a Finding.`
       );
     } else if (ev.validationStatus !== "Validated") {
       throw new Error(
-        `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" is not yet validated (current status: "${ev.validationStatus}"). All supporting evidence must be Validated before a Finding can be approved.`
+        `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" is not yet validated (legacy status: "${ev.validationStatus}"). All supporting evidence without a qualification status must be Validated before a Finding can be approved.`
       );
     }
     if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {

@@ -13,6 +13,7 @@ import type {
 } from "@/lib/types";
 import { computeSupportProfile } from "@/lib/analytics/supportProfile";
 import { getNextFindingId } from "@/lib/idGenerator";
+import { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
 
 interface FindingAuthoringModalProps {
   isOpen: boolean;
@@ -104,8 +105,11 @@ function FindingAuthoringModalContent({
 
   // Available qualified evidence pool (plus any historical items linked in initialFinding)
   const candidatePool = useMemo(() => {
-    return qualifiedEvidence || validatedEvidence || [];
-  }, [qualifiedEvidence, validatedEvidence]);
+    if (qualifiedEvidence) return qualifiedEvidence;
+    if (validatedEvidence) return validatedEvidence;
+    if (allEvidence) return allEvidence.filter(isEvidenceEligibleForAnalysis);
+    return [];
+  }, [qualifiedEvidence, validatedEvidence, allEvidence]);
 
   const displayEvidenceList = useMemo(() => {
     const list = [...candidatePool];
@@ -624,12 +628,18 @@ function FindingAuthoringModalContent({
                             <button
                               type="button"
                               onClick={() => handleAssignRole(ev.id, "SUPPORT")}
-                              disabled={isExcluded}
-                              title={isExcluded ? "Excluded evidence cannot support a finding" : "Assign as Supporting Evidence"}
+                              disabled={isExcluded || isNeedsClarification}
+                              title={
+                                isExcluded
+                                  ? "Excluded evidence cannot support a finding"
+                                  : isNeedsClarification
+                                  ? "Evidence flagged for clarification cannot support a finding until clarified"
+                                  : "Assign as Supporting Evidence"
+                              }
                               className={`rounded px-2 py-0.5 text-[10px] font-semibold transition cursor-pointer ${
                                 isSupp
                                   ? "bg-emerald-600 text-white shadow-sm"
-                                  : isExcluded
+                                  : isExcluded || isNeedsClarification
                                   ? "opacity-30 cursor-not-allowed bg-slate-500/10 text-slate-400"
                                   : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30"
                               }`}

@@ -76,6 +76,13 @@
     - [x] Realistic demo data: set `EV-012` to `reviewStatus: "needs_clarification"` and added `EV-021` as an unsubstantiated rumor with `reviewStatus: "excluded"` and detailed `exclusionReason`.
     - [x] 12 regression tests added to `tests/phase4AnalysisArchitecture.test.ts` (30 total tests across 13 test suites, 327/327 total passing tests repository-wide).
     - [x] 10 headless Chrome CDP visual QA screenshots captured across 1440px, 1024px, 768px, and 390px in both Day and Night modes.
+  - [x] Phase 4 Final Micro-Hardening Pass (`feature/phase-4-analysis-architecture`):
+    - [x] Canonical `isEvidenceEligibleForAnalysis` helper in `src/lib/storage/normalization.ts` enforcing strict legacy fallback (`validationStatus === "Validated"`) and modern qualification (`reviewStatus === "usable"`).
+    - [x] Aligned Evidence Explorer, Synthesis promotion, Findings Ledger, Finding Authoring Modal, and Triangulation inputs to the canonical eligibility boundary.
+    - [x] Corrected validation error copy for `pending` and `needs_clarification` evidence to qualification terminology (`"not yet qualified for analytical use"`).
+    - [x] Disabled `+ Support` in Finding Authoring Modal for evidence flagged with `needs_clarification`.
+    - [x] Removed unsupported "Field Verification Rule 4.2" and replaced `EV-021` exclusion reason with a direct defensible reason.
+    - [x] 3 targeted regression tests added (330 total passing tests across 26 test files).
 - [x] Phase 1 Study Library, Demo/Real Separation, and Workspace Identity Foundation (`feature/phase-1-study-library-workspace-shell`):
   - [x] Canonical `StudyLibraryView` with Showcase Studies and My Studies sections.
   - [x] Welcoming `EmptyStudyState` guiding users to create their first real study.

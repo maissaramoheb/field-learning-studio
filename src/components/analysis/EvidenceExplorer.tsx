@@ -9,6 +9,7 @@ import type {
   FrameworkTheme,
 } from "@/lib/types";
 import { canonicalizeCollectionMethod, CANONICAL_COLLECTION_METHODS } from "@/lib/methodTaxonomy";
+import { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
 
 interface EvidenceExplorerProps {
   evidence: EvidenceEntry[];
@@ -79,7 +80,7 @@ export function EvidenceExplorer({
   const filteredEvidence = useMemo(() => {
     return evidence.filter((ev) => {
       // 1. Boundary filter: usable vs all
-      const isUsable = ev.reviewStatus === "usable" || (!ev.reviewStatus && ev.validationStatus !== "Rejected");
+      const isUsable = isEvidenceEligibleForAnalysis(ev);
       if (!showNonUsable && !isUsable) {
         return false;
       }
@@ -376,7 +377,7 @@ export function EvidenceExplorer({
           filteredEvidence.map((ev) => {
             const src = sourceMap.get(ev.sourceId);
             const isSelected = selectedEvidenceIds.includes(ev.id);
-            const isUsable = ev.reviewStatus === "usable" || (!ev.reviewStatus && ev.validationStatus !== "Rejected");
+            const isUsable = isEvidenceEligibleForAnalysis(ev);
             const coord = ev.sourceCoordinate;
 
             return (

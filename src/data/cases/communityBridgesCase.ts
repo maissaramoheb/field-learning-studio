@@ -719,7 +719,8 @@ export const communityBridgesCase: DemoCase = {
       qaStatus: "Warning",
       validationStatus: "Rejected",
       reviewStatus: "excluded",
-      exclusionReason: "Unsubstantiated field rumor; contradicted by verified municipal payment registers and attendance sign-offs.",
+      exclusionReason:
+        "Single uncorroborated third-party allegation of financial irregularities. Excluded from analytical synthesis because the claim could not be verified through an independent source or documentary evidence.",
     },
   ],
   findings: [

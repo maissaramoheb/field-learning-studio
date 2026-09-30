@@ -10,11 +10,14 @@
      - **Triangulation Matrix** (`triangulation`): "How is the evidence distributed across perspectives, methods, sites, and sources?"
      - **Findings Ledger** (`findings`): "What analytical claims are sufficiently reasoned and reviewed to become formal findings?"
      - **Lessons** (`lessons`): "What transferable learning emerges from validated findings?"
-2. **Evidence Qualification vs Finding Validation Boundary**:
+2. **Evidence Qualification vs Finding Validation Boundary & Canonical Eligibility**:
    - Explicitly decoupled `reviewStatus` (evidence qualification / admissibility) from `validationStatus` (finding evaluator lifecycle sign-off).
-   - Qualified field observations (`reviewStatus === "usable"`) qualify to support analytical reasoning and candidate findings regardless of whether their individual validation lifecycle is "Draft" or "Needs Review".
+   - Implemented canonical `isEvidenceEligibleForAnalysis` helper in `src/lib/storage/normalization.ts`:
+     - Modern / Phase-3+ records: require `reviewStatus === "usable"`.
+     - Legacy records lacking `reviewStatus`: require `validationStatus === "Validated"` (legacy Draft/Needs Review/Rejected records are strictly blocked).
    - Hard validation guard: evidence marked `reviewStatus === "excluded"`, `"pending"`, or `"needs_clarification"` is strictly blocked from certifying Finding approval.
-   - Pre-Phase 3 legacy fallback preserved: records lacking `reviewStatus` require `validationStatus === "Validated"`.
+   - Standardized qualification error terminology for pending and clarification records: `"Supporting evidence <id> is not yet qualified for analytical use (reviewStatus: <status>). Evidence must have reviewStatus 'usable' before it can support a Finding."`
+   - Authoring modal disables `+ Support` button for evidence flagged with `needs_clarification`.
 3. **Typed Evidence Relationships (SUPPORT, CONTRADICT, QUALIFY)**:
    - Grounded finding authoring and ledger inspection in 3 distinct relationship categories:
      - **Supporting Field Observations** (`supportingEvidenceIds`): Direct corroboration (Emerald styling).
@@ -33,13 +36,13 @@
    - Suggests configured governance validator (`validator` role from `study.teamRoles`) during human certification prompt.
 6. **Data Integrity & Backup Remapping**:
    - `import_as_new` strategy in portable `.fls.json` backup accurately remaps all `patternNotes[].studyId` to `targetStudyId`.
-   - Showcase demo case updated: `EV-012` set to `reviewStatus: "needs_clarification"`, `EV-021` added as unsubstantiated rumor with `reviewStatus: "excluded"` and detailed `exclusionReason`.
+   - Showcase demo case updated: `EV-012` set to `reviewStatus: "needs_clarification"`, `EV-021` added as unsubstantiated rumor with `reviewStatus: "excluded"` and direct defensible `exclusionReason` without invented policy references.
 7. **Epistemic Invariants & Zero-AI Invariant**:
    - Zero external AI model calls, prompts, RAG, or AI generation implemented. Strictly preserved human evaluator analytical integrity.
    - Preserved `DB_VERSION = 2` without breaking schema bumps.
    - Preserved copyright notice across all studio and responsive surfaces.
 8. **Quality Gates & Verification**:
-   - Tests: **327/327** tests passing across **26** test files (`tests/phase4AnalysisArchitecture.test.ts` with 30 comprehensive regression tests).
+   - Tests: **330/330** tests passing across **26** test files (`tests/phase4AnalysisArchitecture.test.ts` with 33 comprehensive regression tests).
    - TypeScript: `npx tsc --noEmit --incremental false` exits with **0 errors**.
    - Linting: `npm run lint` exits with **0 errors, 0 warnings**.
    - Build: Next.js Turbopack `npm run build` succeeds cleanly.

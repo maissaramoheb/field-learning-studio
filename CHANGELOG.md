@@ -1,5 +1,23 @@
 # Changelog
 
+## Phase 4 Final Micro-Hardening - Evidence Eligibility & Qualification Semantics
+
+- **Strict Legacy Evidence Eligibility Fallback**:
+  - Implemented canonical `isEvidenceEligibleForAnalysis` helper in `src/lib/storage/normalization.ts` (re-exported in `validationLifecycle.ts`).
+  - Aligned all Phase 4 evidence selectors (Evidence Explorer, Synthesis Workbench, Findings Ledger, Finding Authoring Modal, Triangulation Matrix) to strictly enforce:
+    - Phase 3+ / modern record: requires `reviewStatus === "usable"`.
+    - Legacy record without `reviewStatus`: requires `validationStatus === "Validated"` (legacy Draft, Needs Review, or Rejected records are strictly ineligible).
+- **Qualification vs Validation Error Copy Correction**:
+  - Aligned error messaging in `validationLifecycle.ts` and `integrity.ts` to use qualification terminology for `pending` and `needs_clarification` evidence:
+    `"Supporting evidence <id> is not yet qualified for analytical use (reviewStatus: <status>). Evidence must have reviewStatus 'usable' before it can support a Finding."`
+  - Preserved clear exclusion terminology for excluded records and legacy-specific messages for unreviewed pre-Phase 3 records.
+  - Disabled `+ Support` button in `FindingAuthoringModal` for evidence in `needs_clarification` status.
+- **Defensible Demo Exclusion Wording**:
+  - Removed unsupported "Field Verification Rule 4.2" reference and set `EV-021` exclusion reason in `communityBridgesCase` to a defensible direct reason:
+    `"Single uncorroborated third-party allegation of financial irregularities. Excluded from analytical synthesis because the claim could not be verified through an independent source or documentary evidence."`
+- **Regression Test Coverage**:
+  - Added targeted tests covering the 6 canonical qualification matrix combinations, qualification copy terminology, and verified the complete absence of fake numbered rules. Total 330 tests passing across 26 test files.
+
 ## Phase 4 Hardening Pass - Evidence Roles, Invalidation Cascades & Analytical Lineage
 
 - **Analysis Evidence Eligibility Boundary**:

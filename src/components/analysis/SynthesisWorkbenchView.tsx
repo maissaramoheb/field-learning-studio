@@ -10,6 +10,7 @@ import type {
   EvidenceEntryId,
 } from "@/lib/types";
 import { savePatternNote, deletePatternNote, saveFinding } from "@/lib/storage";
+import { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
 import { EvidenceExplorer } from "./EvidenceExplorer";
 import { ReasoningWorkspace } from "./ReasoningWorkspace";
 import { FindingAuthoringModal } from "@/components/synthesis/FindingAuthoringModal";
@@ -53,7 +54,7 @@ export function SynthesisWorkbenchView({
 
   // Usable evidence count
   const usableEvidenceCount = useMemo(
-    () => allEvidence.filter((e) => e.reviewStatus === "usable" || (!e.reviewStatus && e.validationStatus !== "Rejected")).length,
+    () => allEvidence.filter(isEvidenceEligibleForAnalysis).length,
     [allEvidence]
   );
 
@@ -207,7 +208,7 @@ export function SynthesisWorkbenchView({
           }}
           onSaveFinding={handleSaveFinding}
           existingFindings={study.findings || []}
-          qualifiedEvidence={allEvidence.filter((e) => e.reviewStatus === "usable" || (!e.reviewStatus && e.validationStatus !== "Rejected"))}
+          qualifiedEvidence={allEvidence.filter(isEvidenceEligibleForAnalysis)}
           allEvidence={allEvidence}
           sources={sources}
           scope={study.scope}

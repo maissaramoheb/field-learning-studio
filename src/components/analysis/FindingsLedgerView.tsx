@@ -20,6 +20,7 @@ import { computeSupportProfile } from "@/lib/analytics/supportProfile";
 import { saveFinding } from "@/lib/storage";
 import { ViewOriginalSourceModal } from "./ViewOriginalSourceModal";
 import { canonicalizeCollectionMethod } from "@/lib/methodTaxonomy";
+import { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
 import { FindingAuthoringModal } from "@/components/synthesis/FindingAuthoringModal";
 
 interface FindingsLedgerViewProps {
@@ -1017,9 +1018,7 @@ export function FindingsLedgerView({
             setEditingFinding(null);
           }}
           existingFindings={findings}
-          qualifiedEvidence={evidence.filter(
-            (e) => e.reviewStatus === "usable" || (!e.reviewStatus && e.validationStatus !== "Rejected")
-          )}
+          qualifiedEvidence={evidence.filter(isEvidenceEligibleForAnalysis)}
           allEvidence={evidence}
           sources={sources}
           scope={study.scope}

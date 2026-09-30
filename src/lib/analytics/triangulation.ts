@@ -12,6 +12,7 @@ import type {
 } from "@/lib/types";
 
 import { canonicalizeCollectionMethod, CANONICAL_COLLECTION_METHODS, isStandardCollectionMethod } from "@/lib/methodTaxonomy";
+import { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
 
 export interface TriangulationContext {
   sources: SourceRecord[];
@@ -325,10 +326,8 @@ export function computeTriangulationMatrix(
   const allSources = study.sources || [];
   const sourceMap = new Map<string, SourceRecord>(allSources.map((s) => [s.id, s]));
 
-  // Usable/Qualified evidence only (exclude rejected or excluded)
-  const qualifiedEvidence = allEvidence.filter(
-    (ev) => ev.validationStatus !== "Rejected" && ev.reviewStatus !== "excluded"
-  );
+  // Usable/Qualified evidence only (uses canonical eligibility helper)
+  const qualifiedEvidence = allEvidence.filter(isEvidenceEligibleForAnalysis);
 
   // 1. Determine Rows
   const rows: TriangulationMatrixDimensionItem[] = [];

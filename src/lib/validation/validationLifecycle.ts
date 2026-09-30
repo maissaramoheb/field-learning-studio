@@ -23,6 +23,7 @@ export {
   isGoodPracticeExportEligible,
   type CanonicalExportContext,
 };
+export { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
 
 /**
  * Normalizes text for substantive change comparison by trimming and collapsing
@@ -228,12 +229,12 @@ export function validateArtifact<
           );
         } else if (ev.reviewStatus === "pending" || ev.reviewStatus === "needs_clarification") {
           throw new Error(
-            `Cannot approve Finding: Supporting evidence "${evId}" is not yet validated (reviewStatus: "${ev.reviewStatus}"). All supporting evidence must be qualified and validated before a Finding can be approved.`
+            `Cannot approve Finding: Supporting evidence "${evId}" is not yet qualified for analytical use (reviewStatus: "${ev.reviewStatus}"). Evidence must have reviewStatus 'usable' before it can support a Finding.`
           );
         } else if (ev.validationStatus !== "Validated") {
           // Legacy record without reviewStatus: must be Validated under pre-existing product rule
           throw new Error(
-            `Cannot approve Finding: Supporting evidence "${evId}" is not yet validated (status: "${ev.validationStatus}"). All supporting evidence must be Validated before a Finding can be approved.`
+            `Cannot approve Finding: Supporting evidence "${evId}" is not yet validated (legacy status: "${ev.validationStatus}"). All supporting evidence without a qualification status must be Validated before a Finding can be approved.`
           );
         }
         if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {

@@ -26,6 +26,7 @@ import {
   rejectArtifact,
   reopenRejectedArtifact,
   isSubstantiveFindingChange,
+  isEvidenceEligibleForAnalysis,
 } from "@/lib/validation/validationLifecycle";
 import { DB_VERSION, getDb } from "@/lib/storage/indexedDb";
 import { saveStudyMeta } from "@/lib/storage/studyStore";
@@ -829,7 +830,7 @@ describe("Phase 4: Analysis Architecture & Traceable Validation", () => {
       }).toThrow(/marked as excluded and cannot support a Finding/i);
     });
 
-    it("blocks approving finding when supporting evidence is reviewStatus === 'needs_clarification'", () => {
+    it("blocks approving finding when supporting evidence is reviewStatus === 'needs_clarification' with qualification terminology", () => {
       const clarificationEvidence: EvidenceEntry = {
         id: "EV-CLARIFY-TEST",
         sourceId: "SRC-QUAL-1",
@@ -855,7 +856,65 @@ describe("Phase 4: Analysis Architecture & Traceable Validation", () => {
           evidence: [clarificationEvidence],
           sources: [dummySource],
         });
-      }).toThrow(/not yet validated.*needs_clarification/i);
+      }).toThrow(/not yet qualified for analytical use \(reviewStatus: "needs_clarification"\)/i);
+    });
+
+    it("blocks approving finding when supporting evidence is reviewStatus === 'pending' with qualification terminology", () => {
+      const pendingEvidence: EvidenceEntry = {
+        id: "EV-PENDING-TEST",
+        sourceId: "SRC-QUAL-1",
+        stakeholderType: "Farmers",
+        rawEvidence: "Pending intake notes",
+        primaryTheme: "TH-1",
+        secondaryTheme: "None",
+        evidenceStrength: "Low",
+        sensitivityFlag: "None",
+        potentialFinding: "P-Pending",
+        qaStatus: "Needs Review",
+        reviewStatus: "pending",
+        validationStatus: "Draft",
+      };
+
+      const findingWithPending = {
+        ...parentFindingInReview,
+        supportingEvidenceIds: ["EV-PENDING-TEST" as const],
+      };
+
+      expect(() => {
+        validateArtifact(findingWithPending, "Senior Evaluator", undefined, {
+          evidence: [pendingEvidence],
+          sources: [dummySource],
+        });
+      }).toThrow(/not yet qualified for analytical use \(reviewStatus: "pending"\)/i);
+    });
+
+    it("evaluates canonical isEvidenceEligibleForAnalysis across all 6 legacy and modern qualification matrix combinations", () => {
+      // 1. legacy no-reviewStatus + Validated = eligible
+      expect(isEvidenceEligibleForAnalysis({ validationStatus: "Validated" })).toBe(true);
+      expect(isEvidenceEligibleForAnalysis({ reviewStatus: undefined, validationStatus: "Validated" })).toBe(true);
+
+      // 2. legacy no-reviewStatus + Draft = NOT eligible
+      expect(isEvidenceEligibleForAnalysis({ validationStatus: "Draft" })).toBe(false);
+      expect(isEvidenceEligibleForAnalysis({ reviewStatus: undefined, validationStatus: "Draft" })).toBe(false);
+
+      // 3. legacy no-reviewStatus + Needs Review = NOT eligible
+      expect(isEvidenceEligibleForAnalysis({ validationStatus: "Needs Review" })).toBe(false);
+      expect(isEvidenceEligibleForAnalysis({ reviewStatus: undefined, validationStatus: "Needs Review" })).toBe(false);
+
+      // 4. legacy no-reviewStatus + Rejected = NOT eligible
+      expect(isEvidenceEligibleForAnalysis({ validationStatus: "Rejected" })).toBe(false);
+      expect(isEvidenceEligibleForAnalysis({ reviewStatus: undefined, validationStatus: "Rejected" })).toBe(false);
+
+      // 5. reviewStatus usable + Draft = eligible
+      expect(isEvidenceEligibleForAnalysis({ reviewStatus: "usable", validationStatus: "Draft" })).toBe(true);
+
+      // 6. reviewStatus usable + Needs Review = eligible
+      expect(isEvidenceEligibleForAnalysis({ reviewStatus: "usable", validationStatus: "Needs Review" })).toBe(true);
+
+      // Excluded / pending / needs_clarification are always ineligible regardless of validationStatus
+      expect(isEvidenceEligibleForAnalysis({ reviewStatus: "excluded", validationStatus: "Validated" })).toBe(false);
+      expect(isEvidenceEligibleForAnalysis({ reviewStatus: "pending", validationStatus: "Validated" })).toBe(false);
+      expect(isEvidenceEligibleForAnalysis({ reviewStatus: "needs_clarification", validationStatus: "Validated" })).toBe(false);
     });
 
     it("preserves legacy fallback: unreviewed evidence requires validationStatus === 'Validated'", () => {
@@ -900,7 +959,7 @@ describe("Phase 4: Analysis Architecture & Traceable Validation", () => {
           evidence: [legacyUnvalidated],
           sources: [dummySource],
         });
-      }).toThrow(/All supporting evidence must be Validated/i);
+      }).toThrow(/not yet validated \(legacy status: "Needs Review"\)/i);
     });
   });
 
@@ -1279,12 +1338,21 @@ describe("Phase 4: Analysis Architecture & Traceable Validation", () => {
       expect(ev012?.reviewStatus).toBe("needs_clarification");
     });
 
-    it("confirms EV-021 has reviewStatus === 'excluded' and explicit exclusionReason", () => {
+    it("confirms EV-021 has reviewStatus === 'excluded' and explicit defensible exclusionReason", () => {
       const ev021 = communityBridgesCase.evidence.find((e) => e.id === "EV-021");
       expect(ev021).toBeDefined();
       expect(ev021?.reviewStatus).toBe("excluded");
       expect(ev021?.exclusionReason).toBeDefined();
-      expect(ev021?.exclusionReason).toContain("Unsubstantiated field rumor");
+      expect(ev021?.exclusionReason).toContain("Single uncorroborated third-party allegation of financial irregularities");
+    });
+
+    it("verifies no unsupported 'Field Verification Rule 4.2' exists across demo cases", () => {
+      for (const ev of communityBridgesCase.evidence) {
+        if (ev.exclusionReason) {
+          expect(ev.exclusionReason).not.toContain("Field Verification Rule");
+          expect(ev.exclusionReason).not.toContain("Rule 4.2");
+        }
+      }
     });
   });
 });

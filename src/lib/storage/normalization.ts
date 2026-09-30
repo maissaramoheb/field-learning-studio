@@ -127,6 +127,24 @@ export function mapLegacyValidationToReviewStatus(validationStatus?: string): Ev
   }
 }
 
+/**
+ * Canonical eligibility boundary for analytical use (Synthesis, Triangulation, Findings):
+ * - Phase 3+ / modern record: requires reviewStatus === "usable".
+ * - Legacy record without reviewStatus: requires validationStatus === "Validated".
+ *
+ * Excludes: reviewStatus "excluded", "pending", "needs_clarification",
+ * and legacy unreviewed records ("Draft", "Needs Review", "Rejected").
+ */
+export function isEvidenceEligibleForAnalysis(entry: {
+  reviewStatus?: EvidenceReviewStatus | string | null;
+  validationStatus?: string | null;
+}): boolean {
+  if (entry.reviewStatus) {
+    return entry.reviewStatus === "usable";
+  }
+  return entry.validationStatus === "Validated";
+}
+
 export function normalizeSourceRecord(
   source: SourceRecord,
   isLegacyMigration: boolean = false
