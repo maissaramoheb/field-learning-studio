@@ -1,3 +1,4 @@
+import "fake-indexeddb/auto";
 import { describe, it, expect } from "vitest";
 import {
   PRACTITIONER_SPACES,
@@ -5,6 +6,7 @@ import {
   type WorkspaceTabId,
 } from "@/components/FieldLearningStudioApp";
 import type {
+  StudyMeta,
   Finding,
   EvidenceEntry,
   SourceRecord,
@@ -23,10 +25,39 @@ import {
   validateArtifact,
   rejectArtifact,
   reopenRejectedArtifact,
+  isSubstantiveFindingChange,
 } from "@/lib/validation/validationLifecycle";
-import { DB_VERSION } from "@/lib/storage/indexedDb";
+import { DB_VERSION, getDb } from "@/lib/storage/indexedDb";
+import { saveStudyMeta } from "@/lib/storage/studyStore";
+import {
+  cascadeEvidenceInvalidationToFindings,
+  STALE_QUALIFYING_DEPENDENCY_WARNING_TEXT,
+} from "@/lib/storage/integrity";
+import { exportStudyBackup, importStudyBackup } from "@/lib/storage/studyBackup";
 import { communityBridgesCase } from "@/data/cases/communityBridgesCase";
 import { adaptDemoCaseToFieldStudy } from "@/lib/storage/demoStudyAdapter";
+
+function createMinimalMeta(id: string, title: string, overrides: Partial<StudyMeta> = {}): StudyMeta {
+  return {
+    id,
+    title,
+    subtitle: "Subtitle",
+    context: "Context",
+    status: "Active Fieldwork",
+    isDemoCase: false,
+    scope: {
+      targetSites: [],
+      isSingleSiteStudy: false,
+      targetStakeholderGroups: [],
+    },
+    executiveSummary: "",
+    keyMessages: [],
+    limitations: [],
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    ...overrides,
+  };
+}
 
 describe("Phase 4: Analysis Architecture & Traceable Validation", () => {
   describe("1. Workspace Navigation & Information Architecture", () => {
@@ -698,6 +729,562 @@ describe("Phase 4: Analysis Architecture & Traceable Validation", () => {
           findings: [parentFindingValidated],
         });
       }).toThrow(/marked as excluded/i);
+    });
+  });
+
+  describe("8. Evidence Qualification vs Finding Validation Boundary", () => {
+    const parentFindingInReview: Finding = {
+      id: "FND-QUAL-TEST",
+      studyId: "study-qual",
+      statement: "Qualified evidence supports finding irrespective of evidence validation lifecycle state.",
+      explanation: "Testing boundary between reviewStatus and validationStatus.",
+      supportingEvidenceIds: ["EV-USABLE-DRAFT", "EV-USABLE-NEEDS-REVIEW"],
+      contradictoryEvidence: "",
+      evidenceStrength: "Medium",
+      programmeImplication: "Proceed with verified observations.",
+      linkedRecommendationIds: [],
+      validationStatus: "Needs Review",
+    };
+
+    const dummySource: SourceRecord = {
+      id: "SRC-QUAL-1",
+      studyId: "study-qual",
+      sourceType: "Direct Observation",
+      title: "Field Observation Session",
+      date: "2026-06-01",
+      stakeholderType: "Farmers",
+      location: "Site A",
+      siteId: "Site A",
+      summary: "Observation content",
+      sensitivityFlag: "None",
+    };
+
+    it("allows approving finding when supporting evidence has reviewStatus === 'usable' even if validationStatus is Draft", () => {
+      const evidenceDraft: EvidenceEntry = {
+        id: "EV-USABLE-DRAFT",
+        sourceId: "SRC-QUAL-1",
+        stakeholderType: "Farmers",
+        rawEvidence: "Draft observation with confirmed usability",
+        primaryTheme: "TH-1",
+        secondaryTheme: "None",
+        evidenceStrength: "Medium",
+        sensitivityFlag: "None",
+        potentialFinding: "P-1",
+        qaStatus: "Reviewed",
+        reviewStatus: "usable",
+        validationStatus: "Draft",
+      };
+
+      const evidenceNeedsReview: EvidenceEntry = {
+        id: "EV-USABLE-NEEDS-REVIEW",
+        sourceId: "SRC-QUAL-1",
+        stakeholderType: "Farmers",
+        rawEvidence: "Observation in review with confirmed usability",
+        primaryTheme: "TH-1",
+        secondaryTheme: "None",
+        evidenceStrength: "Medium",
+        sensitivityFlag: "None",
+        potentialFinding: "P-2",
+        qaStatus: "Reviewed",
+        reviewStatus: "usable",
+        validationStatus: "Needs Review",
+      };
+
+      const certified = validateArtifact(parentFindingInReview, "Senior Evaluator", undefined, {
+        evidence: [evidenceDraft, evidenceNeedsReview],
+        sources: [dummySource],
+      });
+
+      expect(certified.validationStatus).toBe("Validated");
+      expect(certified.lastValidatedBy).toBe("Senior Evaluator");
+    });
+
+    it("blocks approving finding when supporting evidence is reviewStatus === 'excluded'", () => {
+      const excludedEvidence: EvidenceEntry = {
+        id: "EV-EXCLUDED-TEST",
+        sourceId: "SRC-QUAL-1",
+        stakeholderType: "Farmers",
+        rawEvidence: "Unsubstantiated rumor",
+        primaryTheme: "TH-1",
+        secondaryTheme: "None",
+        evidenceStrength: "Low",
+        sensitivityFlag: "High",
+        potentialFinding: "P-Rumor",
+        qaStatus: "Warning",
+        reviewStatus: "excluded",
+        exclusionReason: "Fails veracity criteria",
+        validationStatus: "Validated",
+      };
+
+      const findingWithExcluded = {
+        ...parentFindingInReview,
+        supportingEvidenceIds: ["EV-EXCLUDED-TEST" as const],
+      };
+
+      expect(() => {
+        validateArtifact(findingWithExcluded, "Senior Evaluator", undefined, {
+          evidence: [excludedEvidence],
+          sources: [dummySource],
+        });
+      }).toThrow(/marked as excluded and cannot support a Finding/i);
+    });
+
+    it("blocks approving finding when supporting evidence is reviewStatus === 'needs_clarification'", () => {
+      const clarificationEvidence: EvidenceEntry = {
+        id: "EV-CLARIFY-TEST",
+        sourceId: "SRC-QUAL-1",
+        stakeholderType: "Farmers",
+        rawEvidence: "Ambiguous notes",
+        primaryTheme: "TH-1",
+        secondaryTheme: "None",
+        evidenceStrength: "Low",
+        sensitivityFlag: "None",
+        potentialFinding: "P-Ambiguous",
+        qaStatus: "Needs Review",
+        reviewStatus: "needs_clarification",
+        validationStatus: "Validated",
+      };
+
+      const findingWithClarify = {
+        ...parentFindingInReview,
+        supportingEvidenceIds: ["EV-CLARIFY-TEST" as const],
+      };
+
+      expect(() => {
+        validateArtifact(findingWithClarify, "Senior Evaluator", undefined, {
+          evidence: [clarificationEvidence],
+          sources: [dummySource],
+        });
+      }).toThrow(/not yet validated.*needs_clarification/i);
+    });
+
+    it("preserves legacy fallback: unreviewed evidence requires validationStatus === 'Validated'", () => {
+      const legacyValidated: EvidenceEntry = {
+        id: "EV-LEGACY-VALIDATED",
+        sourceId: "SRC-QUAL-1",
+        stakeholderType: "Farmers",
+        rawEvidence: "Pre-Phase 3 validated record without reviewStatus",
+        primaryTheme: "TH-1",
+        secondaryTheme: "None",
+        evidenceStrength: "High",
+        sensitivityFlag: "None",
+        potentialFinding: "P-Legacy",
+        qaStatus: "Reviewed",
+        validationStatus: "Validated",
+      };
+
+      const findingWithLegacy = {
+        ...parentFindingInReview,
+        supportingEvidenceIds: ["EV-LEGACY-VALIDATED" as const],
+      };
+
+      const certified = validateArtifact(findingWithLegacy, "Senior Evaluator", undefined, {
+        evidence: [legacyValidated],
+        sources: [dummySource],
+      });
+      expect(certified.validationStatus).toBe("Validated");
+
+      const legacyUnvalidated: EvidenceEntry = {
+        ...legacyValidated,
+        id: "EV-LEGACY-UNVALIDATED",
+        validationStatus: "Needs Review",
+      };
+
+      const findingWithUnvalidatedLegacy = {
+        ...parentFindingInReview,
+        supportingEvidenceIds: ["EV-LEGACY-UNVALIDATED" as const],
+      };
+
+      expect(() => {
+        validateArtifact(findingWithUnvalidatedLegacy, "Senior Evaluator", undefined, {
+          evidence: [legacyUnvalidated],
+          sources: [dummySource],
+        });
+      }).toThrow(/All supporting evidence must be Validated/i);
+    });
+  });
+
+  describe("9. Typed Evidence Roles (SUPPORT, CONTRADICT, QUALIFY)", () => {
+    it("recognizes qualifyingEvidenceIds in substantive change detection", () => {
+      const baseFinding: Finding = {
+        id: "FND-ROLES",
+        statement: "Base statement",
+        explanation: "Base explanation",
+        supportingEvidenceIds: ["EV-001"],
+        contradictoryEvidence: "",
+        contradictoryEvidenceIds: ["EV-002"],
+        qualifyingEvidenceIds: ["EV-003"],
+        evidenceStrength: "Medium",
+        programmeImplication: "Action",
+        linkedRecommendationIds: [],
+        validationStatus: "Validated",
+      };
+
+      // Modifying qualifying evidence triggers substantive change
+      const modifiedQualifying: Partial<Finding> = {
+        ...baseFinding,
+        qualifyingEvidenceIds: ["EV-003", "EV-004"],
+      };
+      expect(isSubstantiveFindingChange(baseFinding, modifiedQualifying)).toBe(true);
+
+      // Same qualifying evidence is not substantive change
+      const identical = { ...baseFinding };
+      expect(isSubstantiveFindingChange(baseFinding, identical)).toBe(false);
+    });
+
+    it("validates that qualifyingEvidenceIds exist and are not rejected", () => {
+      const validFinding: Finding = {
+        id: "FND-ROLES-VALID",
+        statement: "Base statement",
+        explanation: "Base explanation",
+        supportingEvidenceIds: ["EV-001"],
+        contradictoryEvidence: "",
+        qualifyingEvidenceIds: ["EV-QUAL-REJECTED"],
+        evidenceStrength: "Medium",
+        programmeImplication: "Action",
+        linkedRecommendationIds: [],
+        validationStatus: "Needs Review",
+      };
+
+      const evidenceValid: EvidenceEntry = {
+        id: "EV-001",
+        sourceId: "SRC-001",
+        stakeholderType: "Staff",
+        rawEvidence: "Valid observation",
+        primaryTheme: "TH-1",
+        secondaryTheme: "None",
+        evidenceStrength: "High",
+        sensitivityFlag: "None",
+        potentialFinding: "P-1",
+        qaStatus: "Reviewed",
+        reviewStatus: "usable",
+        validationStatus: "Validated",
+      };
+
+      const evidenceRejected: EvidenceEntry = {
+        id: "EV-QUAL-REJECTED",
+        sourceId: "SRC-001",
+        stakeholderType: "Staff",
+        rawEvidence: "Rejected observation",
+        primaryTheme: "TH-1",
+        secondaryTheme: "None",
+        evidenceStrength: "Low",
+        sensitivityFlag: "None",
+        potentialFinding: "P-Bad",
+        qaStatus: "Warning",
+        validationStatus: "Rejected",
+      };
+
+      expect(() => {
+        validateArtifact(validFinding, "Evaluator", undefined, {
+          evidence: [evidenceValid, evidenceRejected],
+          sources: [
+            {
+              id: "SRC-001",
+              studyId: "study",
+              sourceType: "Direct Observation",
+              title: "S1",
+              date: "2026-06-01",
+              stakeholderType: "Staff",
+              location: "Site A",
+              siteId: "Site A",
+              summary: "Content",
+              sensitivityFlag: "None",
+            },
+          ],
+        });
+      }).toThrow(/Qualifying evidence "EV-QUAL-REJECTED" has been marked as Rejected/i);
+    });
+  });
+
+  describe("10. Cascade Invalidation on Qualifying Evidence Dependencies", () => {
+    it("invalidates Validated Findings referencing an evidence entry in qualifyingEvidenceIds", async () => {
+      const db = await getDb();
+      const studyId = "study-cascade-qual";
+
+      // Setup study & finding with qualifying evidence
+      await saveStudyMeta(createMinimalMeta(studyId, "Cascade Study"));
+
+      const finding: Finding = {
+        id: "FND-CASCADE-TARGET",
+        studyId,
+        statement: "Finding dependent on qualifying context",
+        explanation: "Explanation",
+        supportingEvidenceIds: ["EV-SUPP"],
+        contradictoryEvidence: "",
+        qualifyingEvidenceIds: ["EV-QUAL-CASCADE"],
+        evidenceStrength: "Medium",
+        programmeImplication: "Implication",
+        linkedRecommendationIds: [],
+        validationStatus: "Validated",
+        lastValidatedBy: "Lead Evaluator",
+        lastValidatedAt: Date.now() - 10000,
+      };
+
+      await db.put("findings", { ...finding, studyId });
+
+      const affected = await cascadeEvidenceInvalidationToFindings(db, studyId, "EV-QUAL-CASCADE");
+      expect(affected).toContain("FND-CASCADE-TARGET");
+
+      const refreshed = await db.get("findings", [studyId, "FND-CASCADE-TARGET"]);
+      expect(refreshed?.validationStatus).toBe("Needs Review");
+      expect(refreshed?.staleDependencyWarning).toBe(STALE_QUALIFYING_DEPENDENCY_WARNING_TEXT);
+    });
+  });
+
+  describe("11. Cell Signal Descriptors (Internal Intersection Triangulation)", () => {
+    it("classifies cell as MIXED when 2+ independent sources exist with contradictions", () => {
+      const themes = [{ id: "THM-1", name: "Governance", description: "" }];
+      const sources: SourceRecord[] = [
+        {
+          id: "SRC-001",
+          studyId: "study-matrix",
+          sourceType: "Interview",
+          title: "Source 1",
+          date: "2026-06-01",
+          stakeholderType: "Youth",
+          location: "Site 1",
+          siteId: "Site 1",
+          summary: "",
+          sensitivityFlag: "None",
+        },
+        {
+          id: "SRC-002",
+          studyId: "study-matrix",
+          sourceType: "Survey",
+          title: "Source 2",
+          date: "2026-06-01",
+          stakeholderType: "Authorities",
+          location: "Site 1",
+          siteId: "Site 1",
+          summary: "",
+          sensitivityFlag: "None",
+        },
+      ];
+      const evidence: EvidenceEntry[] = [
+        {
+          id: "EV-001",
+          studyId: "study-matrix",
+          sourceId: "SRC-001",
+          siteId: "Site 1",
+          stakeholderType: "Youth",
+          rawEvidence: "Positive youth response",
+          frameworkThemeIds: ["THM-1"],
+          primaryTheme: "THM-1",
+          secondaryTheme: "None",
+          evidenceStrength: "High",
+          sensitivityFlag: "None",
+          potentialFinding: "",
+          qaStatus: "Reviewed",
+          reviewStatus: "usable",
+          validationStatus: "Validated",
+        },
+        {
+          id: "EV-002",
+          studyId: "study-matrix",
+          sourceId: "SRC-002",
+          siteId: "Site 1",
+          stakeholderType: "Authorities",
+          rawEvidence: "Authorities report non-compliance",
+          frameworkThemeIds: ["THM-1"],
+          primaryTheme: "THM-1",
+          secondaryTheme: "None",
+          evidenceStrength: "High",
+          sensitivityFlag: "None",
+          potentialFinding: "",
+          qaStatus: "Reviewed",
+          reviewStatus: "usable",
+          validationStatus: "Validated",
+        },
+      ];
+      const patternNotes: PatternNote[] = [
+        {
+          id: "PAT-TENSION",
+          studyId: "study-matrix",
+          statement: "Divergence between youth and council",
+          reasoningType: "tension",
+          explanation: "Youth and authorities disagree on curfew impact.",
+          evidenceIds: ["EV-001", "EV-002"],
+          frameworkThemeIds: ["THM-1"],
+          audit: {
+            provenance: "human",
+            createdActor: { kind: "human", displayName: "Analyst" },
+            createdAt: 1,
+            updatedActor: { kind: "human", displayName: "Analyst" },
+            updatedAt: 1,
+          },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
+
+      const matrix = computeTriangulationMatrix(
+        {
+          evidence,
+          sources,
+          frameworkThemes: themes,
+          patternNotes,
+        },
+        "theme",
+        "site"
+      );
+
+      const cell = matrix.cells["THM-1__Site 1"];
+      expect(cell).toBeDefined();
+      expect(cell.evidenceCount).toBe(2);
+      expect(cell.independentSourceCount).toBe(2);
+      expect(cell.hasContradictions).toBe(true);
+      expect(cell.descriptor).toBe("MIXED");
+    });
+
+    it("classifies cell as DIVERGENT when contradictions exist with fewer than 2 independent sources", () => {
+      const themes = [{ id: "THM-1", name: "Governance", description: "" }];
+      const sources: SourceRecord[] = [
+        {
+          id: "SRC-001",
+          studyId: "study-matrix-div",
+          sourceType: "Interview",
+          title: "Source 1",
+          date: "2026-06-01",
+          stakeholderType: "Youth",
+          location: "Site 1",
+          siteId: "Site 1",
+          summary: "",
+          sensitivityFlag: "None",
+        },
+      ];
+      const evidence: EvidenceEntry[] = [
+        {
+          id: "EV-001",
+          studyId: "study-matrix-div",
+          sourceId: "SRC-001",
+          siteId: "Site 1",
+          stakeholderType: "Youth",
+          rawEvidence: "Initial youth view",
+          frameworkThemeIds: ["THM-1"],
+          primaryTheme: "THM-1",
+          secondaryTheme: "None",
+          evidenceStrength: "High",
+          sensitivityFlag: "None",
+          potentialFinding: "",
+          qaStatus: "Reviewed",
+          reviewStatus: "usable",
+          validationStatus: "Validated",
+        },
+        {
+          id: "EV-002",
+          studyId: "study-matrix-div",
+          sourceId: "SRC-001",
+          siteId: "Site 1",
+          stakeholderType: "Youth",
+          rawEvidence: "Follow-up youth view contradicting self",
+          frameworkThemeIds: ["THM-1"],
+          primaryTheme: "THM-1",
+          secondaryTheme: "None",
+          evidenceStrength: "High",
+          sensitivityFlag: "None",
+          potentialFinding: "",
+          qaStatus: "Reviewed",
+          reviewStatus: "usable",
+          validationStatus: "Validated",
+        },
+      ];
+      const patternNotes: PatternNote[] = [
+        {
+          id: "PAT-CONTRADICTION",
+          studyId: "study-matrix-div",
+          statement: "Internal contradiction within source",
+          reasoningType: "contradiction",
+          explanation: "Participant contradicted earlier statement.",
+          evidenceIds: ["EV-001", "EV-002"],
+          frameworkThemeIds: ["THM-1"],
+          audit: {
+            provenance: "human",
+            createdActor: { kind: "human", displayName: "Analyst" },
+            createdAt: 1,
+            updatedActor: { kind: "human", displayName: "Analyst" },
+            updatedAt: 1,
+          },
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ];
+
+      const matrix = computeTriangulationMatrix(
+        {
+          evidence,
+          sources,
+          frameworkThemes: themes,
+          patternNotes,
+        },
+        "theme",
+        "site"
+      );
+
+      const cell = matrix.cells["THM-1__Site 1"];
+      expect(cell).toBeDefined();
+      expect(cell.evidenceCount).toBe(2);
+      expect(cell.independentSourceCount).toBe(1);
+      expect(cell.hasContradictions).toBe(true);
+      expect(cell.descriptor).toBe("DIVERGENT");
+    });
+  });
+
+  describe("12. PatternNote studyId Remapping on import_as_new", () => {
+    it("remaps all patternNotes studyId to targetStudyId on import_as_new", async () => {
+      const originalStudyId = "study-backup-source";
+      const db = await getDb();
+
+      await saveStudyMeta(
+        createMinimalMeta(originalStudyId, "Backup Source Study", {
+          patternNotes: [
+            {
+              id: "PAT-REMAP-1",
+              studyId: originalStudyId,
+              statement: "Sensemaking note before backup",
+              reasoningType: "pattern",
+              explanation: "Explanation",
+              evidenceIds: [],
+              audit: {
+                provenance: "human",
+                createdActor: { kind: "human", displayName: "Analyst" },
+                createdAt: 1,
+                updatedActor: { kind: "human", displayName: "Analyst" },
+                updatedAt: 1,
+              },
+              createdAt: 1,
+              updatedAt: 1,
+            },
+          ],
+        })
+      );
+
+      const exportedBackup = await exportStudyBackup(originalStudyId);
+      const importResult = await importStudyBackup(exportedBackup, "import_as_new");
+
+      expect(importResult.success).toBe(true);
+      expect(importResult.studyId).not.toBe(originalStudyId);
+
+      const importedStudy = await db.get("studies", importResult.studyId);
+      expect(importedStudy).toBeDefined();
+      expect(importedStudy?.patternNotes).toHaveLength(1);
+      expect(importedStudy?.patternNotes?.[0].studyId).toBe(importResult.studyId);
+    });
+  });
+
+  describe("13. Demo Data Nuance Verification", () => {
+    it("confirms EV-012 has reviewStatus === 'needs_clarification'", () => {
+      const ev012 = communityBridgesCase.evidence.find((e) => e.id === "EV-012");
+      expect(ev012).toBeDefined();
+      expect(ev012?.reviewStatus).toBe("needs_clarification");
+    });
+
+    it("confirms EV-021 has reviewStatus === 'excluded' and explicit exclusionReason", () => {
+      const ev021 = communityBridgesCase.evidence.find((e) => e.id === "EV-021");
+      expect(ev021).toBeDefined();
+      expect(ev021?.reviewStatus).toBe("excluded");
+      expect(ev021?.exclusionReason).toBeDefined();
+      expect(ev021?.exclusionReason).toContain("Unsubstantiated field rumor");
     });
   });
 });

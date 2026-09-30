@@ -1,5 +1,37 @@
 # Changelog
 
+## Phase 4 Hardening Pass - Evidence Roles, Invalidation Cascades & Analytical Lineage
+
+- **Analysis Evidence Eligibility Boundary**:
+  - Aligned the Synthesis -> Candidate Finding path to admit evidence where `reviewStatus === "usable"`, regardless of whether the evidence record is in `Draft` or `Needs Review` evaluator status.
+  - Excluded (`reviewStatus === "excluded"`), pending (`pending`), and `needs_clarification` evidence remain strictly blocked from finding support and certification.
+  - Preserved backward-compatible legacy fallback for pre-Phase 3 records without `reviewStatus` (`ev.validationStatus === "Validated"`).
+- **Typed Evidence Roles & Mutual Exclusivity**:
+  - Enhanced `FindingAuthoringModal` with 3-way mutually exclusive evidence tagging: `+ Support`, `+ Contradict`, and `+ Qualify`.
+  - Stored `qualifyingEvidenceIds` on `Finding` models alongside `supportingEvidenceIds` and `contradictoryEvidenceIds`.
+  - Added distinct visual rendering in `FindingsLedgerView` for all three evidence categories: Supporting Field Observations (Emerald), Challenging/Contradictory Evidence (Rose), and Qualifying/Contextual Evidence (Indigo).
+- **Cascading Invalidation Across All Evidence Roles**:
+  - Extended `cascadeEvidenceInvalidationToFindings` in `integrity.ts` to invalidate findings across all three roles (`supportingEvidenceIds`, `contradictoryEvidenceIds`, `qualifyingEvidenceIds`) when linked evidence is rejected, modified, or re-qualified.
+  - Extended `assertFindingEvidenceApprovalIntegrity` and `validateArtifact` to enforce integrity across qualifying evidence dependencies.
+  - Added detection of `qualifyingEvidenceIds` modifications in `isSubstantiveFindingChange`.
+- **Finding Supersession Lineage**:
+  - Added `supersedesFindingId` to `Finding` interface in `src/lib/types.ts`.
+  - Implemented bidirectional supersession notices in `FindingsLedgerView`: a warning banner on superseded findings with a link to the replacement finding, and an informational banner on superseding findings with a link to the prior finding.
+  - Added keyboard navigation (`tabIndex={0}`, `role="button"`, `aria-pressed`, `onKeyDown`) and `Superseded` badge to finding cards.
+- **Triangulation Matrix Accessibility & Reasoning Integration**:
+  - Added full keyboard navigation (`tabIndex={0}`, `role="button"`, `aria-label`, `aria-pressed`, `onKeyDown` for Enter and Space) and high-contrast visible focus rings to populated matrix cells.
+  - Integrated `patternNotes` into `triangulateStudy`: any tension or contradiction pattern note referencing matching cell evidence increments `cellContradictionCount`.
+  - Updated Epistemic Transparency Bar and disclaimer copy clarifying cell-level alignment inside the intersection and strict supervisory debrief exclusion.
+- **Backup & Restore Study ID Remapping**:
+  - Updated `import_as_new` strategy in `studyBackup.ts` to remap `patternNotes[].studyId` to `targetStudyId`.
+- **Governance Role Integration**:
+  - Findings Ledger and Lessons validation confirmation prompts pre-populate the validator name from configured governance roles (`validator` role in `study.teamRoles`).
+- **Showcase Demo Case Hardening**:
+  - Updated `communityBridgesCase`: set `EV-012` to `reviewStatus: "needs_clarification"` and added `EV-021` as an unsubstantiated rumor with `reviewStatus: "excluded"` and detailed `exclusionReason`.
+- **Regression Test Coverage & Visual Verification**:
+  - Expanded `tests/phase4AnalysisArchitecture.test.ts` to 30 tests across 13 test suites covering eligibility decoupling, qualifying roles, invalidation cascading, backup remapping, matrix cell keyboard navigation, and validator suggestion. All 327 tests pass across 26 test files.
+  - Captured 10 headless Chrome CDP visual QA screenshots across 1440px, 1024px, 768px, and 390px in both Day and Night themes.
+
 ## Phase 4 - Analysis Architecture & Traceable Validation
 
 - **Analytical Architecture & Local Workspaces (Space 3: Analysis)**:

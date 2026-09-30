@@ -435,6 +435,7 @@ export interface Finding {
   validationStatus?: ValidationStatus;
   supersededByFindingId?: FindingId;
   supersededAt?: number;
+  supersedesFindingId?: FindingId;
   triangulationSuggestion?: TriangulationSuggestion;
   triangulationAssessment?: TriangulationAssessment;
   audit?: OriginMetadata;

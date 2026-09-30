@@ -7,6 +7,8 @@ import type {
   StudyScopeConfig,
   FrameworkTheme,
   StudyQuestion,
+  PatternNote,
+  EvidenceEntryId,
 } from "@/lib/types";
 
 import { canonicalizeCollectionMethod, CANONICAL_COLLECTION_METHODS, isStandardCollectionMethod } from "@/lib/methodTaxonomy";
@@ -307,6 +309,7 @@ export interface TriangulationMatrixStudyInput {
   studyQuestions?: StudyQuestion[];
   framework?: { themes?: FrameworkTheme[] };
   questions?: StudyQuestion[];
+  patternNotes?: PatternNote[];
 }
 
 /**
@@ -525,6 +528,18 @@ export function computeTriangulationMatrix(
         }
       }
 
+      if (study.patternNotes && study.patternNotes.length > 0) {
+        const matchingEvIds = new Set(matchingEvidence.map((e) => e.id));
+        for (const pn of study.patternNotes) {
+          if (pn.reasoningType === "tension" || pn.reasoningType === "contradiction") {
+            const intersects = pn.evidenceIds?.some((id: string) => matchingEvIds.has(id as EvidenceEntryId));
+            if (intersects) {
+              cellContradictionCount++;
+            }
+          }
+        }
+      }
+
       const evidenceCount = matchingEvidence.length;
       const independentSourceCount = independentSourceIds.size;
       const methodsFound = Array.from(cellMethods);
@@ -533,10 +548,10 @@ export function computeTriangulationMatrix(
       let descriptor: CellSignalDescriptor;
       if (evidenceCount === 0) {
         descriptor = "EMPTY";
+      } else if (hasContradictions) {
+        descriptor = independentSourceCount >= 2 ? "MIXED" : "DIVERGENT";
       } else if (independentSourceCount <= 1) {
         descriptor = "SPARSE";
-      } else if (hasContradictions) {
-        descriptor = methodsFound.length >= 2 ? "MIXED" : "DIVERGENT";
       } else {
         descriptor = "CONVERGENT";
       }

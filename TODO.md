@@ -63,6 +63,19 @@
   - [x] Maintain DB_VERSION = 2.
   - [x] 18 unit/integration tests in `tests/phase4AnalysisArchitecture.test.ts` (315/315 total tests passing across 26 files).
   - [x] Automated CDP visual QA verified across desktop (1440px), tablet (768px), and mobile (390px) with 0 horizontal overflow.
+  - [x] Phase 4 Post-Audit Hardening Pass (`feature/phase-4-analysis-architecture`):
+    - [x] Decouple evidence qualification from finding validation: `reviewStatus === "usable"` qualifies evidence for candidate findings and analytical claims regardless of evidence `validationStatus`; pending, needs_clarification, and excluded evidence are strictly blocked.
+    - [x] Implement typed evidence roles (SUPPORT, CONTRADICT, QUALIFY) with mutual exclusivity in `FindingAuthoringModal` and persist `qualifyingEvidenceIds`.
+    - [x] Render distinct evidence sections in `FindingsLedgerView`: Supporting Field Observations (Emerald), Challenging/Contradictory Evidence (Rose), and Qualifying/Contextual Evidence (Indigo).
+    - [x] Invalidation cascade across all three roles (`supportingEvidenceIds`, `contradictoryEvidenceIds`, `qualifyingEvidenceIds`) in `integrity.ts` and `validationLifecycle.ts`.
+    - [x] Finding supersession lineage with `supersedesFindingId`, keyboard-accessible finding cards, and bidirectional warning/informational banners.
+    - [x] Triangulation Matrix accessibility: full keyboard navigation (`tabIndex={0}`, `role="button"`, `aria-label`, `aria-pressed`, `onKeyDown`), visible focus ring, and contradiction pattern note integration.
+    - [x] Epistemic Transparency Bar and disclaimer update for cell intersection alignment and supervisory debrief exclusion.
+    - [x] Backup & restore fix: remap `patternNotes[].studyId` on `import_as_new` strategy in `studyBackup.ts`.
+    - [x] Pre-populate governance validator from `study.teamRoles` in Findings Ledger and Lessons validation confirmation prompts.
+    - [x] Realistic demo data: set `EV-012` to `reviewStatus: "needs_clarification"` and added `EV-021` as an unsubstantiated rumor with `reviewStatus: "excluded"` and detailed `exclusionReason`.
+    - [x] 12 regression tests added to `tests/phase4AnalysisArchitecture.test.ts` (30 total tests across 13 test suites, 327/327 total passing tests repository-wide).
+    - [x] 10 headless Chrome CDP visual QA screenshots captured across 1440px, 1024px, 768px, and 390px in both Day and Night modes.
 - [x] Phase 1 Study Library, Demo/Real Separation, and Workspace Identity Foundation (`feature/phase-1-study-library-workspace-shell`):
   - [x] Canonical `StudyLibraryView` with Showcase Studies and My Studies sections.
   - [x] Welcoming `EmptyStudyState` guiding users to create their first real study.

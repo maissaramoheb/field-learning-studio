@@ -2,7 +2,7 @@
 
 ## Current Status
 
-**Phase 4 — Analysis Architecture & Traceable Validation** is fully implemented and verified on dedicated feature branch `feature/phase-4-analysis-architecture` based on authoritative production baseline `main @ 4f0097523eaf65734a7145d6247f86fef366cb2d`.
+**Phase 4 — Analysis Architecture & Hardening Pass** is fully completed, hardened, and verified on dedicated feature branch `feature/phase-4-analysis-architecture` based on authoritative production baseline `main @ 4f0097523eaf65734a7145d6247f86fef366cb2d`.
 
 1. **Analytical Architecture & Local Workspaces (Space 3: Analysis)**:
    - Restructured the Analysis practitioner space into 4 purposeful, interconnected workspaces:
@@ -10,35 +10,41 @@
      - **Triangulation Matrix** (`triangulation`): "How is the evidence distributed across perspectives, methods, sites, and sources?"
      - **Findings Ledger** (`findings`): "What analytical claims are sufficiently reasoned and reviewed to become formal findings?"
      - **Lessons** (`lessons`): "What transferable learning emerges from validated findings?"
-2. **Synthesis Workbench (`src/components/analysis/SynthesisWorkbenchView.tsx`)**:
-   - **Evidence Explorer (`EvidenceExplorer.tsx`)**: Left-hand evidence browser filtering qualified field material (`reviewStatus === "usable"`) by Study Question, Framework Theme, Method, Stakeholder, Site, and Sensitivity. Includes toggle for inspecting pending/excluded records, full coordinates (`blockIndex`, `csvRowIndex`, etc.), and modal for viewing original file excerpts in full context (`ViewOriginalSourceModal.tsx`).
-   - **Sensemaking Canvas (`ReasoningWorkspace.tsx`)**: Structured pattern authoring managing `PatternNote`s with 5 explicit reasoning badges (`pattern`, `tension`, `contradiction`, `possible_explanation`, `evidence_gap`), multi-evidence selection and linking, and direct promotion to a candidate finding.
-3. **Triangulation Matrix (`src/components/analysis/TriangulationMatrixView.tsx`)**:
+2. **Evidence Qualification vs Finding Validation Boundary**:
+   - Explicitly decoupled `reviewStatus` (evidence qualification / admissibility) from `validationStatus` (finding evaluator lifecycle sign-off).
+   - Qualified field observations (`reviewStatus === "usable"`) qualify to support analytical reasoning and candidate findings regardless of whether their individual validation lifecycle is "Draft" or "Needs Review".
+   - Hard validation guard: evidence marked `reviewStatus === "excluded"`, `"pending"`, or `"needs_clarification"` is strictly blocked from certifying Finding approval.
+   - Pre-Phase 3 legacy fallback preserved: records lacking `reviewStatus` require `validationStatus === "Validated"`.
+3. **Typed Evidence Relationships (SUPPORT, CONTRADICT, QUALIFY)**:
+   - Grounded finding authoring and ledger inspection in 3 distinct relationship categories:
+     - **Supporting Field Observations** (`supportingEvidenceIds`): Direct corroboration (Emerald styling).
+     - **Challenging / Contradictory Evidence** (`contradictoryEvidenceIds`): Dissenting observations and counter-evidence (Rose/Amber styling).
+     - **Qualifying / Contextual Evidence** (`qualifyingEvidenceIds`): Scope conditions, caveats, and boundary definitions (Indigo/Blue styling).
+   - Enforced mutual exclusivity: assigning an observation to CONTRADICT or QUALIFY automatically removes it from SUPPORT, and vice versa.
+   - Substantive change detection in validation lifecycle accounts for modifications to `qualifyingEvidenceIds`.
+   - Cascade invalidation across all 3 roles: modifications or exclusions to qualifying evidence cascade to downstream Validated findings with `STALE_QUALIFYING_DEPENDENCY_WARNING_TEXT` and transition them to "Needs Review".
+4. **Triangulation Matrix & Epistemic Transparency**:
    - Cross-tabulation matrix grid evaluating evidence distribution across analytical framing (Framework Themes, Study Questions) against triangulation vectors (Methods, Stakeholders, Sites, Material Categories).
-   - Cell signals computed deterministically (`CONVERGENT`, `MIXED`, `DIVERGENT`, `SPARSE`, `EMPTY`).
-   - Strict source independence deduplication: multiple observations derived from the same source record count as 1 source; supervisory debriefs (`supervisory_interpretation`) are strictly excluded from independent source counts.
-   - Interactive drill-down drawer showing all contributing observations and source records.
-4. **Findings Ledger & Review Inspector (`src/components/analysis/FindingsLedgerView.tsx`)**:
-   - Master-Detail ledger: searchable and filterable findings list on the left; deep inspection panel on the right.
-   - Live support profile reconciliation: independent source count, method diversity, stakeholder representation, and site coverage.
-   - Transparent limitation flags: enforces mandatory non-empty limitation note / caveat when validating findings with sparse data, single-source reliance, or documented contradictions.
-   - Formal validation lifecycle: Draft -> Needs Review -> Validated (requiring human evaluator identity) / Rejected (requiring non-empty rationale, with reopen to Draft).
-   - Hard validation guard: rejects validation if any supporting evidence record is marked `reviewStatus === "excluded"`.
-5. **Lessons & Practices Workspace (`src/components/analysis/LessonsWorkspaceView.tsx`)**:
-   - Tabbed view for Lessons Learned and Good Practices.
-   - Structured 3-column analysis grid: What Worked / What Did Not, Underlying Mechanics / Why, and Conditions for Transferability / Replication.
-   - Hard parent finding validation guard: enforces that a lesson or good practice can only be certified as Validated if its linked parent finding is already in `validationStatus === "Validated"`.
-6. **Epistemic Invariants & Zero-AI Invariant**:
-   - Zero AI models, providers, RAG, or AI generation implemented. Strictly preserved human evaluator sensemaking and certification.
-   - Preserved `DB_VERSION = 2` without unnecessary migrations; extended models via optional backward-compatible attributes.
-   - Grounded demo case (`communityBridgesCase`) seeded with 5 multi-type pattern notes (`PAT-001` to `PAT-005`).
-7. **Quality Gates & Verification**:
-   - Tests: **315/315** tests passing across **26** test files (`tests/phase4AnalysisArchitecture.test.ts` with 18 comprehensive tests).
+   - Refined cell signal descriptors for internal intersection semantics: 2+ independent sources with contradictions -> `MIXED`; fewer than 2 independent sources with contradictions -> `DIVERGENT`; 2+ independent sources without contradictions -> `CONVERGENT`; <=1 source without contradictions -> `SPARSE`.
+   - Accessible matrix cells: focusable (`tabIndex=0`), interactive keyboard controls (Enter/Space), and screen-reader `aria-label`/`aria-pressed` states.
+   - Updated transparency bar and disclaimer copy clarifying cell-level alignment inside specific intersections and strict exclusion of supervisory debriefs from independent source counts.
+5. **Findings Ledger & Lineage Provenance**:
+   - Detail panel renders Superseded Notice banner linking to replacement finding (`selectedFinding.supersededByFindingId`) and supersedes notice banner linking to prior findings.
+   - Suggests configured governance validator (`validator` role from `study.teamRoles`) during human certification prompt.
+6. **Data Integrity & Backup Remapping**:
+   - `import_as_new` strategy in portable `.fls.json` backup accurately remaps all `patternNotes[].studyId` to `targetStudyId`.
+   - Showcase demo case updated: `EV-012` set to `reviewStatus: "needs_clarification"`, `EV-021` added as unsubstantiated rumor with `reviewStatus: "excluded"` and detailed `exclusionReason`.
+7. **Epistemic Invariants & Zero-AI Invariant**:
+   - Zero external AI model calls, prompts, RAG, or AI generation implemented. Strictly preserved human evaluator analytical integrity.
+   - Preserved `DB_VERSION = 2` without breaking schema bumps.
+   - Preserved copyright notice across all studio and responsive surfaces.
+8. **Quality Gates & Verification**:
+   - Tests: **327/327** tests passing across **26** test files (`tests/phase4AnalysisArchitecture.test.ts` with 30 comprehensive regression tests).
    - TypeScript: `npx tsc --noEmit --incremental false` exits with **0 errors**.
    - Linting: `npm run lint` exits with **0 errors, 0 warnings**.
    - Build: Next.js Turbopack `npm run build` succeeds cleanly.
    - Git diff check: `git diff --check` clean.
-   - Visual QA: Automated headless Chrome CDP verification across desktop (1440px), tablet (768px), and mobile (390px) with 0 horizontal overflow and copyright notice preserved across all surfaces.
+   - Visual QA: Automated headless Chrome CDP verification across desktop (1440px), small desktop (1024px), tablet (768px), and mobile (390px) in both Day and Night modes.
 
 **Authoritative Baseline**: `main @ 4f0097523eaf65734a7145d6247f86fef366cb2d` (Phases 0–3 merged in production). Phase 4 changes are isolated to `feature/phase-4-analysis-architecture` with zero production deployment or merge.
 

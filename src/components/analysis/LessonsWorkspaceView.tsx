@@ -223,7 +223,9 @@ export function LessonsWorkspaceView({
 
   const handleValidate = async (item: LessonLearned | GoodPractice, type: "lesson" | "practice") => {
     if (!isEditable || !onRefreshStudy) return;
-    const reviewerName = window.prompt("Enter evaluator identity for validation certification:", "Lead Evaluator");
+    const configuredValidator = study.teamRoles?.find((r) => r.role === "validator")?.actor?.displayName;
+    const defaultValidator = configuredValidator || "Lead Evaluator";
+    const reviewerName = window.prompt("Enter evaluator identity for validation certification:", defaultValidator);
     if (!reviewerName?.trim()) return;
 
     try {

@@ -120,9 +120,12 @@ export const STALE_DEPENDENCY_WARNING_TEXT =
 export const STALE_CHALLENGING_DEPENDENCY_WARNING_TEXT =
   "Challenging evidence changed after this Finding was reviewed. Review the highlighted evidence before approving this Finding again.";
 
+export const STALE_QUALIFYING_DEPENDENCY_WARNING_TEXT =
+  "Qualifying context evidence changed after this Finding was reviewed. Review the highlighted evidence before approving this Finding again.";
+
 /**
  * Cascades an Evidence change or deletion to all downstream Validated Findings in the same study.
- * Covers both supporting evidence and challenging/contradictory evidence.
+ * Covers supporting evidence, challenging/contradictory evidence, and qualifying evidence.
  * Transitions affected Findings to "Needs Review" with an explicit stale-dependency warning.
  */
 export async function cascadeEvidenceInvalidationToFindings(
@@ -138,11 +141,14 @@ export async function cascadeEvidenceInvalidationToFindings(
   for (const finding of allFindings) {
     const isSupporting = finding.supportingEvidenceIds?.includes(evidenceId);
     const isContradictory = finding.contradictoryEvidenceIds?.includes(evidenceId);
+    const isQualifying = finding.qualifyingEvidenceIds?.includes(evidenceId);
 
-    if (isSupporting || isContradictory) {
+    if (isSupporting || isContradictory || isQualifying) {
       const defaultWarning = isSupporting
         ? STALE_DEPENDENCY_WARNING_TEXT
-        : STALE_CHALLENGING_DEPENDENCY_WARNING_TEXT;
+        : isContradictory
+        ? STALE_CHALLENGING_DEPENDENCY_WARNING_TEXT
+        : STALE_QUALIFYING_DEPENDENCY_WARNING_TEXT;
       const reason = warningReason || defaultWarning;
 
       // Invalidate if Validated, or ensure stale warning is attached
@@ -197,7 +203,17 @@ export async function assertFindingEvidenceApprovalIntegrity(
         `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" does not exist in Study "${studyId}".`
       );
     }
-    if (ev.validationStatus !== "Validated") {
+    if (ev.reviewStatus === "usable") {
+      // Qualified
+    } else if (ev.reviewStatus === "excluded") {
+      throw new Error(
+        `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" is marked as excluded and cannot support a Finding.`
+      );
+    } else if (ev.reviewStatus === "pending" || ev.reviewStatus === "needs_clarification") {
+      throw new Error(
+        `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" is not yet validated (reviewStatus: "${ev.reviewStatus}"). All supporting evidence must be qualified and validated before a Finding can be approved.`
+      );
+    } else if (ev.validationStatus !== "Validated") {
       throw new Error(
         `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" is not yet validated (current status: "${ev.validationStatus}"). All supporting evidence must be Validated before a Finding can be approved.`
       );
@@ -238,6 +254,28 @@ export async function assertFindingEvidenceApprovalIntegrity(
       if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
         throw new Error(
           `Cannot approve Finding "${finding.id}": Challenging evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
+        );
+      }
+    }
+  }
+
+  // Verify qualifying evidence
+  if (finding.qualifyingEvidenceIds && finding.qualifyingEvidenceIds.length > 0) {
+    for (const evId of finding.qualifyingEvidenceIds) {
+      const ev = await db.get("evidence", [studyId, evId]);
+      if (!ev) {
+        throw new Error(
+          `Cannot approve Finding "${finding.id}": Qualifying evidence "${evId}" does not exist in Study "${studyId}".`
+        );
+      }
+      if (ev.validationStatus === "Rejected") {
+        throw new Error(
+          `Cannot approve Finding "${finding.id}": Qualifying evidence "${evId}" has been marked as Rejected. Reconsider the qualifying evidence before approving this Finding.`
+        );
+      }
+      if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
+        throw new Error(
+          `Cannot approve Finding "${finding.id}": Qualifying evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
         );
       }
     }

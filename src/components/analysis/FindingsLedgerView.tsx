@@ -142,11 +142,12 @@ export function FindingsLedgerView({
 
   const handleValidate = async (finding: Finding) => {
     if (!isEditable || !onRefreshStudy) return;
+    const configuredValidator = study.teamRoles?.find((r) => r.role === "validator")?.actor?.displayName;
     const cachedReviewer =
       typeof window !== "undefined" ? localStorage.getItem("fls_reviewer_name") : null;
     const reviewerName = window.prompt(
       "Enter reviewer / evaluator identity for validation certification:",
-      cachedReviewer || "Lead Evaluator"
+      configuredValidator || cachedReviewer || "Lead Evaluator"
     );
     if (!reviewerName?.trim()) return;
     if (typeof window !== "undefined") {
@@ -328,15 +329,25 @@ export function FindingsLedgerView({
                 return (
                   <div
                     key={finding.id}
+                    tabIndex={0}
+                    role="button"
+                    aria-pressed={isSelected}
+                    aria-label={`Finding ${finding.id}: ${finding.statement.slice(0, 60)}..., Status: ${status}${finding.supersededByFindingId ? ", Superseded" : ""}`}
                     onClick={() => setSelectedFindingId(finding.id)}
-                    className={`rounded-xl border p-3.5 transition cursor-pointer text-xs space-y-2 ${
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setSelectedFindingId(finding.id);
+                      }
+                    }}
+                    className={`rounded-xl border p-3.5 transition cursor-pointer text-xs space-y-2 focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:outline-none ${
                       isSelected
                         ? "border-[var(--accent)] bg-[var(--accent)]/5 ring-1 ring-[var(--accent)]"
                         : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-mono text-xs font-bold text-[var(--trace)]">
                           {finding.id}
                         </span>
@@ -347,6 +358,11 @@ export function FindingsLedgerView({
                         >
                           {status}
                         </span>
+                        {finding.supersededByFindingId && (
+                          <span className="rounded bg-rose-500/10 border border-rose-500/30 px-1.5 py-0.2 text-[9px] font-bold uppercase text-rose-400">
+                            Superseded
+                          </span>
+                        )}
                         {finding.revision && finding.revision > 1 && (
                           <span className="font-mono text-[9px] text-[var(--muted)]">
                             v{finding.revision}
@@ -488,6 +504,57 @@ export function FindingsLedgerView({
                   </p>
                 </div>
               )}
+
+              {/* Superseded Notice */}
+              {selectedFinding.supersededByFindingId && (
+                <div className="rounded-xl border border-slate-500/40 bg-slate-500/10 p-3.5 text-slate-300">
+                  <div className="font-semibold text-xs flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <span className="inline-block px-1.5 py-0.5 rounded bg-slate-700 text-[10px] uppercase font-bold text-slate-200">Superseded</span>
+                      This finding has been superseded
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedFindingId(selectedFinding.supersededByFindingId!)}
+                      className="text-xs text-[var(--accent)] font-semibold hover:underline cursor-pointer"
+                    >
+                      View Replacement Finding ({selectedFinding.supersededByFindingId}) →
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[11px] leading-relaxed text-[var(--muted)]">
+                    {selectedFinding.supersededAt ? `Superseded on ${new Date(selectedFinding.supersededAt).toLocaleDateString()}. ` : ""}
+                    This conclusion is archived for analytical lineage and provenance.
+                  </p>
+                </div>
+              )}
+
+              {/* Supersedes Prior Finding Notice */}
+              {(() => {
+                const superseded = findings.find(
+                  (f) => f.id === selectedFinding.supersedesFindingId || f.supersededByFindingId === selectedFinding.id
+                );
+                if (!superseded) return null;
+                return (
+                  <div className="rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-3.5 text-indigo-300">
+                    <div className="font-semibold text-xs flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <span className="inline-block px-1.5 py-0.5 rounded bg-indigo-800 text-[10px] uppercase font-bold text-indigo-200">Supersedes</span>
+                        This finding supersedes an earlier finding
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedFindingId(superseded.id)}
+                        className="text-xs text-indigo-300 font-semibold hover:underline cursor-pointer"
+                      >
+                        View Prior Finding ({superseded.id}) →
+                      </button>
+                    </div>
+                    <p className="mt-1 text-[11px] leading-relaxed text-[var(--muted)] line-clamp-1">
+                      Prior statement: &ldquo;{superseded.statement}&rdquo;
+                    </p>
+                  </div>
+                );
+              })()}
 
               {/* Rejection Reason */}
               {selectedFinding.rejectionReason && (
@@ -637,89 +704,275 @@ export function FindingsLedgerView({
                 </div>
               )}
 
-              {/* Supporting Qualified Evidence Base */}
+              {/* 1. Supporting Field Observations */}
               <div className="space-y-3 pt-3 border-t border-[var(--border)]">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-xs text-[var(--foreground)]">
+                  <span className="font-semibold text-xs text-[var(--foreground)] flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />
                     Supporting Field Observations ({selectedFinding.supportingEvidenceIds?.length || 0})
                   </span>
-                  <span className="text-[10px] text-[var(--muted)]">
-                    Qualified field material
+                  <span className="text-[10px] text-emerald-400 font-medium">
+                    Direct Corroboration
                   </span>
                 </div>
 
                 <div className="space-y-2.5">
-                  {selectedFinding.supportingEvidenceIds?.map((evId) => {
-                    const ev = evidenceMap.get(evId);
-                    const src = ev ? sourceMap.get(ev.sourceId) : null;
-                    const coord = ev?.sourceCoordinate;
+                  {(selectedFinding.supportingEvidenceIds || []).length === 0 ? (
+                    <p className="text-[11px] text-[var(--muted)] italic">
+                      No supporting field observations attached.
+                    </p>
+                  ) : (
+                    selectedFinding.supportingEvidenceIds?.map((evId) => {
+                      const ev = evidenceMap.get(evId);
+                      const src = ev ? sourceMap.get(ev.sourceId) : null;
+                      const coord = ev?.sourceCoordinate;
 
-                    if (!ev) {
+                      if (!ev) {
+                        return (
+                          <div
+                            key={evId}
+                            className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-3 text-rose-300 text-xs"
+                          >
+                            Missing evidence record: {evId}
+                          </div>
+                        );
+                      }
+
                       return (
                         <div
                           key={evId}
-                          className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-3 text-rose-300"
+                          className="rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-3 space-y-2 hover:border-emerald-500/40 transition"
                         >
-                          Missing evidence record: {evId}
-                        </div>
-                      );
-                    }
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                Support
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => traceHandlers.onTraceSelect(ev.id)}
+                                className="font-mono text-xs font-bold text-[var(--trace)] hover:underline"
+                              >
+                                {ev.id}
+                              </button>
+                              <span className="text-[10px] text-[var(--muted)]">
+                                via {ev.sourceId} ({src?.sourceType ? canonicalizeCollectionMethod(src.sourceType) : "Source"})
+                              </span>
+                            </div>
 
-                    return (
-                      <div
-                        key={evId}
-                        className="rounded-lg border border-[var(--border)] bg-[var(--surface-subtle)] p-3 space-y-2"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-1.5">
                             <button
                               type="button"
-                              onClick={() => traceHandlers.onTraceSelect(ev.id)}
-                              className="font-mono text-xs font-bold text-[var(--trace)] hover:underline"
+                              onClick={() => handleOpenSourceModal(ev)}
+                              className="text-[11px] text-[var(--accent)] font-medium hover:underline cursor-pointer"
                             >
-                              {ev.id}
+                              View Original Source ↗
                             </button>
-                            <span className="text-[10px] text-[var(--muted)]">
-                              via {ev.sourceId} ({src?.sourceType ? canonicalizeCollectionMethod(src.sourceType) : "Source"})
-                            </span>
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleOpenSourceModal(ev)}
-                            className="text-[11px] text-[var(--accent)] font-medium hover:underline cursor-pointer"
-                          >
-                            View Original Source ↗
-                          </button>
-                        </div>
+                          <blockquote className="italic text-[var(--foreground)] leading-5 text-xs">
+                            &ldquo;{ev.rawObservation || ev.rawEvidence}&rdquo;
+                          </blockquote>
 
-                        <blockquote className="italic text-[var(--foreground)] leading-5">
-                          &ldquo;{ev.rawObservation || ev.rawEvidence}&rdquo;
-                        </blockquote>
-
-                        <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border)] text-[10px] text-[var(--muted)]">
-                          <span>
-                            {ev.stakeholderType ? `Stakeholder: ${ev.stakeholderType}` : ""}
-                            {ev.siteId ? ` · Site: ${ev.siteId}` : ""}
-                          </span>
-                          {coord?.blockIndex !== undefined && (
-                            <span>Block {coord.blockIndex}</span>
-                          )}
-                          {coord?.csvRowIndex !== undefined && (
-                            <span>Row {coord.csvRowIndex + 1}</span>
-                          )}
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border)] text-[10px] text-[var(--muted)]">
+                            <span>
+                              {ev.stakeholderType ? `Stakeholder: ${ev.stakeholderType}` : ""}
+                              {ev.siteId ? ` · Site: ${ev.siteId}` : ""}
+                            </span>
+                            {coord?.blockIndex !== undefined && (
+                              <span>Block {coord.blockIndex}</span>
+                            )}
+                            {coord?.csvRowIndex !== undefined && (
+                              <span>Row {coord.csvRowIndex + 1}</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
-              {/* Contradictory Evidence */}
+              {/* 2. Challenging / Contradictory Evidence */}
+              <div className="space-y-3 pt-3 border-t border-[var(--border)]">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-xs text-[var(--foreground)] flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 inline-block" />
+                    Challenging / Contradictory Evidence ({selectedFinding.contradictoryEvidenceIds?.length || 0})
+                  </span>
+                  <span className="text-[10px] text-rose-400 font-medium">
+                    Counter-Evidence &amp; Dissent
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {(selectedFinding.contradictoryEvidenceIds || []).length === 0 ? (
+                    <p className="text-[11px] text-[var(--muted)] italic">
+                      No structured contradictory evidence records linked.
+                    </p>
+                  ) : (
+                    selectedFinding.contradictoryEvidenceIds?.map((evId) => {
+                      const ev = evidenceMap.get(evId);
+                      const src = ev ? sourceMap.get(ev.sourceId) : null;
+                      const coord = ev?.sourceCoordinate;
+
+                      if (!ev) {
+                        return (
+                          <div
+                            key={evId}
+                            className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-3 text-rose-300 text-xs"
+                          >
+                            Missing evidence record: {evId}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={evId}
+                          className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-3 space-y-2 hover:border-rose-500/50 transition"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                                Contradict
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => traceHandlers.onTraceSelect(ev.id)}
+                                className="font-mono text-xs font-bold text-[var(--trace)] hover:underline"
+                              >
+                                {ev.id}
+                              </button>
+                              <span className="text-[10px] text-[var(--muted)]">
+                                via {ev.sourceId} ({src?.sourceType ? canonicalizeCollectionMethod(src.sourceType) : "Source"})
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenSourceModal(ev)}
+                              className="text-[11px] text-[var(--accent)] font-medium hover:underline cursor-pointer"
+                            >
+                              View Original Source ↗
+                            </button>
+                          </div>
+
+                          <blockquote className="italic text-[var(--foreground)] leading-5 text-xs">
+                            &ldquo;{ev.rawObservation || ev.rawEvidence}&rdquo;
+                          </blockquote>
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border)] text-[10px] text-[var(--muted)]">
+                            <span>
+                              {ev.stakeholderType ? `Stakeholder: ${ev.stakeholderType}` : ""}
+                              {ev.siteId ? ` · Site: ${ev.siteId}` : ""}
+                            </span>
+                            {coord?.blockIndex !== undefined && (
+                              <span>Block {coord.blockIndex}</span>
+                            )}
+                            {coord?.csvRowIndex !== undefined && (
+                              <span>Row {coord.csvRowIndex + 1}</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* 3. Qualifying / Contextual Evidence */}
+              <div className="space-y-3 pt-3 border-t border-[var(--border)]">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-xs text-[var(--foreground)] flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 inline-block" />
+                    Qualifying / Contextual Evidence ({selectedFinding.qualifyingEvidenceIds?.length || 0})
+                  </span>
+                  <span className="text-[10px] text-indigo-400 font-medium">
+                    Boundary &amp; Scope Conditions
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {(selectedFinding.qualifyingEvidenceIds || []).length === 0 ? (
+                    <p className="text-[11px] text-[var(--muted)] italic">
+                      No qualifying or boundary evidence records linked.
+                    </p>
+                  ) : (
+                    selectedFinding.qualifyingEvidenceIds?.map((evId) => {
+                      const ev = evidenceMap.get(evId);
+                      const src = ev ? sourceMap.get(ev.sourceId) : null;
+                      const coord = ev?.sourceCoordinate;
+
+                      if (!ev) {
+                        return (
+                          <div
+                            key={evId}
+                            className="rounded-lg border border-rose-500/30 bg-rose-500/5 p-3 text-rose-300 text-xs"
+                          >
+                            Missing evidence record: {evId}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={evId}
+                          className="rounded-lg border border-indigo-500/30 bg-indigo-500/5 p-3 space-y-2 hover:border-indigo-500/50 transition"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                                Qualify
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => traceHandlers.onTraceSelect(ev.id)}
+                                className="font-mono text-xs font-bold text-[var(--trace)] hover:underline"
+                              >
+                                {ev.id}
+                              </button>
+                              <span className="text-[10px] text-[var(--muted)]">
+                                via {ev.sourceId} ({src?.sourceType ? canonicalizeCollectionMethod(src.sourceType) : "Source"})
+                              </span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleOpenSourceModal(ev)}
+                              className="text-[11px] text-[var(--accent)] font-medium hover:underline cursor-pointer"
+                            >
+                              View Original Source ↗
+                            </button>
+                          </div>
+
+                          <blockquote className="italic text-[var(--foreground)] leading-5 text-xs">
+                            &ldquo;{ev.rawObservation || ev.rawEvidence}&rdquo;
+                          </blockquote>
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[var(--border)] text-[10px] text-[var(--muted)]">
+                            <span>
+                              {ev.stakeholderType ? `Stakeholder: ${ev.stakeholderType}` : ""}
+                              {ev.siteId ? ` · Site: ${ev.siteId}` : ""}
+                            </span>
+                            {coord?.blockIndex !== undefined && (
+                              <span>Block {coord.blockIndex}</span>
+                            )}
+                            {coord?.csvRowIndex !== undefined && (
+                              <span>Row {coord.csvRowIndex + 1}</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* 4. Narrative Contradictory Evidence & Limiting Conditions */}
               {selectedFinding.contradictoryEvidence && (
                 <div className="space-y-2 pt-3 border-t border-[var(--border)]">
                   <span className="font-semibold text-xs text-amber-400 block">
-                    Documented Contradictions &amp; Limiting Conditions
+                    Documented Contradictions &amp; Limiting Conditions (Narrative)
                   </span>
                   <div className="rounded-lg border border-amber-900/30 bg-amber-950/20 p-3 text-xs text-amber-200 leading-relaxed">
                     {selectedFinding.contradictoryEvidence}
@@ -764,7 +1017,10 @@ export function FindingsLedgerView({
             setEditingFinding(null);
           }}
           existingFindings={findings}
-          validatedEvidence={evidence.filter((e) => e.validationStatus === "Validated")}
+          qualifiedEvidence={evidence.filter(
+            (e) => e.reviewStatus === "usable" || (!e.reviewStatus && e.validationStatus !== "Rejected")
+          )}
+          allEvidence={evidence}
           sources={sources}
           scope={study.scope}
           questions={questions}

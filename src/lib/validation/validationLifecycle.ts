@@ -219,14 +219,21 @@ export function validateArtifact<
             `Cannot approve Finding: Supporting evidence "${evId}" is missing from this study.`
           );
         }
-        if (ev.validationStatus !== "Validated") {
-          throw new Error(
-            `Cannot approve Finding: Supporting evidence "${evId}" is not yet validated (status: "${ev.validationStatus}"). All supporting evidence must be Validated before a Finding can be approved.`
-          );
-        }
-        if (ev.reviewStatus === "excluded") {
+        // Qualification check: usable reviewStatus qualifies evidence for analysis
+        if (ev.reviewStatus === "usable") {
+          // Qualified to support finding regardless of validationStatus
+        } else if (ev.reviewStatus === "excluded") {
           throw new Error(
             `Cannot approve Finding: Supporting evidence "${evId}" is marked as excluded and cannot support a Finding.`
+          );
+        } else if (ev.reviewStatus === "pending" || ev.reviewStatus === "needs_clarification") {
+          throw new Error(
+            `Cannot approve Finding: Supporting evidence "${evId}" is not yet validated (reviewStatus: "${ev.reviewStatus}"). All supporting evidence must be qualified and validated before a Finding can be approved.`
+          );
+        } else if (ev.validationStatus !== "Validated") {
+          // Legacy record without reviewStatus: must be Validated under pre-existing product rule
+          throw new Error(
+            `Cannot approve Finding: Supporting evidence "${evId}" is not yet validated (status: "${ev.validationStatus}"). All supporting evidence must be Validated before a Finding can be approved.`
           );
         }
         if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
@@ -261,6 +268,28 @@ export function validateArtifact<
           if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
             throw new Error(
               `Cannot approve Finding: Challenging evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
+            );
+          }
+        }
+      }
+
+      if (Array.isArray(anyArtifact.qualifyingEvidenceIds)) {
+        const qualIds = anyArtifact.qualifyingEvidenceIds as string[];
+        for (const evId of qualIds) {
+          const ev = evMap.get(evId);
+          if (!ev) {
+            throw new Error(
+              `Cannot approve Finding: Qualifying evidence "${evId}" is missing from this study.`
+            );
+          }
+          if (ev.validationStatus === "Rejected") {
+            throw new Error(
+              `Cannot approve Finding: Qualifying evidence "${evId}" has been marked as Rejected. Reconsider the qualifying evidence before approving this Finding.`
+            );
+          }
+          if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
+            throw new Error(
+              `Cannot approve Finding: Qualifying evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
             );
           }
         }
@@ -571,6 +600,13 @@ export function isSubstantiveFindingChange(
   if (proposed.contradictoryEvidenceIds !== undefined) {
     const origSet = new Set(original.contradictoryEvidenceIds || []);
     const propSet = new Set(proposed.contradictoryEvidenceIds || []);
+    if (origSet.size !== propSet.size || ![...origSet].every((id) => propSet.has(id))) {
+      return true;
+    }
+  }
+  if (proposed.qualifyingEvidenceIds !== undefined) {
+    const origSet = new Set(original.qualifyingEvidenceIds || []);
+    const propSet = new Set(proposed.qualifyingEvidenceIds || []);
     if (origSet.size !== propSet.size || ![...origSet].every((id) => propSet.has(id))) {
       return true;
     }

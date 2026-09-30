@@ -19,7 +19,9 @@ interface FindingAuthoringModalProps {
   onClose: () => void;
   onSaveFinding: (finding: Finding) => void;
   existingFindings: Finding[];
-  validatedEvidence: EvidenceEntry[];
+  qualifiedEvidence?: EvidenceEntry[];
+  validatedEvidence?: EvidenceEntry[];
+  allEvidence?: EvidenceEntry[];
   sources: SourceRecord[];
   scope: StudyScopeConfig;
   questions: StudyQuestion[];
@@ -47,7 +49,9 @@ function FindingAuthoringModalContent({
   onClose,
   onSaveFinding,
   existingFindings,
+  qualifiedEvidence,
   validatedEvidence,
+  allEvidence,
   sources,
   scope,
   questions,
@@ -75,6 +79,12 @@ function FindingAuthoringModalContent({
   const [supportingEvidenceIds, setSupportingEvidenceIds] = useState<EvidenceEntryId[]>(
     initialFinding ? initialFinding.supportingEvidenceIds || [] : initialEvidenceIds
   );
+  const [contradictoryEvidenceIds, setContradictoryEvidenceIds] = useState<EvidenceEntryId[]>(
+    initialFinding?.contradictoryEvidenceIds || []
+  );
+  const [qualifyingEvidenceIds, setQualifyingEvidenceIds] = useState<EvidenceEntryId[]>(
+    initialFinding?.qualifyingEvidenceIds || []
+  );
   const [studyQuestionId, setStudyQuestionId] = useState(
     initialFinding ? initialFinding.studyQuestionId || "" : initialQuestionId || ""
   );
@@ -89,7 +99,63 @@ function FindingAuthoringModalContent({
   const [limitationNote, setLimitationNote] = useState(
     initialFinding ? initialFinding.limitationNote || "" : ""
   );
+  const [roleFilter, setRoleFilter] = useState<"all" | "support" | "contradict" | "qualify">("all");
   const [error, setError] = useState<string | null>(null);
+
+  // Available qualified evidence pool (plus any historical items linked in initialFinding)
+  const candidatePool = useMemo(() => {
+    return qualifiedEvidence || validatedEvidence || [];
+  }, [qualifiedEvidence, validatedEvidence]);
+
+  const displayEvidenceList = useMemo(() => {
+    const list = [...candidatePool];
+    const existingIds = new Set(candidatePool.map((e) => e.id));
+    if (allEvidence) {
+      const historicalIds = new Set([
+        ...supportingEvidenceIds,
+        ...contradictoryEvidenceIds,
+        ...qualifyingEvidenceIds,
+      ]);
+      for (const ev of allEvidence) {
+        if (historicalIds.has(ev.id) && !existingIds.has(ev.id)) {
+          list.push(ev);
+        }
+      }
+    }
+    return list;
+  }, [candidatePool, allEvidence, supportingEvidenceIds, contradictoryEvidenceIds, qualifyingEvidenceIds]);
+
+  const handleAssignRole = (
+    id: EvidenceEntryId,
+    targetRole: "SUPPORT" | "CONTRADICT" | "QUALIFY"
+  ) => {
+    const isSupp = supportingEvidenceIds.includes(id);
+    const isContra = contradictoryEvidenceIds.includes(id);
+    const isQual = qualifyingEvidenceIds.includes(id);
+
+    // If already in target role, unassign (toggle off)
+    if (
+      (targetRole === "SUPPORT" && isSupp) ||
+      (targetRole === "CONTRADICT" && isContra) ||
+      (targetRole === "QUALIFY" && isQual)
+    ) {
+      setSupportingEvidenceIds((prev) => prev.filter((i) => i !== id));
+      setContradictoryEvidenceIds((prev) => prev.filter((i) => i !== id));
+      setQualifyingEvidenceIds((prev) => prev.filter((i) => i !== id));
+      return;
+    }
+
+    // Move to target role (mutually exclusive across the 3 roles for this finding)
+    setSupportingEvidenceIds((prev) =>
+      targetRole === "SUPPORT" ? [...prev.filter((i) => i !== id), id] : prev.filter((i) => i !== id)
+    );
+    setContradictoryEvidenceIds((prev) =>
+      targetRole === "CONTRADICT" ? [...prev.filter((i) => i !== id), id] : prev.filter((i) => i !== id)
+    );
+    setQualifyingEvidenceIds((prev) =>
+      targetRole === "QUALIFY" ? [...prev.filter((i) => i !== id), id] : prev.filter((i) => i !== id)
+    );
+  };
 
   // Compute live Evidence Support Profile
   const tempFinding: Finding = useMemo(() => {
@@ -98,6 +164,8 @@ function FindingAuthoringModalContent({
       statement: statement.trim(),
       explanation: explanation.trim(),
       supportingEvidenceIds,
+      contradictoryEvidenceIds: contradictoryEvidenceIds.length > 0 ? contradictoryEvidenceIds : undefined,
+      qualifyingEvidenceIds: qualifyingEvidenceIds.length > 0 ? qualifyingEvidenceIds : undefined,
       contradictoryEvidence: contradictoryEvidence.trim(),
       evidenceStrength: "Medium",
       programmeImplication: programmeImplication.trim(),
@@ -114,6 +182,8 @@ function FindingAuthoringModalContent({
     statement,
     explanation,
     supportingEvidenceIds,
+    contradictoryEvidenceIds,
+    qualifyingEvidenceIds,
     contradictoryEvidence,
     programmeImplication,
     isStakeholderSpecific,
@@ -124,8 +194,8 @@ function FindingAuthoringModalContent({
 
   const supportProfile = useMemo(() => {
     if (supportingEvidenceIds.length === 0) return null;
-    return computeSupportProfile(tempFinding, scope, validatedEvidence, sources);
-  }, [tempFinding, scope, validatedEvidence, sources, supportingEvidenceIds]);
+    return computeSupportProfile(tempFinding, scope, displayEvidenceList, sources);
+  }, [tempFinding, scope, displayEvidenceList, sources, supportingEvidenceIds]);
 
   const isEmergingOrHasGaps = useMemo(() => {
     if (!supportProfile) return false;
@@ -138,12 +208,6 @@ function FindingAuthoringModalContent({
     return isEmerging || hasContradictions || hasMissingSites || hasMissingStakeholders;
   }, [supportProfile]);
 
-  const handleToggleEvidence = (id: EvidenceEntryId) => {
-    setSupportingEvidenceIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
-    );
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!statement.trim()) {
@@ -151,7 +215,7 @@ function FindingAuthoringModalContent({
       return;
     }
     if (supportingEvidenceIds.length === 0) {
-      setError("A finding must link to at least one validated evidence entry.");
+      setError("A finding must link to at least one qualified supporting evidence entry.");
       return;
     }
 
@@ -167,6 +231,8 @@ function FindingAuthoringModalContent({
       programmeImplication: programmeImplication.trim(),
       contradictoryEvidence: contradictoryEvidence.trim() || "",
       supportingEvidenceIds,
+      contradictoryEvidenceIds: contradictoryEvidenceIds.length > 0 ? contradictoryEvidenceIds : undefined,
+      qualifyingEvidenceIds: qualifyingEvidenceIds.length > 0 ? qualifyingEvidenceIds : undefined,
       studyQuestionId: studyQuestionId || undefined,
       originPatternNoteId: initialFinding?.originPatternNoteId || initialOriginPatternNoteId,
       frameworkThemeIds: initialFinding?.frameworkThemeIds || initialFrameworkThemeIds,
@@ -430,55 +496,179 @@ function FindingAuthoringModalContent({
                 </div>
               ) : (
                 <p className="mt-3 text-xs italic text-[var(--muted)] text-center py-4">
-                  Select at least 1 validated evidence entry below to calculate evidentiary support.
+                  Select at least 1 qualified supporting evidence entry below to calculate evidentiary support.
                 </p>
               )}
             </div>
 
-            {/* Supporting Evidence Checklist */}
-            <div>
-              <div className="flex items-center justify-between pb-1">
+            {/* Typed Evidence Relationship Authoring */}
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 pb-1">
                 <label className="text-xs font-bold uppercase tracking-wider text-[var(--muted-strong)]">
-                  Link Validated Evidence ({supportingEvidenceIds.length} selected)
+                  Link Evidence by Analytical Role
                 </label>
-                <span className="text-[10px] text-[var(--muted)]">
-                  Validated only
-                </span>
+                <div className="flex items-center gap-1.5 text-[10px]">
+                  <span className="rounded bg-emerald-500/10 border border-emerald-500/30 px-1.5 py-0.5 text-emerald-400 font-semibold">
+                    {supportingEvidenceIds.length} Support
+                  </span>
+                  <span className="rounded bg-rose-500/10 border border-rose-500/30 px-1.5 py-0.5 text-rose-400 font-semibold">
+                    {contradictoryEvidenceIds.length} Contradict
+                  </span>
+                  <span className="rounded bg-indigo-500/10 border border-indigo-500/30 px-1.5 py-0.5 text-indigo-400 font-semibold">
+                    {qualifyingEvidenceIds.length} Qualify
+                  </span>
+                </div>
               </div>
 
-              <div className="max-h-56 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-2 space-y-1.5">
-                {validatedEvidence.map((ev) => {
-                  const isChecked = supportingEvidenceIds.includes(ev.id);
-                  return (
-                    <label
-                      key={ev.id}
-                      className={`flex items-start gap-2.5 rounded-lg p-2 text-xs transition cursor-pointer ${
-                        isChecked
-                          ? "bg-[var(--trace-wash)] border border-[var(--trace)]/40"
-                          : "hover:bg-[var(--surface)] border border-transparent"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => handleToggleEvidence(ev.id)}
-                        className="mt-0.5 rounded border-[var(--border)] text-[var(--trace)] focus:ring-[var(--trace)]"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-[10px] font-bold text-[var(--trace)]">{ev.id}</span>
-                          {ev.siteId && (
-                            <span className="text-[10px] text-[var(--muted)] font-medium">({ev.siteId})</span>
-                          )}
-                          <span className="text-[10px] text-[var(--muted)] font-medium">• {ev.stakeholderType}</span>
+              {/* Role Filter Tabs */}
+              <div className="flex items-center gap-1 text-[11px] border-b border-[var(--border)] pb-2">
+                <button
+                  type="button"
+                  onClick={() => setRoleFilter("all")}
+                  className={`px-2 py-0.5 rounded cursor-pointer transition ${
+                    roleFilter === "all"
+                      ? "bg-[var(--surface)] text-[var(--foreground)] font-bold shadow-sm"
+                      : "text-[var(--muted)] hover:text-[var(--foreground)]"
+                  }`}
+                >
+                  All ({displayEvidenceList.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoleFilter("support")}
+                  className={`px-2 py-0.5 rounded cursor-pointer transition ${
+                    roleFilter === "support"
+                      ? "bg-emerald-500/20 text-emerald-400 font-bold"
+                      : "text-[var(--muted)] hover:text-emerald-400"
+                  }`}
+                >
+                  Support ({supportingEvidenceIds.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoleFilter("contradict")}
+                  className={`px-2 py-0.5 rounded cursor-pointer transition ${
+                    roleFilter === "contradict"
+                      ? "bg-rose-500/20 text-rose-400 font-bold"
+                      : "text-[var(--muted)] hover:text-rose-400"
+                  }`}
+                >
+                  Contradict ({contradictoryEvidenceIds.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRoleFilter("qualify")}
+                  className={`px-2 py-0.5 rounded cursor-pointer transition ${
+                    roleFilter === "qualify"
+                      ? "bg-indigo-500/20 text-indigo-400 font-bold"
+                      : "text-[var(--muted)] hover:text-indigo-400"
+                  }`}
+                >
+                  Qualify ({qualifyingEvidenceIds.length})
+                </button>
+              </div>
+
+              <div className="max-h-64 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-2 space-y-2">
+                {displayEvidenceList
+                  .filter((ev) => {
+                    if (roleFilter === "support") return supportingEvidenceIds.includes(ev.id);
+                    if (roleFilter === "contradict") return contradictoryEvidenceIds.includes(ev.id);
+                    if (roleFilter === "qualify") return qualifyingEvidenceIds.includes(ev.id);
+                    return true;
+                  })
+                  .map((ev) => {
+                    const isSupp = supportingEvidenceIds.includes(ev.id);
+                    const isContra = contradictoryEvidenceIds.includes(ev.id);
+                    const isQual = qualifyingEvidenceIds.includes(ev.id);
+                    const isExcluded = ev.reviewStatus === "excluded";
+                    const isNeedsClarification = ev.reviewStatus === "needs_clarification";
+
+                    return (
+                      <div
+                        key={ev.id}
+                        className={`rounded-lg border p-2.5 text-xs transition space-y-2 ${
+                          isSupp
+                            ? "border-emerald-500/40 bg-emerald-500/5 ring-1 ring-emerald-500/30"
+                            : isContra
+                            ? "border-rose-500/40 bg-rose-500/5 ring-1 ring-rose-500/30"
+                            : isQual
+                            ? "border-indigo-500/40 bg-indigo-500/5 ring-1 ring-indigo-500/30"
+                            : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]"
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-mono text-[10px] font-bold text-[var(--trace)]">
+                              {ev.id}
+                            </span>
+                            {ev.siteId && (
+                              <span className="text-[10px] text-[var(--muted)]">({ev.siteId})</span>
+                            )}
+                            <span className="text-[10px] text-[var(--muted)]">
+                              • {ev.stakeholderType || "General"}
+                            </span>
+                            {isExcluded && (
+                              <span className="rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1 py-0.2 text-[9px] font-bold uppercase">
+                                Excluded
+                              </span>
+                            )}
+                            {isNeedsClarification && (
+                              <span className="rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1 py-0.2 text-[9px] font-bold uppercase">
+                                Clarification
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Role Action Buttons (mutually exclusive across the 3 roles) */}
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleAssignRole(ev.id, "SUPPORT")}
+                              disabled={isExcluded}
+                              title={isExcluded ? "Excluded evidence cannot support a finding" : "Assign as Supporting Evidence"}
+                              className={`rounded px-2 py-0.5 text-[10px] font-semibold transition cursor-pointer ${
+                                isSupp
+                                  ? "bg-emerald-600 text-white shadow-sm"
+                                  : isExcluded
+                                  ? "opacity-30 cursor-not-allowed bg-slate-500/10 text-slate-400"
+                                  : "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/30"
+                              }`}
+                            >
+                              {isSupp ? "✓ Support" : "+ Support"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAssignRole(ev.id, "CONTRADICT")}
+                              title="Assign as Challenging / Contradictory Evidence"
+                              className={`rounded px-2 py-0.5 text-[10px] font-semibold transition cursor-pointer ${
+                                isContra
+                                  ? "bg-rose-600 text-white shadow-sm"
+                                  : "bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30"
+                              }`}
+                            >
+                              {isContra ? "✓ Contradict" : "+ Contradict"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAssignRole(ev.id, "QUALIFY")}
+                              title="Assign as Qualifying / Bounding Evidence"
+                              className={`rounded px-2 py-0.5 text-[10px] font-semibold transition cursor-pointer ${
+                                isQual
+                                  ? "bg-indigo-600 text-white shadow-sm"
+                                  : "bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/30"
+                              }`}
+                            >
+                              {isQual ? "✓ Qualify" : "+ Qualify"}
+                            </button>
+                          </div>
                         </div>
-                        <p className="mt-0.5 line-clamp-2 text-[11px] text-[var(--foreground)]">
-                          {ev.rawObservation || ev.rawEvidence}
+
+                        <p className="line-clamp-2 text-[11px] text-[var(--foreground)] leading-relaxed italic">
+                          &ldquo;{ev.rawObservation || ev.rawEvidence}&rdquo;
                         </p>
                       </div>
-                    </label>
-                  );
-                })}
+                    );
+                  })}
               </div>
             </div>
           </div>

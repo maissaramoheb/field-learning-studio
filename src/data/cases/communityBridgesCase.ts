@@ -590,6 +590,7 @@ export const communityBridgesCase: DemoCase = {
       potentialFinding:
         "Framing participation around shared community benefit reduced resistance.",
       qaStatus: "Needs Review",
+      reviewStatus: "needs_clarification",
     },
     {
       id: "EV-013",
@@ -702,6 +703,23 @@ export const communityBridgesCase: DemoCase = {
       potentialFinding:
         "The engagement approach needs stronger inclusion checks for less visible groups.",
       qaStatus: "Needs Review",
+    },
+    {
+      id: "EV-021",
+      sourceId: "SRC-012",
+      stakeholderType: "Youth participants",
+      rawEvidence:
+        "Informal rumor circulating in youth messaging channels alleged that participation stipends were being selectively delayed by local council liaisons.",
+      primaryTheme: "Accountability",
+      secondaryTheme: "Transparency",
+      evidenceStrength: "Low",
+      sensitivityFlag: "High",
+      potentialFinding:
+        "Youth participants voiced suspicion over stipend timelines, though municipal financial logs showed standard disbursement.",
+      qaStatus: "Warning",
+      validationStatus: "Rejected",
+      reviewStatus: "excluded",
+      exclusionReason: "Unsubstantiated field rumor; contradicted by verified municipal payment registers and attendance sign-offs.",
     },
   ],
   findings: [

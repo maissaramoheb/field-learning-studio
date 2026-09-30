@@ -236,23 +236,23 @@ export function TriangulationMatrixView({
           <div className="flex items-center gap-4 flex-wrap">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
-              <strong>Convergent:</strong> 2+ independent sources, multi-method, no contradictions
+              <strong>Convergent:</strong> 2+ independent sources within this intersection with mutual corroboration and no unresolved contradictions
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
-              <strong>Mixed:</strong> 2+ sources with documented tensions
+              <strong>Mixed:</strong> 2+ independent sources within this intersection with documented tensions or dissenting observations
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
-              <strong>Divergent:</strong> Conflicting evidence noted
+              <strong>Divergent:</strong> Conflicting evidence or counter-evidence noted within this intersection
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-orange-500/80 inline-block" />
-              <strong>Sparse:</strong> 1 observation or single source
+              <strong>Sparse:</strong> 1 observation or single source (insufficient independent cross-validation)
             </span>
           </div>
           <span className="text-[10px] text-[var(--muted)] italic">
-            * Supervisory Debriefs strictly excluded from independent source counts
+            * Cell-level alignment reflects agreement among independent primary sources inside this specific intersection. Supervisory debriefs are strictly excluded from independent source counts.
           </span>
         </div>
       </div>
@@ -305,7 +305,21 @@ export function TriangulationMatrixView({
                     return (
                       <td
                         key={col.id}
-                        className={`p-3 text-center border-r border-[var(--border)] last:border-r-0 transition ${
+                        role={cell.evidenceCount > 0 ? "button" : undefined}
+                        tabIndex={cell.evidenceCount > 0 ? 0 : undefined}
+                        aria-label={
+                          cell.evidenceCount > 0
+                            ? `Intersection ${row.label} and ${col.label}: ${cell.descriptor}, ${cell.evidenceCount} observations across ${cell.independentSourceCount} independent sources${cell.hasContradictions ? ", tensions present" : ""}`
+                            : undefined
+                        }
+                        aria-pressed={cell.evidenceCount > 0 ? Boolean(isSelected) : undefined}
+                        onKeyDown={(e) => {
+                          if (cell.evidenceCount > 0 && (e.key === "Enter" || e.key === " ")) {
+                            e.preventDefault();
+                            setSelectedCell(cell);
+                          }
+                        }}
+                        className={`p-3 text-center border-r border-[var(--border)] last:border-r-0 transition focus:outline-none focus:ring-2 focus:ring-[var(--accent)] ${
                           cell.evidenceCount > 0 ? "cursor-pointer hover:bg-[var(--accent)]/5" : ""
                         } ${isSelected ? "ring-2 ring-[var(--accent)] bg-[var(--accent)]/10" : ""}`}
                         onClick={() => {

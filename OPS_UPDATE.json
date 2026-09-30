@@ -1,10 +1,10 @@
 {
   "project": "Field Learning Studio",
   "category": "AI-assisted MEL / learning synthesis app",
-  "status": "phase_4_analysis_architecture_verified",
+  "status": "phase_4_hardened_ready_for_review",
   "priority": "high",
-  "current_phase": "Phase 4 Analysis Architecture (Traceable Human Validation Complete)",
-  "next_action": "Review Phase 4 Analysis Architecture implementation report.",
+  "current_phase": "Phase 4 Hardening Pass (Evidence Relationships & Analytical Lineage Hardened)",
+  "next_action": "Review Phase 4 Hardening Pass report.",
   "blocker": null,
   "decision_needed": null,
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
@@ -18,12 +18,12 @@
     "json": "passed",
     "diff_check": "passed",
     "local_http": "passed",
-    "tests": "315_passed_26_files",
-    "prod_smoke_cdp": "passed_phase4_visual_qa"
+    "tests": "327_passed_26_files",
+    "prod_smoke_cdp": "passed_phase4_hardening_qa"
   },
   "remaining_risks": [
     "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported (mitigated via SourceFileRepository quota estimation and threshold warnings)."
   ],
-  "recommended_next_step": "Phase 4 Analysis Architecture implementation complete on feature/phase-4-analysis-architecture; ready for user review.",
-  "notion_page_update": "Field Learning Studio Phase 4 Analysis Architecture completed on feature/phase-4-analysis-architecture based on main @ 4f00975. Implemented 4 local workspaces under Space 3: Synthesis Workbench (Evidence Explorer with qualified filter defaults, original file excerpt coordinates viewer, and sensemaking canvas with 5 reasoning note types); Triangulation Matrix (cross-tabulation grid, deterministic cell signals, strict independent source deduplication, supervisory debrief exclusion, and drill-down drawer); Findings Ledger (master-detail inspector, live support profile evaluation, mandatory limitation note on sparse/contradictory evidence, human evaluator certification, and formal rejection/reopen workflow); and Lessons & Practices (parent finding validation guard blocking ungrounded lessons). All 315 tests pass across 26 test files with 0 TypeScript and 0 lint errors, Next.js Turbopack build clean, and responsive visual QA verified."
+  "recommended_next_step": "Phase 4 Hardening Pass complete on feature/phase-4-analysis-architecture; ready for final review.",
+  "notion_page_update": "Field Learning Studio Phase 4 Hardening Pass completed on feature/phase-4-analysis-architecture. Hardened evidence qualification boundary (reviewStatus === usable qualifies Draft/Needs Review evidence for finding approval; excluded/pending/needs_clarification blocked; pre-Phase 3 legacy fallback preserved); typed multi-role evidence support (SUPPORT, CONTRADICT, QUALIFY with mutual exclusivity); cascade invalidation across all three roles; cell signal descriptors refined for internal intersection triangulation; matrix cells equipped with complete keyboard accessibility and updated epistemic transparency copy; portable backup import_as_new remaps PatternNote studyId; Findings and Lessons suggest configured governance validator; demo data updated with EV-012 needs_clarification and EV-021 excluded rumor. All 327 tests pass across 26 test files (30 in phase4AnalysisArchitecture.test.ts) with 0 TypeScript and 0 lint errors, build clean, and responsive Day/Night visual QA verified."
 }

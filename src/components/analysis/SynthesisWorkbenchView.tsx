@@ -207,7 +207,8 @@ export function SynthesisWorkbenchView({
           }}
           onSaveFinding={handleSaveFinding}
           existingFindings={study.findings || []}
-          validatedEvidence={allEvidence.filter((e) => e.validationStatus === "Validated")}
+          qualifiedEvidence={allEvidence.filter((e) => e.reviewStatus === "usable" || (!e.reviewStatus && e.validationStatus !== "Rejected"))}
+          allEvidence={allEvidence}
           sources={sources}
           scope={study.scope}
           questions={studyQuestions}
