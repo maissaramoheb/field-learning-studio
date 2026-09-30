@@ -377,6 +377,7 @@ export function SynthesisWorkbench({
           setIsQuestionModalOpen(true);
         }}
         onDeleteQuestion={handleDeleteQuestion}
+        onManageInBlueprint={() => onOpenTab?.("study-questions")}
       />
 
       {/* 2. Main Comparative Workspace */}

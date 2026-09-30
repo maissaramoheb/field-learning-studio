@@ -204,11 +204,26 @@ export interface EvidenceSupportProfile {
   transparencyFlags: string[];
 }
 
+export interface PlannedMethodTarget {
+  method: CollectionMethod | string;
+  plannedCount?: number;
+  targetSourceCount?: number;
+  targetEvidenceCount?: number;
+  description?: string;
+  notes?: string;
+}
+
 export interface StudyScopeConfig {
   targetSites: string[];
   isSingleSiteStudy: boolean;
   targetStakeholderGroups: string[];
   expectedMethods?: CollectionMethod[];
+  plannedMethods?: PlannedMethodTarget[];
+  scopeStatement?: string;
+  inScope?: string[];
+  outOfScope?: string[];
+  assumptions?: string[];
+  constraints?: string[];
 }
 
 export type StudyQuestionId = `RQ-${string}`;
@@ -219,9 +234,46 @@ export interface StudyQuestion {
   question: string;
   shortLabel?: string;
   criterion?: string;
-  isActive: boolean;
+  isActive?: boolean;
+  order?: number;
+  isPrimary?: boolean;
+  subQuestions?: string[];
   createdAt?: number;
   updatedAt?: number;
+}
+
+export interface FrameworkTheme {
+  id: string;
+  name: string;
+  shortLabel?: string;
+  description?: string;
+  guidingQuestion?: string;
+  order?: number;
+  isActive?: boolean;
+}
+
+export interface AnalyticalFrameworkConfig {
+  name?: string;
+  frameworkName?: string;
+  description?: string;
+  themes: FrameworkTheme[];
+}
+
+export type StudyRoleType =
+  | "lead"
+  | "researcher"
+  | "debrief_supervisor"
+  | "reviewer"
+  | "analyst"
+  | "validator"
+  | "approver";
+
+export interface StudyRoleAssignment {
+  id: string;
+  role: StudyRoleType;
+  actor: ActorRef;
+  notes?: string;
+  assignedAt?: number;
 }
 
 export interface PatternNote {
@@ -258,6 +310,17 @@ export interface StudyMeta {
   outputConfig?: StudyOutputConfig;
   createdAt: number;
   updatedAt: number;
+
+  // Phase 2 Study Workspace extensions
+  purpose?: string;
+  background?: string;
+  intendedAudience?: string;
+  decisionUse?: string;
+  geography?: string;
+  timeframe?: string;
+  ownerLead?: string;
+  framework?: AnalyticalFrameworkConfig;
+  teamRoles?: StudyRoleAssignment[];
 }
 
 export interface SourceRecord {
@@ -484,6 +547,19 @@ export interface DemoCase {
   lessons: LessonLearned[];
   goodPractices: GoodPractice[];
   recommendations: Recommendation[];
+
+  // Phase 2 Study Workspace extensions
+  purpose?: string;
+  background?: string;
+  intendedAudience?: string;
+  decisionUse?: string;
+  geography?: string;
+  timeframe?: string;
+  ownerLead?: string;
+  questions?: StudyQuestion[];
+  scopeConfig?: Partial<StudyScopeConfig>;
+  framework?: AnalyticalFrameworkConfig;
+  teamRoles?: StudyRoleAssignment[];
 }
 
 export interface FieldStudy extends StudyMeta {

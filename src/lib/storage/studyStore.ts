@@ -39,6 +39,10 @@ import type {
   Recommendation,
   RecommendationId,
   FieldStudy,
+  FrameworkTheme,
+  PlannedMethodTarget,
+  StudyRoleAssignment,
+  StudyScopeConfig,
 } from "@/lib/types";
 
 // ============================================================================
@@ -67,6 +71,19 @@ export async function saveStudyMeta(study: StudyMeta): Promise<void> {
   delete pureMeta.goodPractices;
   delete pureMeta.recommendations;
   await db.put("studies", pureMeta as unknown as StudyMeta);
+}
+
+export async function saveStudyScopeConfig(
+  studyId: StudyId,
+  scope: StudyScopeConfig
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  await saveStudyMeta({
+    ...meta,
+    scope,
+    updatedAt: Date.now(),
+  });
 }
 
 export async function saveStudyQuestion(
@@ -118,6 +135,183 @@ export async function deleteStudyQuestion(
       });
     }
   }
+}
+
+export async function reorderStudyQuestions(
+  studyId: StudyId,
+  questionIds: string[]
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const existingMap = new Map((meta.questions || []).map((q) => [q.id, q]));
+  const reordered: StudyQuestion[] = [];
+  questionIds.forEach((id, idx) => {
+    const q = existingMap.get(id);
+    if (q) {
+      reordered.push({ ...q, order: idx + 1, updatedAt: Date.now() });
+      existingMap.delete(id);
+    }
+  });
+  existingMap.forEach((q) => {
+    reordered.push({ ...q, order: reordered.length + 1 });
+  });
+  await saveStudyMeta({
+    ...meta,
+    questions: reordered,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function savePlannedMethod(
+  studyId: StudyId,
+  target: PlannedMethodTarget
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const scope = meta.scope ? { ...meta.scope } : {
+    targetSites: [],
+    isSingleSiteStudy: false,
+    targetStakeholderGroups: [],
+  };
+  const currentMethods = scope.plannedMethods ? [...scope.plannedMethods] : [];
+  const idx = currentMethods.findIndex(
+    (m) => m.method.toLowerCase() === target.method.toLowerCase()
+  );
+  if (idx >= 0) {
+    currentMethods[idx] = target;
+  } else {
+    currentMethods.push(target);
+  }
+  scope.plannedMethods = currentMethods;
+  await saveStudyMeta({
+    ...meta,
+    scope,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function deletePlannedMethod(
+  studyId: StudyId,
+  methodName: string
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  if (!meta.scope) return;
+  const scope = { ...meta.scope };
+  scope.plannedMethods = (scope.plannedMethods || []).filter(
+    (m) => m.method.toLowerCase() !== methodName.toLowerCase()
+  );
+  await saveStudyMeta({
+    ...meta,
+    scope,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function saveFrameworkTheme(
+  studyId: StudyId,
+  theme: FrameworkTheme
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const framework = meta.framework
+    ? { ...meta.framework, themes: [...(meta.framework.themes || [])] }
+    : { themes: [] };
+  const idx = framework.themes.findIndex((t) => t.id === theme.id);
+  if (idx >= 0) {
+    framework.themes[idx] = theme;
+  } else {
+    framework.themes.push({
+      ...theme,
+      order: theme.order ?? framework.themes.length + 1,
+    });
+  }
+  await saveStudyMeta({
+    ...meta,
+    framework,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function deleteFrameworkTheme(
+  studyId: StudyId,
+  themeId: string
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  if (!meta.framework) return;
+  const framework = {
+    ...meta.framework,
+    themes: (meta.framework.themes || []).filter((t) => t.id !== themeId),
+  };
+  await saveStudyMeta({
+    ...meta,
+    framework,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function reorderFrameworkThemes(
+  studyId: StudyId,
+  themeIds: string[]
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  if (!meta.framework) return;
+  const existingMap = new Map((meta.framework.themes || []).map((t) => [t.id, t]));
+  const reordered: FrameworkTheme[] = [];
+  themeIds.forEach((id, idx) => {
+    const t = existingMap.get(id);
+    if (t) {
+      reordered.push({ ...t, order: idx + 1 });
+      existingMap.delete(id);
+    }
+  });
+  existingMap.forEach((t) => {
+    reordered.push({ ...t, order: reordered.length + 1 });
+  });
+  await saveStudyMeta({
+    ...meta,
+    framework: {
+      ...meta.framework,
+      themes: reordered,
+    },
+    updatedAt: Date.now(),
+  });
+}
+
+export async function saveStudyRole(
+  studyId: StudyId,
+  roleAssignment: StudyRoleAssignment
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const roles = meta.teamRoles ? [...meta.teamRoles] : [];
+  const idx = roles.findIndex((r) => r.id === roleAssignment.id);
+  if (idx >= 0) {
+    roles[idx] = { ...roleAssignment, assignedAt: roleAssignment.assignedAt ?? Date.now() };
+  } else {
+    roles.push({ ...roleAssignment, assignedAt: roleAssignment.assignedAt ?? Date.now() });
+  }
+  await saveStudyMeta({
+    ...meta,
+    teamRoles: roles,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function deleteStudyRole(
+  studyId: StudyId,
+  roleAssignmentId: string
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const roles = (meta.teamRoles || []).filter((r) => r.id !== roleAssignmentId);
+  await saveStudyMeta({
+    ...meta,
+    teamRoles: roles,
+    updatedAt: Date.now(),
+  });
 }
 
 export async function savePatternNote(

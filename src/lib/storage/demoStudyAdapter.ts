@@ -168,11 +168,14 @@ export function adaptDemoCaseToFieldStudy(demoCase: DemoCase): FieldStudy {
     context: demoCase.context,
     status: "Demo Case",
     isDemoCase: true,
-    scope,
+    scope: {
+      ...scope,
+      ...(demoCase.scopeConfig || {}),
+    },
     executiveSummary: demoCase.executiveSummary,
     keyMessages: [...(demoCase.keyMessages || [])],
     limitations: [...(demoCase.limitations || [])],
-    questions: [],
+    questions: demoCase.questions ? [...demoCase.questions] : [],
     patternNotes: [],
     outputConfig: {
       includeRecommendations: true,
@@ -188,6 +191,16 @@ export function adaptDemoCaseToFieldStudy(demoCase: DemoCase): FieldStudy {
     lessons,
     goodPractices,
     recommendations,
+    // Phase 2 Study Workspace extensions
+    purpose: demoCase.purpose || demoCase.purposeAndScope || demoCase.context,
+    background: demoCase.background || demoCase.context,
+    intendedAudience: demoCase.intendedAudience,
+    decisionUse: demoCase.decisionUse,
+    geography: demoCase.geography,
+    timeframe: demoCase.timeframe,
+    ownerLead: demoCase.ownerLead,
+    framework: demoCase.framework,
+    teamRoles: demoCase.teamRoles,
   };
 }
 

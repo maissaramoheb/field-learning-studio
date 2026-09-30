@@ -57,10 +57,28 @@ import {
   saveFinding,
   saveRecommendation,
   cloneDemoStudy,
+  saveStudyMeta,
+  saveStudyScopeConfig,
+  saveStudyQuestion,
+  deleteStudyQuestion,
+  reorderStudyQuestions,
+  savePlannedMethod,
+  deletePlannedMethod,
+  saveFrameworkTheme,
+  deleteFrameworkTheme,
+  reorderFrameworkThemes,
+  saveStudyRole,
+  deleteStudyRole,
 } from "@/lib/storage";
 import { StudyLibraryView } from "@/components/library/StudyLibraryView";
 import { StudyWorkspaceHeader } from "@/components/layout/StudyWorkspaceHeader";
 import { WorkspaceContextHeader } from "@/components/layout/WorkspaceContextHeader";
+import {
+  StudyBriefView,
+  StudyQuestionsScopeView,
+  StudyMethodsSourcesView,
+  StudyFrameworkRolesView,
+} from "@/components/study";
 
 interface FieldLearningStudioAppProps {
   demoCase: DemoCase;
@@ -76,6 +94,10 @@ type EvidenceFilters = {
 
 export type WorkspaceTabId =
   | "overview"
+  | "study-brief"
+  | "study-questions"
+  | "study-methods"
+  | "study-framework"
   | "intake"
   | "evidence"
   | "debrief"
@@ -109,11 +131,14 @@ export const PRACTITIONER_SPACES: PractitionerSpace[] = [
     id: "study",
     stepNumber: "1",
     label: "Study",
-    description: "Scope, Governance & Next Action",
+    description: "Brief, Questions, Methods & Framework",
     icon: "🧭",
-    defaultTab: "overview",
+    defaultTab: "study-brief",
     tabs: [
-      { id: "overview", label: "Study Overview", shortLabel: "Study Home" },
+      { id: "study-brief", label: "Study Brief", shortLabel: "Brief" },
+      { id: "study-questions", label: "Questions & Scope", shortLabel: "Questions" },
+      { id: "study-methods", label: "Methods & Sources", shortLabel: "Methods" },
+      { id: "study-framework", label: "Framework & Roles", shortLabel: "Framework" },
     ],
   },
   {
@@ -158,6 +183,15 @@ export const PRACTITIONER_SPACES: PractitionerSpace[] = [
 ];
 
 export function getSpaceForTab(tab: WorkspaceTabId): PractitionerSpaceId {
+  if (
+    tab === "overview" ||
+    tab === "study-brief" ||
+    tab === "study-questions" ||
+    tab === "study-methods" ||
+    tab === "study-framework"
+  ) {
+    return "study";
+  }
   for (const space of PRACTITIONER_SPACES) {
     if (space.tabs.some((t) => t.id === tab)) {
       return space.id;
@@ -350,7 +384,7 @@ export function resolveStudioNavigation({
 export function FieldLearningStudioApp({
   demoCase,
 }: FieldLearningStudioAppProps) {
-  const [activeTab, setActiveTab] = useState<WorkspaceTabId>("overview");
+  const [activeTab, setActiveTab] = useState<WorkspaceTabId>("study-brief");
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
   const [pendingTraceId, setPendingTraceId] = useState<string | null>(null);
   const [filters, setFilters] = useState<EvidenceFilters>({
@@ -556,12 +590,14 @@ export function FieldLearningStudioApp({
     return runSandboxSafetyCheck(sandboxText);
   }, [sandboxText]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const updateSandboxText = (text: string) => {
     setSandboxText(text);
     setAnonymizationConfirmed(false);
   };
 
   // v0.2 walkthrough path progress (subtle & professional Suggested Walkthrough)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [demoProgress, setDemoProgress] = useState({
     step1: true,
     step2: false,
@@ -773,6 +809,7 @@ export function FieldLearningStudioApp({
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleParseSandbox() {
     if (!sandboxText.trim()) return;
     if (scannerTriggered && !anonymizationConfirmed) return;
@@ -806,6 +843,7 @@ export function FieldLearningStudioApp({
     setPendingTraceId(evidence.id);
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function handleResetSandbox() {
     setSandboxEvidence([]);
     setSandboxSources([]);
@@ -1324,32 +1362,94 @@ export function FieldLearningStudioApp({
             activeTab={activeTab}
             tabLabel={activeTabLabel}
           />
-          {activeTab === "overview" ? (
-            <OverviewTab 
-              currentStudy={currentStudy}
-              onOpenBackupRestore={() => setIsBackupRestoreModalOpen(true)}
-              demoCase={activeDemoCase} 
-              onTabChange={handleTabChange}
-              sandboxText={sandboxText}
-              setSandboxText={updateSandboxText}
-              sandboxStakeholder={sandboxStakeholder}
-              setSandboxStakeholder={setSandboxStakeholder}
-              sandboxDataType={sandboxDataType}
-              setSandboxDataType={setSandboxDataType}
-              sandboxTheme={sandboxTheme}
-              setSandboxTheme={setSandboxTheme}
-              sandboxSensitivity={sandboxSensitivity}
-              setSandboxSensitivity={setSandboxSensitivity}
-              sandboxSiteLabel={sandboxSiteLabel}
-              setSandboxSiteLabel={setSandboxSiteLabel}
-              scannerTriggered={scannerTriggered}
-              anonymizationConfirmed={anonymizationConfirmed}
-              setAnonymizationConfirmed={setAnonymizationConfirmed}
-              onParse={handleParseSandbox}
-              onReset={handleResetSandbox}
-              hasSandboxItems={sandboxEvidence.length > 0}
-              demoProgress={demoProgress}
-              traceHandlers={traceHandlers}
+          {activeTab === "study-brief" || activeTab === "overview" ? (
+            <StudyBriefView
+              study={currentStudy ?? (activeDemoCase as unknown as FieldStudy)}
+              onRefreshStudy={handleRefreshCurrentStudy}
+              onUpdateMeta={async (updatedMeta) => {
+                await saveStudyMeta(updatedMeta);
+                await handleRefreshCurrentStudy();
+              }}
+              onNavigateToTab={handleTabChange}
+              onCloneDemoStudy={handleCloneDemoFromLibrary}
+            />
+          ) : null}
+          {activeTab === "study-questions" ? (
+            <StudyQuestionsScopeView
+              study={currentStudy ?? (activeDemoCase as unknown as FieldStudy)}
+              onRefreshStudy={handleRefreshCurrentStudy}
+              onSaveQuestion={async (question) => {
+                if (!selectedCaseId) return;
+                await saveStudyQuestion(selectedCaseId, question);
+                await handleRefreshCurrentStudy();
+              }}
+              onDeleteQuestion={async (questionId) => {
+                if (!selectedCaseId) return;
+                await deleteStudyQuestion(selectedCaseId, questionId);
+                await handleRefreshCurrentStudy();
+              }}
+              onReorderQuestions={async (questionIds) => {
+                if (!selectedCaseId) return;
+                await reorderStudyQuestions(selectedCaseId, questionIds);
+                await handleRefreshCurrentStudy();
+              }}
+              onUpdateScope={async (updatedScope) => {
+                if (!selectedCaseId) return;
+                await saveStudyScopeConfig(selectedCaseId, updatedScope);
+                await handleRefreshCurrentStudy();
+              }}
+            />
+          ) : null}
+          {activeTab === "study-methods" ? (
+            <StudyMethodsSourcesView
+              study={currentStudy ?? (activeDemoCase as unknown as FieldStudy)}
+              onRefreshStudy={handleRefreshCurrentStudy}
+              onSavePlannedMethod={async (target) => {
+                if (!selectedCaseId) return;
+                await savePlannedMethod(selectedCaseId, target);
+                await handleRefreshCurrentStudy();
+              }}
+              onDeletePlannedMethod={async (methodName) => {
+                if (!selectedCaseId) return;
+                await deletePlannedMethod(selectedCaseId, methodName);
+                await handleRefreshCurrentStudy();
+              }}
+            />
+          ) : null}
+          {activeTab === "study-framework" ? (
+            <StudyFrameworkRolesView
+              study={currentStudy ?? (activeDemoCase as unknown as FieldStudy)}
+              onRefreshStudy={handleRefreshCurrentStudy}
+              onSaveTheme={async (theme) => {
+                if (!selectedCaseId) return;
+                await saveFrameworkTheme(selectedCaseId, theme);
+                await handleRefreshCurrentStudy();
+              }}
+              onDeleteTheme={async (themeId) => {
+                if (!selectedCaseId) return;
+                await deleteFrameworkTheme(selectedCaseId, themeId);
+                await handleRefreshCurrentStudy();
+              }}
+              onReorderThemes={async (themeIds) => {
+                if (!selectedCaseId) return;
+                await reorderFrameworkThemes(selectedCaseId, themeIds);
+                await handleRefreshCurrentStudy();
+              }}
+              onUpdateFrameworkConfig={async (config) => {
+                if (!selectedCaseId || !currentStudy) return;
+                await saveStudyMeta({ ...currentStudy, framework: config });
+                await handleRefreshCurrentStudy();
+              }}
+              onSaveRole={async (roleAssignment) => {
+                if (!selectedCaseId) return;
+                await saveStudyRole(selectedCaseId, roleAssignment);
+                await handleRefreshCurrentStudy();
+              }}
+              onDeleteRole={async (roleId) => {
+                if (!selectedCaseId) return;
+                await deleteStudyRole(selectedCaseId, roleId);
+                await handleRefreshCurrentStudy();
+              }}
             />
           ) : null}
           {activeTab === "intake" ? (
@@ -1512,6 +1612,7 @@ export function FieldLearningStudioApp({
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function OverviewTab({
   demoCase,
   currentStudy,

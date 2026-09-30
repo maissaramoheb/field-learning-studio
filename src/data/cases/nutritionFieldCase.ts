@@ -44,7 +44,224 @@ export const nutritionFieldCase: DemoCase = {
   limitations: [
     "This case is a sanitized demo derived from prior fieldwork. No raw identifiable field data is included.",
     "Observations are focused on School A, School B, and School C, representing selective program geographies.",
-    "Medical screenings lack systematic follow-up data because referral loops are rarely closed by local clinics."
+    "Medical screenings lack systematic follow-up data because referral loops are rarely closed by local clinics.",
+  ],
+  purpose:
+    "To evaluate whether integrating household socioeconomic vulnerability data with routine school-level health screening enhances targeting precision, and to diagnose critical cold storage, food safety, water sanitation, and caregiver engagement bottlenecks across pilot schools.",
+  background:
+    "Implemented across 4 pilot primary schools in District 4. The initial pilot delivered daily school meals but revealed alarming disparities: exclusion of non-documented vulnerable children, inadequate food storage facilities, and low father participation in nutrition counselling.",
+  intendedAudience:
+    "District Health & Education Board, Child Wellbeing Program Directors, School Governing Councils.",
+  decisionUse:
+    "Refinement of school meal targeting criteria for next academic year, investment prioritization for school kitchen cold-chain equipment, and redesign of father-focused nutrition outreach.",
+  geography: "District 4 Catchment: School A, School B, School C, School D (Peri-Urban and Rural Fringe).",
+  timeframe: "January 2026 – April 2026 (Term 1 Operational Synthesis).",
+  ownerLead: "Tariq Vance (Senior Child Wellbeing Specialist)",
+  questions: [
+    {
+      id: "RQ-NUT-1",
+      question:
+        "Does the integration of household vulnerability criteria improve meal program targeting precision compared to school-only anthropometric screening?",
+      shortLabel: "Targeting Precision & Inclusivity",
+      criterion: "Targeting Precision",
+      isPrimary: true,
+      order: 1,
+      isActive: true,
+      subQuestions: [
+        "How many undocumented children are excluded under existing medical registration criteria?",
+      ],
+    },
+    {
+      id: "RQ-NUT-2",
+      question:
+        "What infrastructure, cold chain, and water sanitation barriers most critically constrain daily food safety in pilot school kitchens?",
+      shortLabel: "Kitchen Safety & Storage",
+      criterion: "Operational Safety & Infrastructure",
+      isPrimary: false,
+      order: 2,
+      isActive: true,
+    },
+    {
+      id: "RQ-NUT-3",
+      question:
+        "In what ways do gendered household roles affect parental uptake of nutritional counselling and clinic referral completion?",
+      shortLabel: "Caregiver Gender Dynamics",
+      criterion: "Equity & Caregiver Engagement",
+      isPrimary: false,
+      order: 3,
+      isActive: true,
+    },
+    {
+      id: "RQ-NUT-4",
+      question:
+        "How effectively do peer-led student health committees promote hygienic practices without compromising student wellbeing or learning time?",
+      shortLabel: "Child Agency & Safeguarding",
+      criterion: "Child Participation & Safeguarding",
+      isPrimary: false,
+      order: 4,
+      isActive: true,
+    },
+  ],
+  scopeConfig: {
+    targetSites: ["School A", "School B", "School C", "School D"],
+    isSingleSiteStudy: false,
+    targetStakeholderGroups: [
+      "School staff and administrators",
+      "Child beneficiaries (grades 3-6)",
+      "Mother caregiver groups",
+      "Father caregiver circles",
+      "Volunteer kitchen staff",
+      "District health officers",
+    ],
+    scopeStatement:
+      "Covers school meal preparation, health screenings, caregiver counselling sessions, and student hygiene clubs across the 4 designated pilot schools in District 4.",
+    inScope: [
+      "Daily kitchen food handling, cold storage, and meal distribution",
+      "Medical screening and referral ledgers",
+      "Caregiver nutrition counselling sessions and attendance barriers",
+      "Child-led health committee activities and hygiene peer education",
+      "Water source testing and storage sanitation",
+    ],
+    outOfScope: [
+      "Curriculum syllabus revisions outside health and nutrition modules",
+      "Secondary education facilities outside District 4 pilot cluster",
+      "Municipal water grid construction or large-scale civil engineering",
+      "Regional agricultural food pricing and national import subsidies",
+    ],
+    assumptions: [
+      "Academic terms proceed without extended emergency closures",
+      "District health clinic maintains nurse visits for quarterly anthropometric verification",
+      "Caregivers provide transparent family composition details during home visits",
+    ],
+    constraints: [
+      "Frequent rural power outages impacting refrigerated medicine and dairy storage",
+      "Lack of formalized digital patient records linking school health cards to clinic databases",
+      "Severe road flooding during monsoon weeks limiting food delivery access to School C",
+    ],
+    plannedMethods: [
+      {
+        method: "Key Informant Interview",
+        plannedCount: 10,
+        description: "School headmasters, district health officers, and lead nurses",
+      },
+      {
+        method: "Direct Observation",
+        plannedCount: 6,
+        description: "Kitchen prep, water points, student meal queues, and handwashing stations",
+      },
+      {
+        method: "Focus Group Discussion",
+        plannedCount: 8,
+        description: "Mother caregivers, father circles, and student health committees",
+      },
+      {
+        method: "Document Review",
+        plannedCount: 4,
+        description: "Kitchen delivery logs, health screening records, and referral rosters",
+      },
+    ],
+  },
+  framework: {
+    name: "School Health & Nutrition Systemic Assessment Framework",
+    description:
+      "Analytical framework examining nutritional equity, clinical validity, food safety infrastructure, and community ownership.",
+    themes: [
+      {
+        id: "NUT-THM-1",
+        name: "Targeting Precision & Inclusivity",
+        shortLabel: "Targeting",
+        description: "Effectiveness of vulnerability indicators in capturing children at risk while minimizing exclusion.",
+        guidingQuestion: "How accurately do current criteria reach the most vulnerable children?",
+        order: 1,
+        isActive: true,
+      },
+      {
+        id: "NUT-THM-2",
+        name: "Food Safety & Cold-Chain Integrity",
+        shortLabel: "Food Safety",
+        description: "Kitchen hygiene, storage adequacy, clean water access, and food handling standards.",
+        guidingQuestion: "What physical and procedural factors safeguard food from contamination?",
+        order: 2,
+        isActive: true,
+      },
+      {
+        id: "NUT-THM-3",
+        name: "Caregiver & Gender Dynamics",
+        shortLabel: "Caregivers",
+        description: "Gender division of household care, clinic visit completion, and parental engagement barriers.",
+        guidingQuestion: "How do household gender roles shape uptake of nutritional recommendations?",
+        order: 3,
+        isActive: true,
+      },
+      {
+        id: "NUT-THM-4",
+        name: "Child-Led Health Agency",
+        shortLabel: "Child Agency",
+        description: "Student committee participation, peer influence, and child safeguarding.",
+        guidingQuestion: "How safely and effectively do children advocate for hygiene among peers?",
+        order: 4,
+        isActive: true,
+      },
+      {
+        id: "NUT-THM-5",
+        name: "Referral & Health System Linkages",
+        shortLabel: "Referrals",
+        description: "Follow-up rate between school screening diagnosis and primary clinic treatment.",
+        guidingQuestion: "Where do clinic referral loops break down and why?",
+        order: 5,
+        isActive: true,
+      },
+    ],
+  },
+  teamRoles: [
+    {
+      id: "NUT-ROLE-1",
+      role: "lead",
+      actor: { kind: "human", displayName: "Tariq Vance" },
+      notes: "Senior Child Wellbeing Specialist, overall inquiry lead",
+    },
+    {
+      id: "NUT-ROLE-2",
+      role: "researcher",
+      actor: { kind: "human", displayName: "Amina Kassam" },
+      notes: "Public Health Researcher, clinical screening and kitchen inspection notes",
+    },
+    {
+      id: "NUT-ROLE-3",
+      role: "researcher",
+      actor: { kind: "human", displayName: "David Ochieng" },
+      notes: "Community Mobilizer, caregiver focus groups and interview notes",
+    },
+    {
+      id: "NUT-ROLE-4",
+      role: "debrief_supervisor",
+      actor: { kind: "human", displayName: "Tariq Vance" },
+      notes: "Daily field debrief facilitation and priority alignment",
+    },
+    {
+      id: "NUT-ROLE-5",
+      role: "reviewer",
+      actor: { kind: "human", displayName: "Dr. Sarah Jenkins" },
+      notes: "Epidemiological Data Reviewer, screening threshold verification",
+    },
+    {
+      id: "NUT-ROLE-6",
+      role: "analyst",
+      actor: { kind: "human", displayName: "Farah Nour" },
+      notes: "Nutrition Data Analyst, inter-school comparative synthesis",
+    },
+    {
+      id: "NUT-ROLE-7",
+      role: "validator",
+      actor: { kind: "human", displayName: "Dr. Laila Al-Mansoor" },
+      notes: "Senior Methodology Validator, peer audit of recommendations",
+    },
+    {
+      id: "NUT-ROLE-8",
+      role: "approver",
+      actor: { kind: "human", displayName: "Director General, District Education" },
+      notes: "Institutional Stakeholder Approver",
+    },
   ],
   sources: [
     {

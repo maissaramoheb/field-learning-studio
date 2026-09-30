@@ -13,6 +13,7 @@ interface StudyQuestionSelectorProps {
   onAddQuestion: () => void;
   onEditQuestion: (question: StudyQuestion) => void;
   onDeleteQuestion?: (questionId: string) => void;
+  onManageInBlueprint?: () => void;
 }
 
 export function StudyQuestionSelector({
@@ -25,6 +26,7 @@ export function StudyQuestionSelector({
   onAddQuestion,
   onEditQuestion,
   onDeleteQuestion,
+  onManageInBlueprint,
 }: StudyQuestionSelectorProps) {
   const currentQuestion = questions.find((q) => q.id === selectedQuestionId);
 
@@ -40,15 +42,27 @@ export function StudyQuestionSelector({
           </p>
         </div>
 
-        {!isDemoCase && (
-          <button
-            type="button"
-            onClick={onAddQuestion}
-            className="fls-button fls-button-quiet"
-          >
-            <span>+</span> Add Study Question
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {onManageInBlueprint && (
+            <button
+              type="button"
+              onClick={onManageInBlueprint}
+              className="fls-button fls-button-quiet text-xs"
+              title="Manage questions, ordering, and inquiry scope in Study Blueprint"
+            >
+              Manage in Study Blueprint →
+            </button>
+          )}
+          {!isDemoCase && (
+            <button
+              type="button"
+              onClick={onAddQuestion}
+              className="fls-button fls-button-quiet"
+            >
+              <span>+</span> Add Study Question
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Question Selector Tabs */}

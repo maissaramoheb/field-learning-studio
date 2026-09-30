@@ -34,6 +34,231 @@ export const communityBridgesCase: DemoCase = {
     "Some stakeholder groups, including persons with disabilities and outlying villages, are underrepresented.",
     "Sensitive issues are summarized at a high level to avoid exposing identifiable details.",
   ],
+  purpose:
+    "To evaluate how safe, community-centered participation hubs, dedicated youth micro-grants, and trusted dialogue facilitation enable young women and marginalized youth to participate in local peacebuilding across divided urban districts, and to isolate operational bottlenecks before expansion.",
+  background:
+    "Initiated across three municipal zones facing post-conflict polarization and socioeconomic stagnation. Traditional municipal councils systematically underrepresented women and youth, while earlier interventions suffered from elite capture and lack of transparent grant selection. This study captures early-to-midline implementation learning.",
+  intendedAudience:
+    "Municipal Social Cohesion Steering Committee, Donor Program Oversight Board, and District Civil Society Alliances.",
+  decisionUse:
+    "Mid-term operational adjustments for community center safety protocols, reallocation of Phase 2 small grant funds, and institutionalization of cross-district dialogue forums.",
+  geography: "Al Noor District, River East, and North Ridge (3 urban municipal sectors).",
+  timeframe: "February 2026 – May 2026 (Midline Field Inquiry Cycle).",
+  ownerLead: "Dr. Laila Al-Mansoor (Principal MEL Advisor)",
+  questions: [
+    {
+      id: "RQ-1",
+      question:
+        "How effectively do community center spaces reduce barriers to participation for young women and marginalized youth?",
+      shortLabel: "Safe Access & Youth Participation",
+      criterion: "Effectiveness & Inclusion",
+      isPrimary: true,
+      order: 1,
+      isActive: true,
+      subQuestions: [
+        "What specific schedule and security provisions most increase women's daytime attendance?",
+        "Do youth perceive center facilities as politically neutral and safe?",
+      ],
+    },
+    {
+      id: "RQ-2",
+      question:
+        "To what extent do youth micro-grant initiatives foster cross-community cooperation versus local competition?",
+      shortLabel: "Micro-Grant Cohesion Impact",
+      criterion: "Coherence & Social Cohesion",
+      isPrimary: false,
+      order: 2,
+      isActive: true,
+      subQuestions: [
+        "How are joint projects between neighboring districts received by community elders?",
+      ],
+    },
+    {
+      id: "RQ-3",
+      question:
+        "What governance and feedback mechanisms are required to ensure equitable selection and participant safeguarding?",
+      shortLabel: "Selection Equity & Safeguarding",
+      criterion: "Accountability & Protection",
+      isPrimary: false,
+      order: 3,
+      isActive: true,
+    },
+    {
+      id: "RQ-4",
+      question:
+        "How sustainable are community center activities without continued external operational subsidies?",
+      shortLabel: "Institutional Sustainability",
+      criterion: "Sustainability & Ownership",
+      isPrimary: false,
+      order: 4,
+      isActive: true,
+    },
+  ],
+  scopeConfig: {
+    targetSites: ["Al Noor District", "River East", "North Ridge"],
+    isSingleSiteStudy: false,
+    targetStakeholderGroups: [
+      "Youth participants",
+      "Women representatives",
+      "Community center coordinators",
+      "Local government officials",
+      "Community elders",
+    ],
+    scopeStatement:
+      "Covers community-level civic activities, safe spaces, training sessions, and micro-grant disbursements in the 3 designated municipal districts during the initial 18 months of implementation.",
+    inScope: [
+      "Community center daily operations and event attendance",
+      "Women-only preparatory circles and dialogue forums",
+      "Youth committee micro-grant selection and project execution",
+      "District coordination routines and stakeholder feedback channels",
+      "Facilitator safeguarding protocols and reporting mechanisms",
+    ],
+    outOfScope: [
+      "Formal municipal political election outcomes",
+      "Large-scale municipal infrastructure rehabilitation outside community centers",
+      "Macro-level national peace accords or legislative reform",
+      "Direct household cash assistance programming",
+    ],
+    assumptions: [
+      "Local municipal councils continue honoring community center neutrality",
+      "Security conditions permit daily daytime center access without curfews",
+      "Youth and women participants feel safe attending daytime events without retaliation",
+    ],
+    constraints: [
+      "Evening mobility constraints for female participants due to poor public lighting",
+      "Limited formal baseline socioeconomic data at neighborhood level",
+      "Intermittent local mobile connectivity for digital intake synchronization",
+    ],
+    plannedMethods: [
+      {
+        method: "Focus Group Discussion",
+        plannedCount: 12,
+        description: "Disaggregated by gender and youth age cohorts across all 3 districts",
+      },
+      {
+        method: "Key Informant Interview",
+        plannedCount: 15,
+        description: "Municipal officials, center directors, and traditional community leaders",
+      },
+      {
+        method: "Direct Observation",
+        plannedCount: 8,
+        description: "Structured observation of mixed dialogue and training sessions",
+      },
+      {
+        method: "Document Review",
+        plannedCount: 6,
+        description: "Project monitoring logs, attendance rosters, and grant applications",
+      },
+      {
+        method: "Community Meeting",
+        plannedCount: 4,
+        description: "Open neighborhood feedback and validation sessions",
+      },
+    ],
+  },
+  framework: {
+    name: "Community Peacebuilding & Inclusive Governance Framework",
+    description:
+      "Five analytical lenses designed to examine relational trust, structural access, and operational safety without imposing rigid institutional standards.",
+    themes: [
+      {
+        id: "THM-1",
+        name: "Access & Inclusion Barriers",
+        shortLabel: "Access",
+        description: "Physical, cultural, logistical, and safety factors influencing initial participation.",
+        guidingQuestion: "What conditions make participation physically and socially accessible for underrepresented groups?",
+        order: 1,
+        isActive: true,
+      },
+      {
+        id: "THM-2",
+        name: "Safe Space & Facilitation Quality",
+        shortLabel: "Safe Space",
+        description: "Emotional safety, trusted moderation, and conflict-sensitive dialogue dynamics.",
+        guidingQuestion: "How do facilitation methods and environment quality influence participant openness and safety?",
+        order: 2,
+        isActive: true,
+      },
+      {
+        id: "THM-3",
+        name: "Civic Efficacy & Practical Action",
+        shortLabel: "Efficacy",
+        description: "Tangible outcomes, skills applied, youth agency, and visible community contributions.",
+        guidingQuestion: "Do participants experience concrete influence and visible results from their engagement?",
+        order: 3,
+        isActive: true,
+      },
+      {
+        id: "THM-4",
+        name: "Institutional Trust & Governance",
+        shortLabel: "Governance",
+        description: "Transparency, feedback loops, grievance handling, and leadership credibility.",
+        guidingQuestion: "How transparent and accountable are decision-making and selection procedures perceived to be?",
+        order: 4,
+        isActive: true,
+      },
+      {
+        id: "THM-5",
+        name: "Resource Equity & Fairness",
+        shortLabel: "Equity",
+        description: "Distribution of mini-grants, center resources, and opportunities across sub-groups.",
+        guidingQuestion: "Are benefits distributed equitably without perceived favoritism or elite capture?",
+        order: 5,
+        isActive: true,
+      },
+    ],
+  },
+  teamRoles: [
+    {
+      id: "ROLE-1",
+      role: "lead",
+      actor: { kind: "human", displayName: "Dr. Laila Al-Mansoor" },
+      notes: "Principal MEL Advisor, overall methodological integrity and reporting",
+    },
+    {
+      id: "ROLE-2",
+      role: "researcher",
+      actor: { kind: "human", displayName: "Kareem Zeid" },
+      notes: "Lead Field Researcher, youth focus groups and observational logging",
+    },
+    {
+      id: "ROLE-3",
+      role: "researcher",
+      actor: { kind: "human", displayName: "Samira Haddad" },
+      notes: "Field Researcher, women's peace circles and safe access interviews",
+    },
+    {
+      id: "ROLE-4",
+      role: "debrief_supervisor",
+      actor: { kind: "human", displayName: "Dr. Laila Al-Mansoor" },
+      notes: "Daily debrief synthesis and fieldwork prioritization",
+    },
+    {
+      id: "ROLE-5",
+      role: "reviewer",
+      actor: { kind: "human", displayName: "Nadia Farouk" },
+      notes: "Evidence Reviewer, source attribution and ethical anonymization verification",
+    },
+    {
+      id: "ROLE-6",
+      role: "analyst",
+      actor: { kind: "human", displayName: "Tariq Vance" },
+      notes: "Senior Analyst, comparative cross-district synthesis and matrix triangulation",
+    },
+    {
+      id: "ROLE-7",
+      role: "validator",
+      actor: { kind: "human", displayName: "Elena Rostova" },
+      notes: "External Peer Validator, claim boundary defense and limitation audits",
+    },
+    {
+      id: "ROLE-8",
+      role: "approver",
+      actor: { kind: "human", displayName: "Marcus Chen" },
+      notes: "Head of Program Quality, learning brief publication sign-off",
+    },
+  ],
   sources: [
     {
       id: "SRC-001",
