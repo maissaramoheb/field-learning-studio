@@ -233,13 +233,35 @@ export function WorkspaceLeftRail({
       </nav>
 
       {/* Rail Footer Information */}
-      {!isCollapsed && (
+      {!isCollapsed ? (
         <div className="fls-rail-footer p-3 border-t border-[var(--border)] text-[11px] text-[var(--muted-soft)]">
           <div className="font-mono text-[10px] uppercase tracking-wider mb-1 font-semibold text-[var(--muted)]">
             Progression
           </div>
           <div className="text-[10.5px] leading-relaxed">
             Define → Capture → Interpret → Decide
+          </div>
+          <div className="fls-rail-copyright pt-2.5 mt-2.5 border-t border-[var(--border)] text-[11.5px] font-normal text-[var(--muted)] leading-tight select-none">
+            <div>© 2026 Maissara Selim</div>
+            <div className="text-[11px] text-[var(--muted-soft)] mt-0.5">
+              Field Learning Studio. All rights reserved.
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="fls-rail-footer p-2.5 border-t border-[var(--border)] flex justify-center">
+          <div
+            className="fls-rail-copyright-compact group relative flex items-center justify-center cursor-default text-[11px] font-normal text-[var(--muted)] hover:text-[var(--foreground)]"
+            aria-label="© 2026 Maissara Selim. Field Learning Studio. All rights reserved."
+            tabIndex={0}
+          >
+            <span aria-hidden="true">© 2026</span>
+            <div
+              role="tooltip"
+              className="fls-rail-tooltip pointer-events-none absolute left-full ml-2 bottom-0 px-2.5 py-1.5 rounded-md bg-[var(--surface-elevated)] border border-[var(--border)] text-[11.5px] font-normal text-[var(--foreground)] whitespace-nowrap shadow-md opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity z-50"
+            >
+              © 2026 Maissara Selim. Field Learning Studio. All rights reserved.
+            </div>
           </div>
         </div>
       )}

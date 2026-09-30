@@ -1684,6 +1684,11 @@ export function FieldLearningStudioApp({
         </div>
 
         {renderDrawer()}
+
+        {/* Mobile / Tablet unobtrusive copyright notice (hidden on desktop where rail displays it) */}
+        <div className="lg:hidden pt-6 pb-8 mt-10 border-t border-[var(--border)] text-center text-[11.5px] font-normal text-[var(--muted)]">
+          © 2026 Maissara Selim. Field Learning Studio. All rights reserved.
+        </div>
       </div>
     </div>
   </div>

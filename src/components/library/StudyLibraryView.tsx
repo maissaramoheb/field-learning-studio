@@ -166,6 +166,11 @@ export function StudyLibraryView({
               </p>
             </div>
           </section>
+
+          {/* Footer */}
+          <footer className="mt-12 pt-6 pb-8 border-t border-[var(--border)] text-center sm:text-left text-[11.5px] font-normal text-[var(--muted)]">
+            © 2026 Maissara Selim. Field Learning Studio. All rights reserved.
+          </footer>
         </div>
       </div>
     </main>

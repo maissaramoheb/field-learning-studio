@@ -534,4 +534,59 @@ describe("Phase 3: Workspace Rail + Field Material Architecture", () => {
       expect(ev?.materialCategory).toBe("supervisory_interpretation");
     });
   });
+
+  // ==========================================
+  // 8. Legal & Shell Identity (Copyright Notice Regression)
+  // ==========================================
+  describe("8. Legal & Shell Identity (Copyright Notice Regression)", () => {
+    it("asserts standard copyright notice exists in WorkspaceLeftRail", async () => {
+      const fs = await import("fs");
+      const path = await import("path");
+      const railSource = fs.readFileSync(
+        path.resolve(process.cwd(), "src/components/layout/WorkspaceLeftRail.tsx"),
+        "utf-8"
+      );
+
+      // Expanded two-line treatment
+      expect(railSource).toContain("© 2026 Maissara Selim");
+      expect(railSource).toContain("Field Learning Studio. All rights reserved.");
+
+      // Collapsed indicator with full tooltip / aria-label
+      expect(railSource).toContain("© 2026");
+      expect(railSource).toContain('aria-label="© 2026 Maissara Selim. Field Learning Studio. All rights reserved."');
+
+      // Ensure no unauthorized trademark symbols
+      expect(railSource).not.toContain("™");
+      expect(railSource).not.toContain("®");
+    });
+
+    it("asserts full single-line copyright notice exists in LandingPage footer", async () => {
+      const fs = await import("fs");
+      const path = await import("path");
+      const landingSource = fs.readFileSync(
+        path.resolve(process.cwd(), "src/components/landing/LandingPage.tsx"),
+        "utf-8"
+      );
+
+      expect(landingSource).toContain("© 2026 Maissara Selim. Field Learning Studio. All rights reserved.");
+      expect(landingSource).not.toContain("™");
+      expect(landingSource).not.toContain("®");
+    });
+
+    it("asserts mobile/tablet fallback notice exists in FieldLearningStudioApp and StudyLibraryView", async () => {
+      const fs = await import("fs");
+      const path = await import("path");
+      const appSource = fs.readFileSync(
+        path.resolve(process.cwd(), "src/components/FieldLearningStudioApp.tsx"),
+        "utf-8"
+      );
+      const librarySource = fs.readFileSync(
+        path.resolve(process.cwd(), "src/components/library/StudyLibraryView.tsx"),
+        "utf-8"
+      );
+
+      expect(appSource).toContain("© 2026 Maissara Selim. Field Learning Studio. All rights reserved.");
+      expect(librarySource).toContain("© 2026 Maissara Selim. Field Learning Studio. All rights reserved.");
+    });
+  });
 });
