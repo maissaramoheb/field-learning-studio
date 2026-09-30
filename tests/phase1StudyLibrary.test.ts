@@ -236,9 +236,13 @@ describe("Phase 1: Study Library & Workspace Identity Foundation", () => {
       expect(deliverablesCtx.stepNumber).toBe("4");
     });
 
-    it("accurately maps all 10 sub-tabs to their parent practitioner space", () => {
+    it("accurately maps all sub-tabs to their parent practitioner space", () => {
       const tabSpaceExpectations: Record<WorkspaceTabId, PractitionerSpaceId> = {
         overview: "study",
+        "study-brief": "study",
+        "study-questions": "study",
+        "study-methods": "study",
+        "study-framework": "study",
         intake: "field-material",
         evidence: "field-material",
         debrief: "analysis",

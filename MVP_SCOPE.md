@@ -77,13 +77,29 @@
 - **Dynamic Triangulation:** Pure runtime calculation excluding supervisory debriefs from independent counts, qualifying legacy unclassified items, and supporting single-source findings with human caveats.
 - **Source File Storage Abstraction:** Metadata/content segregation with quota warnings.
 
-## Phase 0 Does Not Include
+## Phase 1 Includes
 
-- Study Library UI redesign.
-- Import & Mapping UI or XLSX parser.
-- Synthesis or Triangulation Matrix UI redesign.
-- Findings Ledger redesign or "Ask this Study".
-- Deliverables redesign or sandbox deletion.
+- **Study Library Architecture:** Dedicated `StudyLibraryView` with Showcase Studies (read-only demos) and My Studies (local editable studies).
+- **Workspace Navigation & Identity:** Four practitioner spaces (`study`, `field-material`, `analysis`, `deliverables`) with semantic accent tokens and Level 1-3 navigation hierarchy.
+- **Demo Cloning:** Deep cloning of demo cases into local editable IndexedDB studies with full relationship preservation.
+- **Deep Link & History Synchronization:** Strict URL resolution priority and popstate support.
+
+## Phase 2 Includes
+
+- **Study Workspace Transformation:** Space 1 partitioned into 4 distinct sub-views: `Study Brief`, `Questions & Scope`, `Methods & Sources`, `Framework & Roles`.
+- **Study Brief Charter:** Core evaluation metadata (title, purpose, background, intended audience, decision use, geography, timeframe, owner/lead) with inline editing, limitations ledger, and cloning CTA for demos.
+- **Canonical Questions & Scope:** Canonical authoring, primary flagging, sub-question lists, up/down reordering for `StudyQuestion` entities; explicit scope statement, in-scope, out-of-scope, assumptions, constraints.
+- **Methods & Sources Dynamic Reconciliation:** Configuration of planned methods and source/observation targets, with dynamic in-memory comparison against actual field sources and progress tracking without stored derived counts.
+- **Framework & Roles Governance:** Configurable analytical themes/lenses with descriptions and active status; lightweight study roles matrix (`Lead Evaluator`, `Field Researcher`, `Peer Reviewer`, `QA Approver`, `Focal Point`).
+- **Dynamic Study Readiness:** 9-point deterministic readiness scoring with expandable banner and direct sub-view deep links.
+- **Synthesis Question Management Link:** Seamless transition from Synthesis Workbench question filtering to Study Questions configuration.
+
+## Phase 2 Does Not Include
+
+- Redesign of Field Material, Analysis, or Deliverables workspaces.
+- External AI API integration or automated question generation.
+- User accounts, authentication, or multi-user server RBAC.
+- IndexedDB schema version bump (remains at DB_VERSION 2).
 - Production deployment or merging to main.
 
 ## v0.1 Does Not Include

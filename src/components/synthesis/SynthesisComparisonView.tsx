@@ -677,20 +677,30 @@ function EvidenceRowCard({
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-[var(--border)]/60 pt-2 text-[10px]">
         <div className="flex flex-wrap items-center gap-1">
           {entry.studyQuestionIds && entry.studyQuestionIds.length > 0 ? (
-            entry.studyQuestionIds.map((qId) => (
-              <span
-                key={qId}
-                className="rounded bg-[var(--trace)]/15 border border-[var(--trace)]/30 px-1.5 py-0.5 font-mono text-[9px] font-bold text-[var(--trace)]"
-              >
-                {qId}
-              </span>
-            ))
+            entry.studyQuestionIds.map((qId) => {
+              const matchedQ = questions.find((q) => q.id === qId);
+              const isArchived = matchedQ?.isActive === false;
+              return (
+                <span
+                  key={qId}
+                  className={`rounded px-1.5 py-0.5 font-mono text-[9px] font-bold ${
+                    isArchived
+                      ? "bg-amber-500/15 border border-amber-500/30 text-amber-300"
+                      : "bg-[var(--trace)]/15 border border-[var(--trace)]/30 text-[var(--trace)]"
+                  }`}
+                  title={isArchived ? `${qId} (Archived Question)` : qId}
+                >
+                  {qId}
+                  {isArchived && <span className="ml-1 font-sans text-[8px] font-normal uppercase opacity-75">Archived</span>}
+                </span>
+              );
+            })
           ) : (
             <span className="italic text-amber-400/90">No study question linked</span>
           )}
         </div>
 
-        {!isDemoCase && questions.length > 0 && (
+        {!isDemoCase && questions.some((q) => q.isActive !== false) && (
           <select
             value=""
             onChange={(e) => {
@@ -699,11 +709,13 @@ function EvidenceRowCard({
             className="rounded border border-[var(--border)] bg-[var(--surface)] px-1.5 py-0.5 text-[10px] text-[var(--muted)] hover:text-[var(--foreground)]"
           >
             <option value="">+ Assign Question</option>
-            {questions.map((q) => (
-              <option key={q.id} value={q.id}>
-                {q.id} ({q.shortLabel || q.question.slice(0, 20)})
-              </option>
-            ))}
+            {questions
+              .filter((q) => q.isActive !== false)
+              .map((q) => (
+                <option key={q.id} value={q.id}>
+                  {q.id} ({q.shortLabel || q.question.slice(0, 20)})
+                </option>
+              ))}
           </select>
         )}
       </div>

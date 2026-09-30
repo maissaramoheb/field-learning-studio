@@ -29,3 +29,11 @@
   - Centralized Write Normalization: Ensure all new writes through `studyStore` pass through idempotent pure normalizers in `src/lib/storage/normalization.ts` ensuring all metadata, audit trails, and dual-write synchronizations are satisfied.
   - Recommendation Dual-Write Invariant: Maintain synchronization between `linkedFindingId` (singular) and `linkedFindingIds` (array) on every write to preserve existing UI consumers and the `by_finding` index during transition.
   - Pure Dynamic Triangulation: Recalculate triangulation metrics dynamically on demand; do not persist deterministic triangulation scores. Allow single-source findings with explicit recorded human caveats.
+- **Phase 2 Study Workspace Architecture Decision:**
+  - Study Workspace Purpose: Transform the Study workspace from an overview landing into the authoritative place where the practitioner defines the study before collection or import.
+  - Canonical 4-Sub-View Hierarchy: Sub-divide Space 1 (Study) into `Study Brief` (`study-brief`, default), `Questions & Scope` (`study-questions`), `Methods & Sources` (`study-methods`), and `Framework & Roles` (`study-framework`).
+  - Study Question Canonical Ownership: Move authoring and ordering of `StudyQuestion` entities canonically into `Study -> Questions & Scope`. `SynthesisWorkbench` retains filtering, matrix association, and active selection, with a "Manage in Study Blueprint →" button linking back to `study-questions`.
+  - Dynamic Methods & Sources Reconciliation: Reconcile planned targets against actual active source and evidence records entirely dynamically in memory (`useMemo`). Never persist derived counts or statuses to storage.
+  - Configurable Analytical Framework Lenses & Team Roles Matrix: Store framework lenses and governance assignments purely as typed properties on `StudyMeta` in IndexedDB. No user accounts, passwords, or RBAC systems are introduced.
+  - Pure Dynamic Study Readiness: Evaluate study preparation readiness dynamically across 9 deterministic criteria covering brief, questions, methods, framework, and roles. Readiness score and missing-item lists are never stored in IndexedDB.
+  - Zero IndexedDB Version Bump: Preserve `DB_VERSION = 2`. All new properties exist as non-breaking, optional fields on the existing `studies` store schema.

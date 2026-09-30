@@ -3,7 +3,6 @@
 import React, { useState, useMemo } from "react";
 import type {
   FieldStudy,
-  StudyQuestion,
   PatternNote,
   Finding,
   Recommendation,
@@ -12,8 +11,6 @@ import type {
   EvidenceEntryId,
 } from "@/lib/types";
 import {
-  saveStudyQuestion,
-  deleteStudyQuestion,
   savePatternNote,
   deletePatternNote,
   saveFinding,
@@ -25,7 +22,6 @@ import {
   saveStudyMeta,
 } from "@/lib/storage";
 import { StudyQuestionSelector } from "./StudyQuestionSelector";
-import { StudyQuestionModal } from "./StudyQuestionModal";
 import { SynthesisComparisonView } from "./SynthesisComparisonView";
 import { BulkActionBar } from "./BulkActionBar";
 import { WorkingPatternsPanel } from "./WorkingPatternsPanel";
@@ -55,9 +51,6 @@ export function SynthesisWorkbench({
   const [selectedEvidenceIds, setSelectedEvidenceIds] = useState<EvidenceEntryId[]>([]);
 
   // Modals state
-  const [isQuestionModalOpen, setIsQuestionModalOpen] = useState(false);
-  const [editingQuestion, setEditingQuestion] = useState<StudyQuestion | null>(null);
-
   const [isFindingModalOpen, setIsFindingModalOpen] = useState(false);
   const [editingFinding, setEditingFinding] = useState<Finding | null>(null);
   const [findingInitialEvidenceIds, setFindingInitialEvidenceIds] = useState<EvidenceEntryId[]>([]);
@@ -160,31 +153,6 @@ export function SynthesisWorkbench({
       await onRefreshStudy();
     } catch (err) {
       console.error("Single assign question error:", err);
-    }
-  };
-
-  // Study Question CRUD
-  const handleSaveQuestion = async (question: StudyQuestion) => {
-    if (isDemo) return;
-    try {
-      await saveStudyQuestion(study.id, question);
-      await onRefreshStudy();
-    } catch (err) {
-      console.error("Save question error:", err);
-    }
-  };
-
-  const handleDeleteQuestion = async (questionId: string) => {
-    if (isDemo) return;
-    try {
-      await deleteStudyQuestion(study.id, questionId);
-      if (selectedQuestionId === questionId) {
-        setSelectedQuestionId(null);
-        setActiveFilter("all");
-      }
-      await onRefreshStudy();
-    } catch (err) {
-      console.error("Delete question error:", err);
     }
   };
 
@@ -368,15 +336,7 @@ export function SynthesisWorkbench({
         unassignedCount={unassignedEvidence.length}
         isDemoCase={isDemo}
         onSelectFilter={handleSelectFilter}
-        onAddQuestion={() => {
-          setEditingQuestion(null);
-          setIsQuestionModalOpen(true);
-        }}
-        onEditQuestion={(q) => {
-          setEditingQuestion(q);
-          setIsQuestionModalOpen(true);
-        }}
-        onDeleteQuestion={handleDeleteQuestion}
+        onManageInBlueprint={() => onOpenTab?.("study-questions")}
       />
 
       {/* 2. Main Comparative Workspace */}
@@ -569,7 +529,7 @@ export function SynthesisWorkbench({
       {/* 3. Floating Bulk Action Bar */}
       <BulkActionBar
         selectedIds={selectedEvidenceIds}
-        questions={studyQuestions}
+        questions={studyQuestions.filter((q) => q.isActive !== false)}
         isDemoCase={isDemo}
         onAssignToQuestion={handleBulkAssignQuestion}
         onAssignTheme={handleBulkAssignTheme}
@@ -578,14 +538,6 @@ export function SynthesisWorkbench({
       />
 
       {/* 4. Modals */}
-      <StudyQuestionModal
-        isOpen={isQuestionModalOpen}
-        onClose={() => setIsQuestionModalOpen(false)}
-        onSave={handleSaveQuestion}
-        existingQuestions={studyQuestions}
-        initialQuestion={editingQuestion}
-      />
-
       <FindingAuthoringModal
         isOpen={isFindingModalOpen}
         onClose={() => setIsFindingModalOpen(false)}

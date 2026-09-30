@@ -39,6 +39,10 @@ import type {
   Recommendation,
   RecommendationId,
   FieldStudy,
+  FrameworkTheme,
+  PlannedMethodTarget,
+  StudyRoleAssignment,
+  StudyScopeConfig,
 } from "@/lib/types";
 
 // ============================================================================
@@ -69,6 +73,19 @@ export async function saveStudyMeta(study: StudyMeta): Promise<void> {
   await db.put("studies", pureMeta as unknown as StudyMeta);
 }
 
+export async function saveStudyScopeConfig(
+  studyId: StudyId,
+  scope: StudyScopeConfig
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  await saveStudyMeta({
+    ...meta,
+    scope,
+    updatedAt: Date.now(),
+  });
+}
+
 export async function saveStudyQuestion(
   studyId: StudyId,
   question: StudyQuestion
@@ -93,31 +110,265 @@ export async function saveStudyQuestion(
   });
 }
 
+export async function getStudyQuestionUsage(
+  studyId: StudyId,
+  questionId: string
+): Promise<{
+  isUsed: boolean;
+  evidenceCount: number;
+  findingsCount: number;
+  patternNotesCount: number;
+  totalUsageCount: number;
+}> {
+  const meta = await getStudyMeta(studyId);
+  const evidenceList = await listEvidence(studyId);
+  const findingsList = await listFindings(studyId);
+  const patternNotes = meta?.patternNotes || [];
+
+  const evidenceCount = evidenceList.filter(
+    (e) => e.studyQuestionIds && e.studyQuestionIds.includes(questionId)
+  ).length;
+
+  const findingsCount = findingsList.filter(
+    (f) => f.studyQuestionId === questionId
+  ).length;
+
+  const patternNotesCount = patternNotes.filter(
+    (p) => p.questionId === questionId
+  ).length;
+
+  const totalUsageCount = evidenceCount + findingsCount + patternNotesCount;
+
+  return {
+    isUsed: totalUsageCount > 0,
+    evidenceCount,
+    findingsCount,
+    patternNotesCount,
+    totalUsageCount,
+  };
+}
+
+export async function archiveStudyQuestion(
+  studyId: StudyId,
+  questionId: string,
+  isActive: boolean = false
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+
+  const questions = (meta.questions || []).map((q) =>
+    q.id === questionId ? { ...q, isActive, updatedAt: Date.now() } : q
+  );
+
+  await saveStudyMeta({
+    ...meta,
+    questions,
+    updatedAt: Date.now(),
+  });
+}
+
 export async function deleteStudyQuestion(
   studyId: StudyId,
   questionId: string
 ): Promise<void> {
   const meta = await getStudyMeta(studyId);
   if (!meta) throw new Error(`Study "${studyId}" not found.`);
+
+  const usage = await getStudyQuestionUsage(studyId, questionId);
+  if (usage.isUsed) {
+    throw new Error(
+      `This Study Question is already used by evidence or analysis and cannot be deleted. Archive it instead to preserve study lineage.`
+    );
+  }
+
   const questions = (meta.questions || []).filter((q) => q.id !== questionId);
   await saveStudyMeta({
     ...meta,
     questions,
     updatedAt: Date.now(),
   });
+}
 
-  const evidenceList = await listEvidence(studyId);
-  for (const entry of evidenceList) {
-    if (entry.studyQuestionIds && entry.studyQuestionIds.includes(questionId)) {
-      const updatedIds = entry.studyQuestionIds.filter((id) => id !== questionId);
-      await saveEvidence({
-        ...entry,
-        studyId,
-        studyQuestionIds: updatedIds,
-        updatedAt: Date.now(),
-      });
+export async function reorderStudyQuestions(
+  studyId: StudyId,
+  questionIds: string[]
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const existingMap = new Map((meta.questions || []).map((q) => [q.id, q]));
+  const reordered: StudyQuestion[] = [];
+  questionIds.forEach((id, idx) => {
+    const q = existingMap.get(id);
+    if (q) {
+      reordered.push({ ...q, order: idx + 1, updatedAt: Date.now() });
+      existingMap.delete(id);
     }
+  });
+  existingMap.forEach((q) => {
+    reordered.push({ ...q, order: reordered.length + 1 });
+  });
+  await saveStudyMeta({
+    ...meta,
+    questions: reordered,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function savePlannedMethod(
+  studyId: StudyId,
+  target: PlannedMethodTarget
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const scope = meta.scope ? { ...meta.scope } : {
+    targetSites: [],
+    isSingleSiteStudy: false,
+    targetStakeholderGroups: [],
+  };
+  const currentMethods = scope.plannedMethods ? [...scope.plannedMethods] : [];
+  const idx = currentMethods.findIndex(
+    (m) => m.method.toLowerCase() === target.method.toLowerCase()
+  );
+  const normalizedTarget: PlannedMethodTarget = {
+    ...target,
+    targetSourceCount: target.targetSourceCount ?? target.plannedCount ?? 0,
+    plannedCount: target.targetSourceCount ?? target.plannedCount ?? 0,
+  };
+  if (idx >= 0) {
+    currentMethods[idx] = normalizedTarget;
+  } else {
+    currentMethods.push(normalizedTarget);
   }
+  scope.plannedMethods = currentMethods;
+  await saveStudyMeta({
+    ...meta,
+    scope,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function deletePlannedMethod(
+  studyId: StudyId,
+  methodName: string
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  if (!meta.scope) return;
+  const scope = { ...meta.scope };
+  scope.plannedMethods = (scope.plannedMethods || []).filter(
+    (m) => m.method.toLowerCase() !== methodName.toLowerCase()
+  );
+  await saveStudyMeta({
+    ...meta,
+    scope,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function saveFrameworkTheme(
+  studyId: StudyId,
+  theme: FrameworkTheme
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const framework = meta.framework
+    ? { ...meta.framework, themes: [...(meta.framework.themes || [])] }
+    : { themes: [] };
+  const idx = framework.themes.findIndex((t) => t.id === theme.id);
+  if (idx >= 0) {
+    framework.themes[idx] = theme;
+  } else {
+    framework.themes.push({
+      ...theme,
+      order: theme.order ?? framework.themes.length + 1,
+    });
+  }
+  await saveStudyMeta({
+    ...meta,
+    framework,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function deleteFrameworkTheme(
+  studyId: StudyId,
+  themeId: string
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  if (!meta.framework) return;
+  const framework = {
+    ...meta.framework,
+    themes: (meta.framework.themes || []).filter((t) => t.id !== themeId),
+  };
+  await saveStudyMeta({
+    ...meta,
+    framework,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function reorderFrameworkThemes(
+  studyId: StudyId,
+  themeIds: string[]
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  if (!meta.framework) return;
+  const existingMap = new Map((meta.framework.themes || []).map((t) => [t.id, t]));
+  const reordered: FrameworkTheme[] = [];
+  themeIds.forEach((id, idx) => {
+    const t = existingMap.get(id);
+    if (t) {
+      reordered.push({ ...t, order: idx + 1 });
+      existingMap.delete(id);
+    }
+  });
+  existingMap.forEach((t) => {
+    reordered.push({ ...t, order: reordered.length + 1 });
+  });
+  await saveStudyMeta({
+    ...meta,
+    framework: {
+      ...meta.framework,
+      themes: reordered,
+    },
+    updatedAt: Date.now(),
+  });
+}
+
+export async function saveStudyRole(
+  studyId: StudyId,
+  roleAssignment: StudyRoleAssignment
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const roles = meta.teamRoles ? [...meta.teamRoles] : [];
+  const idx = roles.findIndex((r) => r.id === roleAssignment.id);
+  if (idx >= 0) {
+    roles[idx] = { ...roleAssignment, assignedAt: roleAssignment.assignedAt ?? Date.now() };
+  } else {
+    roles.push({ ...roleAssignment, assignedAt: roleAssignment.assignedAt ?? Date.now() });
+  }
+  await saveStudyMeta({
+    ...meta,
+    teamRoles: roles,
+    updatedAt: Date.now(),
+  });
+}
+
+export async function deleteStudyRole(
+  studyId: StudyId,
+  roleAssignmentId: string
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+  const roles = (meta.teamRoles || []).filter((r) => r.id !== roleAssignmentId);
+  await saveStudyMeta({
+    ...meta,
+    teamRoles: roles,
+    updatedAt: Date.now(),
+  });
 }
 
 export async function savePatternNote(

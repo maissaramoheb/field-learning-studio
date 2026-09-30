@@ -2,51 +2,53 @@
 
 ## Current Status
 
-**Phase 1 — Study Library, Demo/Real Separation, and Workspace Identity Foundation** is fully implemented on dedicated branch `feature/phase-1-study-library-workspace-shell` based on authoritative baseline `main @ 314ce11ff884377ae755b2a5a7cc51ab6ccab8de`.
+**Phase 2 — Study Workspace: Study Brief → Questions & Scope → Methods & Sources → Framework & Roles** is fully implemented on dedicated branch `feature/phase-2-study-workspace` based on authoritative baseline `main @ 9117a5868df4b0a21b4e541a2d884af0d7dc7e07`.
 
-1. **Study Library Architecture**:
-   - Implemented `StudyLibraryView` (`src/components/library/StudyLibraryView.tsx`) establishing the canonical landing space when entering the studio.
-   - Clean, distinct visual sections: **Showcase Studies** (Demo Cases) and **My Studies** (Local Editable Studies).
-   - Designed welcoming `EmptyStudyState` (`src/components/library/EmptyStudyState.tsx`) guiding users through first-study creation with clear, non-alarming copy.
-   - Preserved `MinimalStudyModal` for immediate, zero-friction local study creation.
-   - Maintained non-functional reserve card for Phase 2 Import & Mapping UI.
-2. **Demo/Real Separation**:
-   - Showcase studies (`DemoStudyCard`) are visually marked with subtle informational badges (`SHOWCASE DATA · READ-ONLY`) and distinct action buttons (`Open Demo Study`, `Clone to My Studies`).
-   - Real studies (`StudyCard`) display evaluation context, status pill, last modified timestamp, and entity metrics (sources, evidence, findings, recommendations) without anxiety-inducing "LIVE" language.
-   - In-workspace header (`StudyWorkspaceHeader`) displays subtle `SHOWCASE DATA · READ-ONLY` badge only when viewing a demo study, preserving an uncluttered environment for real evaluation work.
-   - "Clone to My Studies" creates an editable local copy in IndexedDB preserving full epistemic lineage and relationships.
-3. **Workspace Identity & Semantic Tokens**:
-   - Defined semantic workspace design tokens in `src/app/globals.css` for both Night and Day themes:
-     - `study`: Step 1 | Purpose: *DEFINE* | Blue (`#3b82f6` night / `#2563eb` day)
-     - `field-material`: Step 2 | Purpose: *CAPTURE & QUALIFY* | Sky (`#0ea5e9` night / `#0284c7` day)
-     - `analysis`: Step 3 | Purpose: *INTERPRET & VALIDATE* | Violet (`#8b5cf6` night / `#7c3aed` day)
-     - `deliverables`: Step 4 | Purpose: *COMMUNICATE & DECIDE* | Purple (`#a855f7` night / `#9333ea` day)
-   - Strict separation between workspace identity accents and evaluation status tokens (`--warning`, `--danger`, `--success`).
-   - Implemented `WorkspaceContextHeader` providing unified orientation answering: *Where am I?*, *What am I doing here?*, *What type of work belongs here?*
-4. **Header Simplification & Navigation Hierarchy**:
-   - Implemented `StudyWorkspaceHeader` structuring navigation into 3 clean, uncluttered levels:
-     - **Level 1**: Top utility bar with `< Back to Study Library`, study title, demo indicator, theme toggle, backup/restore, and `+ New Study`.
-     - **Level 2**: Progression-oriented 4-space tabs (Study -> Field Material -> Analysis -> Deliverables) communicating epistemic progression (*Define -> Capture -> Interpret -> Communicate*) while allowing free, non-wizard navigation.
-     - **Level 3**: Sub-tabs for the active workspace, preserving existing analytical workflows without disruption.
+1. **Study Workspace Architecture & Sub-navigation**:
+   - Sub-divided Space 1 (Study) into 4 distinct, purposeful sub-views:
+     - **Study Brief** (`study-brief`, default tab): Evaluation charter document defining purpose, background, intended audience, decision use, geography, timeframe, owner/lead, and known limitations. Includes inline editing for editable studies and a cloning CTA for read-only showcase demos.
+     - **Questions & Scope** (`study-questions`): Canonical authoring and ordering of `StudyQuestion` entities (primary flag, sub-questions, up/down reordering) alongside explicit scope boundaries (scope statement, in-scope, out-of-scope, assumptions, constraints).
+     - **Methods & Sources** (`study-methods`): Configuration of planned methods and target source/evidence counts, with live dynamic in-memory reconciliation against actual field sources (`useMemo`). Zero derived counts are persisted to storage.
+     - **Framework & Roles** (`study-framework`): Analytical framework configuration (evaluation lenses with descriptions and active status) alongside a team governance matrix (`Lead Evaluator`, `Field Researcher`, `Peer Reviewer`, `QA Approver`, `Focal Point`).
+2. **Canonical Question Ownership Migration**:
+   - Transferred authoring, ordering, and deletion of `StudyQuestion` entities canonically into `Study -> Questions & Scope`.
+   - Updated `SynthesisWorkbench` to retain question filtering, matrix association, and active selection, enhanced with a "Manage in Study Blueprint →" action navigating directly to `study-questions`.
+3. **Dynamic Study Readiness Checklist**:
+   - Implemented pure, rule-based readiness calculation in `src/lib/analytics/studyReadiness.ts` evaluating 9 deterministic criteria across Brief, Questions, Methods, Framework, and Roles.
+   - Designed collapsible `StudyReadinessBanner` with score badge (e.g. 9/9 Ready, 6/9 In Progress), progress bar, missing-item checklist, and direct deep-link buttons to the corresponding sub-view tabs.
+   - Dynamic readiness metrics are computed entirely at runtime; no scores or check statuses are written to IndexedDB.
+4. **Showcase Case Enrichment**:
+   - Enriched both demo fixtures (`communityBridgesCase` and `nutritionFieldCase`) with comprehensive, credible Phase 2 evaluation charters, structured primary and secondary questions, planned method quotas, analytical lenses, and team governance roles.
+   - Extended `adaptDemoCaseToFieldStudy` to map all Phase 2 properties into runtime studies while strictly maintaining showcase data immutability.
 5. **Post-Implementation Audit Hardening**:
-   - **URL / History Synchronization**:
-     - Implemented `resolveStudioNavigation` pure resolution logic: explicit `?view=library` takes priority, valid `?study=<id>` deep-links take precedence over cached `localStorage` study, and invalid/deleted study query params cleanly fallback to library without blank states or console exceptions.
-     - Attached `popstate` event listener with clean teardown, enabling native browser Back/Forward traversal between Library and active workspaces.
-   - **PatternNote Lineage on Demo Clone**:
-     - Extended `cloneDemoStudy()` to deep clone `patternNotes` and remap `studyId` to `newStudyId`, while leaving the source demo pattern notes strictly immutable.
-   - **Responsive Mobile Header**:
-     - Hardened Level 1 header at $\le 800\text{px}$ and $\le 540\text{px}$ into two clean responsive rows (`.fls-app-bar-context` and `.fls-app-utilities`), eliminating title collision, utility bunching, and horizontal overflow on small viewports (390px, 430px, 540px).
+   - **Study Question Referential Integrity & Lineage Protection**: Hardened `deleteStudyQuestion` in `src/lib/storage/studyStore.ts` via `getStudyQuestionUsage` to strictly block hard deletion if referenced by downstream records (`EvidenceEntry.studyQuestionIds`, `Finding.studyQuestionId`, `PatternNote.questionId`). Added `archiveStudyQuestion` (`isActive = false`) to preserve question IDs, evidence links, and analytical lineage without cascading deletions or orphaning. Added user-facing domain alert in `StudyQuestionsScopeView`.
+   - **Study Blueprint as Sole Question Authoring Home**: Removed Add/Edit/Delete actions from `SynthesisWorkbench` and `StudyQuestionSelector`, leaving selection, filtering, and `[Archived]` indicator with deep link "Manage in Study Blueprint →".
+   - **Canonical Method Normalization**: Implemented `src/lib/methodTaxonomy.ts` with `canonicalizeCollectionMethod(rawType)` mapping variants (e.g. "Focus group discussion", "FGD", "Observation notes", "Field observation log") to standard collection methods (`KII`, `FGD`, `Direct Observation`, `Survey`), preventing false mapping of arbitrary document titles to Document Review.
+   - **Planned Method Target Standardization**: Standardized `PlannedMethodTarget` on canonical `targetSourceCount?: number`, deprecating `plannedCount` and dual-writing on save for backward compatibility. Removed `targetEvidenceCount` as planning quota.
+   - **Actual Count Semantics**: Corrected actual counts so source count is primary from `SourceRecord` (unaffected by rejected evidence), while observation count excludes excluded/rejected evidence records (`reviewStatus === 'excluded'` or `validationStatus === 'Rejected'`).
+   - **Demo Method Reconciliation**: Resolved duplicate "Behind Target" / "Unplanned" rows in both showcase demo cases (`communityBridgesCase` and `nutritionFieldCase`), cleanly reconciling planned quotas and field-emergent methods.
+   - **Readiness Banner UX**: Default collapsed when `readiness.state === 'ready'`, expanded otherwise, with async hydration state synchronization.
 6. **Quality Gates & Verification**:
-   - **235/235** Vitest unit and integration tests passing across 23 test files (18 tests in `tests/phase1StudyLibrary.test.ts`, including 6 new targeted tests for deep-link priority, popstate navigation, and pattern note cloning).
+   - **270/270** Vitest unit and integration tests passing across 24 test files (35 comprehensive tests in `tests/phase2StudyWorkspace.test.ts` including 20 new audit regression tests).
    - TypeScript compilation clean (`tsc --noEmit --incremental false` exits 0).
    - ESLint clean (0 errors, 0 warnings).
-   - Next.js Turbopack production build succeeds with static prerendered routes.
-   - `git diff --check` clean (0 whitespace or line ending issues).
-   - Headless Chrome CDP visual QA verified 14 high-resolution screenshots + 6 responsive mobile checks across Day and Night themes.
+   - Next.js Turbopack production build succeeds cleanly.
+   - `git diff --check` clean (0 whitespace issues).
+   - Headless Chrome CDP visual QA verified 6 targeted post-hardening screenshots in `phase2_hardening_qa/` in addition to the 11 baseline screenshots.
 
-**Authoritative Baseline**: `main @ 314ce11ff884377ae755b2a5a7cc51ab6ccab8de` (Phase 0 merged). Phase 1 changes are isolated to `feature/phase-1-study-library-workspace-shell` with zero production deployment or merge.
+**Authoritative Baseline**: `main @ 9117a5868df4b0a21b4e541a2d884af0d7dc7e07` (Phase 1 merged). Phase 2 changes are isolated to `feature/phase-2-study-workspace` with zero production deployment or merge.
 
 ## Historical Milestones
+
+- **Phase 1 — Study Library, Demo/Real Separation, and Workspace Identity Foundation**:
+  - Implemented `StudyLibraryView` establishing canonical landing space with Showcase Studies and My Studies.
+  - Distinct visual differentiation for Demo Studies (`DemoStudyCard`) vs Real Studies (`StudyCard`).
+  - Implemented "Clone to My Studies" creating local editable copies in IndexedDB preserving full epistemic lineage.
+  - Three-level `StudyWorkspaceHeader` replacing cramped dropdown with clean `< Back to Study Library` navigation.
+  - Four practitioner spaces (`study`, `field-material`, `analysis`, `deliverables`) with semantic accent tokens.
+  - Hardened URL deep-link priority resolution, popstate browser history traversal, and mobile header two-row reflow at <=540px.
+  - Added 18 unit/integration tests in `tests/phase1StudyLibrary.test.ts` (235 passing tests).
+
 
 - **Phase 0 — Schema, Lineage, and Epistemic Foundation (v1.2 Specification)**:
   - Upgraded IndexedDB to v2 with `sourceFileMetadata`, `sourceFileContent`, and `by_reviewStatus` index.
@@ -271,12 +273,12 @@ git diff --check
 - `npx tsc --noEmit --incremental false`: passed (0 errors across whole repository).
 - `npm run lint`: passed (0 errors, 0 warnings).
 - `npm run build`: passed (Next.js 16 Turbopack production bundle cleanly compiled).
-- `npm test`: passed (22 test files, 217 passing tests: 204 previous tests + 13 Phase 0 tests).
+- `npm test`: passed (24 test files, 250 passing tests: 235 previous tests + 15 Phase 2 tests).
 - `python3 -m json.tool OPS_UPDATE.json`: passed.
 - `git diff --check`: passed (0 whitespace errors).
-- Automated live production CDP smoke test: passed on v1.1 baseline (0 console errors, 0 network failures, mobile 390px 0 overflow).
-- Permanent Vercel Production deployment: https://field-learning-studio.vercel.app/ (Live v1.1, HTTP/2 200 OK).
+- Automated Headless Chrome CDP visual QA: passed across 11 desktop and mobile (390px) screenshots in Day and Night themes.
+- Permanent Vercel Production deployment: https://field-learning-studio.vercel.app/ (Live v1.2 Phase 1 baseline; Phase 2 feature branch not deployed).
 
 ## Last Update
 
-2026-09-29: Phase 0 Schema, Lineage, and Epistemic Foundation implemented on `feature/phase-0-schema-lineage-foundation` against baseline `ea07102`. All 14 test requirements satisfied (217 tests passing across 22 test files). No UI redesign, no production deployment, halted for review.
+2026-09-30: Phase 2 Study Workspace implemented on `feature/phase-2-study-workspace` against baseline `9117a58`. All Section 28 requirements satisfied (250 tests passing across 24 test files). Zero schema migrations, no external AI/auth, zero production deployment, halted for review.

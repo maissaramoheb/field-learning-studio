@@ -2,6 +2,28 @@
 
 ## P0
 
+- [x] Phase 2 Study Workspace: Study Brief, Questions & Scope, Methods & Sources, Framework & Roles (`feature/phase-2-study-workspace`):
+  - [x] 4 purposeful sub-views under Space 1: `Study Brief` (default), `Questions & Scope`, `Methods & Sources`, `Framework & Roles`.
+  - [x] `StudyBriefView` charter presenting evaluation metadata, editable charter modal, limitations ledger, and clone CTA for demos.
+  - [x] Canonical migration of `StudyQuestion` authoring and ordering to `StudyQuestionsScopeView`.
+  - [x] Scope boundary editor (scope statement, in-scope, out-of-scope, assumptions, constraints).
+  - [x] `StudyMethodsSourcesView` dynamic live reconciliation table comparing planned quotas against actual active field sources without storing derived counts.
+  - [x] `StudyFrameworkRolesView` analytical lenses and team governance role assignments.
+  - [x] Dynamic 9-item `StudyReadinessBanner` with status badge, progress bar, and sub-view deep-links.
+  - [x] Synthesis Workbench "Manage in Study Blueprint →" button linking to `study-questions`.
+  - [x] Enriched demo cases (`communityBridgesCase` and `nutritionFieldCase`) and demo adapter mappings.
+  - [x] Post-implementation audit hardening:
+    - [x] Study question referential integrity & lineage protection (blocked hard deletion if referenced; archive/restore `isActive = false` support; user alert).
+    - [x] Study Blueprint as sole question authoring home (removed Add/Edit/Delete from Synthesis Workbench & `StudyQuestionSelector`; archived question indicator).
+    - [x] Canonical method normalization via `src/lib/methodTaxonomy.ts` (`canonicalizeCollectionMethod`).
+    - [x] Standardized `PlannedMethodTarget` on `targetSourceCount?: number` with dual-write to `plannedCount`.
+    - [x] Actual count semantics (source count from `SourceRecord`, observation count excluding excluded/rejected evidence).
+    - [x] Showcase demo method reconciliation without duplicate rows.
+    - [x] Readiness banner default collapsed for ready studies with async hydration sync.
+  - [x] 35 total unit/integration tests in `tests/phase2StudyWorkspace.test.ts` (15 baseline + 20 post-audit regression tests, 270/270 total passing tests).
+  - [x] Visual QA verified across 11 baseline + 6 post-hardening desktop and mobile screenshots.
+- [ ] Phase 3 Field Material Workspace:
+  - [ ] Source Inventory, Field Intake, and Material Qualification workflows.
 - [x] Phase 1 Study Library, Demo/Real Separation, and Workspace Identity Foundation (`feature/phase-1-study-library-workspace-shell`):
   - [x] Canonical `StudyLibraryView` with Showcase Studies and My Studies sections.
   - [x] Welcoming `EmptyStudyState` guiding users to create their first real study.

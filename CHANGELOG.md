@@ -1,5 +1,38 @@
 # Changelog
 
+## Phase 2 - Study Workspace: Study Brief, Questions & Scope, Methods & Sources, Framework & Roles
+
+- **Study Workspace Transformation & Sub-navigation**:
+  - Transformed Space 1 (Study) from a generic overview into the authoritative definition space where practitioners configure a study before collection/intake.
+  - Established 4 purposeful sub-views under Space 1:
+    - **Study Brief** (`study-brief`, default sub-view): Comprehensive evaluation charter defining title, purpose, background, intended audience, decision use, geography, timeframe, owner/lead, and known limitations. Includes modal editing for local studies and a prominent "Clone to Edit" CTA for read-only showcase studies.
+    - **Questions & Scope** (`study-questions`): Canonical management of `StudyQuestion` entities (title, description, primary flag, sub-questions, up/down reordering) alongside explicit scope boundaries (scope statement, in-scope, out-of-scope, assumptions, constraints).
+    - **Methods & Sources** (`study-methods`): Configuration of planned methods, target source counts, target evidence counts, and qualitative descriptions, with live dynamic in-memory reconciliation against actual field sources (`useMemo`). Zero derived counts are persisted.
+    - **Framework & Roles** (`study-framework`): Analytical framework configuration (evaluation lenses with descriptions and active status) alongside a team governance matrix (`Lead Evaluator`, `Field Researcher`, `Peer Reviewer`, `QA Approver`, `Focal Point`).
+- **Canonical Study Question Migration & Synthesis Linkage**:
+  - Transferred authoring, ordering, and deletion of `StudyQuestion` entities canonically into `Study -> Questions & Scope`.
+  - Updated `SynthesisWorkbench` to retain question filtering, matrix association, and active selection, enhanced with a "Manage in Study Blueprint →" action navigating directly to `study-questions`.
+- **Dynamic Study Readiness Checklist**:
+  - Implemented pure, rule-based readiness calculation in `src/lib/analytics/studyReadiness.ts` evaluating 9 deterministic criteria across Brief, Questions, Methods, Framework, and Roles.
+  - Designed collapsible `StudyReadinessBanner` with score badge (e.g. 9/9 Ready, 6/9 In Progress), progress bar, missing-item checklist, and direct deep-link buttons to the corresponding sub-view tabs.
+  - Dynamic readiness metrics are computed entirely at runtime; no scores or check statuses are written to IndexedDB.
+- **Showcase Case Enrichment**:
+  - Enriched both demo fixtures (`communityBridgesCase` and `nutritionFieldCase`) with comprehensive, credible Phase 2 evaluation charters, structured primary and secondary questions, planned method quotas, analytical lenses, and team governance roles.
+  - Extended `adaptDemoCaseToFieldStudy` to map all Phase 2 properties into runtime studies while strictly maintaining showcase data immutability.
+- **Post-Implementation Audit Hardening**:
+  - **Study Question Referential Integrity & Lineage Protection**: Hardened `deleteStudyQuestion` in `src/lib/storage/studyStore.ts` via `getStudyQuestionUsage` to strictly block deletion if referenced by downstream records (`EvidenceEntry.studyQuestionIds`, `Finding.studyQuestionId`, `PatternNote.questionId`). Added `archiveStudyQuestion` (`isActive = false`) to preserve question IDs, evidence links, and analytical lineage without cascading deletions or orphaning. Added user-facing domain alert in `StudyQuestionsScopeView`.
+  - **Study Blueprint as Sole Question Authoring Home**: Removed Add/Edit/Delete actions from `SynthesisWorkbench` and `StudyQuestionSelector`, retaining question selection, filtering, and `[Archived]` indicator with deep link "Manage in Study Blueprint →".
+  - **Canonical Method Normalization**: Implemented `src/lib/methodTaxonomy.ts` with `canonicalizeCollectionMethod(rawType)` mapping variants (e.g. "Focus group discussion", "FGD", "Observation notes", "Field observation log") to standard collection methods (`KII`, `FGD`, `Direct Observation`, `Survey`), preventing false mapping of arbitrary document titles to Document Review.
+  - **Planned Method Target Standardization**: Standardized `PlannedMethodTarget` on canonical `targetSourceCount?: number`, deprecating `plannedCount` and dual-writing on save for backward compatibility. Removed `targetEvidenceCount` as planning quota.
+  - **Actual Count Semantics**: Corrected actual counts so source count is primary from `SourceRecord` (unaffected by rejected evidence), while observation count excludes excluded/rejected evidence records (`reviewStatus === 'excluded'` or `validationStatus === 'Rejected'`).
+  - **Showcase Demo Reconciliation**: Resolved duplicate "Behind Target" / "Unplanned" rows in both showcase demo cases (`communityBridgesCase` and `nutritionFieldCase`), cleanly reconciling planned quotas and field-emergent methods.
+  - **Readiness Banner UX**: Default collapsed when `readiness.state === 'ready'`, expanded otherwise, with async hydration state synchronization.
+- **Quality Gates & Verification**:
+  - Added 35 comprehensive unit and integration tests in `tests/phase2StudyWorkspace.test.ts` (15 baseline + 20 targeted audit regression tests).
+  - Total passing tests: 270 across 24 test files.
+  - TypeScript compilation, ESLint, Next.js Turbopack build, and `git diff --check` all pass with 0 errors.
+  - Headless Chrome CDP visual QA verified 6 targeted post-hardening screenshots in `phase2_hardening_qa/` in addition to the 11 baseline screenshots.
+
 ## Phase 1 - Study Library, Demo/Real Separation, and Workspace Identity Foundation
 
 - **Study Library Architecture (`StudyLibraryView`)**:
