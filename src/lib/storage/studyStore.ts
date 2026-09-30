@@ -110,31 +110,83 @@ export async function saveStudyQuestion(
   });
 }
 
+export async function getStudyQuestionUsage(
+  studyId: StudyId,
+  questionId: string
+): Promise<{
+  isUsed: boolean;
+  evidenceCount: number;
+  findingsCount: number;
+  patternNotesCount: number;
+  totalUsageCount: number;
+}> {
+  const meta = await getStudyMeta(studyId);
+  const evidenceList = await listEvidence(studyId);
+  const findingsList = await listFindings(studyId);
+  const patternNotes = meta?.patternNotes || [];
+
+  const evidenceCount = evidenceList.filter(
+    (e) => e.studyQuestionIds && e.studyQuestionIds.includes(questionId)
+  ).length;
+
+  const findingsCount = findingsList.filter(
+    (f) => f.studyQuestionId === questionId
+  ).length;
+
+  const patternNotesCount = patternNotes.filter(
+    (p) => p.questionId === questionId
+  ).length;
+
+  const totalUsageCount = evidenceCount + findingsCount + patternNotesCount;
+
+  return {
+    isUsed: totalUsageCount > 0,
+    evidenceCount,
+    findingsCount,
+    patternNotesCount,
+    totalUsageCount,
+  };
+}
+
+export async function archiveStudyQuestion(
+  studyId: StudyId,
+  questionId: string,
+  isActive: boolean = false
+): Promise<void> {
+  const meta = await getStudyMeta(studyId);
+  if (!meta) throw new Error(`Study "${studyId}" not found.`);
+
+  const questions = (meta.questions || []).map((q) =>
+    q.id === questionId ? { ...q, isActive, updatedAt: Date.now() } : q
+  );
+
+  await saveStudyMeta({
+    ...meta,
+    questions,
+    updatedAt: Date.now(),
+  });
+}
+
 export async function deleteStudyQuestion(
   studyId: StudyId,
   questionId: string
 ): Promise<void> {
   const meta = await getStudyMeta(studyId);
   if (!meta) throw new Error(`Study "${studyId}" not found.`);
+
+  const usage = await getStudyQuestionUsage(studyId, questionId);
+  if (usage.isUsed) {
+    throw new Error(
+      `This Study Question is already used by evidence or analysis and cannot be deleted. Archive it instead to preserve study lineage.`
+    );
+  }
+
   const questions = (meta.questions || []).filter((q) => q.id !== questionId);
   await saveStudyMeta({
     ...meta,
     questions,
     updatedAt: Date.now(),
   });
-
-  const evidenceList = await listEvidence(studyId);
-  for (const entry of evidenceList) {
-    if (entry.studyQuestionIds && entry.studyQuestionIds.includes(questionId)) {
-      const updatedIds = entry.studyQuestionIds.filter((id) => id !== questionId);
-      await saveEvidence({
-        ...entry,
-        studyId,
-        studyQuestionIds: updatedIds,
-        updatedAt: Date.now(),
-      });
-    }
-  }
 }
 
 export async function reorderStudyQuestions(
@@ -177,10 +229,15 @@ export async function savePlannedMethod(
   const idx = currentMethods.findIndex(
     (m) => m.method.toLowerCase() === target.method.toLowerCase()
   );
+  const normalizedTarget: PlannedMethodTarget = {
+    ...target,
+    targetSourceCount: target.targetSourceCount ?? target.plannedCount ?? 0,
+    plannedCount: target.targetSourceCount ?? target.plannedCount ?? 0,
+  };
   if (idx >= 0) {
-    currentMethods[idx] = target;
+    currentMethods[idx] = normalizedTarget;
   } else {
-    currentMethods.push(target);
+    currentMethods.push(normalizedTarget);
   }
   scope.plannedMethods = currentMethods;
   await saveStudyMeta({

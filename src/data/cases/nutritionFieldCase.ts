@@ -141,21 +141,25 @@ export const nutritionFieldCase: DemoCase = {
     plannedMethods: [
       {
         method: "Key Informant Interview",
+        targetSourceCount: 10,
         plannedCount: 10,
         description: "School headmasters, district health officers, and lead nurses",
       },
       {
         method: "Direct Observation",
+        targetSourceCount: 6,
         plannedCount: 6,
         description: "Kitchen prep, water points, student meal queues, and handwashing stations",
       },
       {
         method: "Focus Group Discussion",
+        targetSourceCount: 8,
         plannedCount: 8,
         description: "Mother caregivers, father circles, and student health committees",
       },
       {
         method: "Document Review",
+        targetSourceCount: 4,
         plannedCount: 4,
         description: "Kitchen delivery logs, health screening records, and referral rosters",
       },

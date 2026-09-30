@@ -3,6 +3,7 @@
 import React, { useState, useMemo } from "react";
 import type { FieldStudy, StudyMeta, PlannedMethodTarget, CollectionMethod } from "@/lib/types";
 import { PlannedMethodModal } from "./PlannedMethodModal";
+import { canonicalizeCollectionMethod, getPlannedTargetSourceCount } from "@/lib/methodTaxonomy";
 
 interface StudyMethodsSourcesViewProps {
   study: FieldStudy | StudyMeta;
@@ -38,53 +39,68 @@ export function StudyMethodsSourcesView({
     if (study.scope?.expectedMethods && study.scope.expectedMethods.length > 0) {
       return study.scope.expectedMethods.map((m: CollectionMethod) => ({
         method: m,
+        targetSourceCount: 0,
       }));
     }
     return [];
   }, [study.scope]);
 
-  // Dynamic reconciliation: actual counts by method
+  // Dynamic reconciliation: actual counts by method using canonical method taxonomy
   const methodReconciliation = useMemo(() => {
+    // 1. Group actual source records by canonical collection method
     const counts = new Map<string, { sourcesCount: number; evidenceCount: number }>();
 
     for (const src of sources) {
-      const norm = (src.sourceType || "Unclassified").trim();
-      const existing = counts.get(norm) || { sourcesCount: 0, evidenceCount: 0 };
+      const canonMethod = canonicalizeCollectionMethod(src.sourceType);
+      const existing = counts.get(canonMethod) || { sourcesCount: 0, evidenceCount: 0 };
       existing.sourcesCount += 1;
-      counts.set(norm, existing);
+      counts.set(canonMethod, existing);
     }
 
+    // 2. Count usable evidence items (excluding excluded/rejected)
     for (const ev of evidence) {
+      if (ev.reviewStatus === "excluded" || ev.validationStatus === "Rejected") {
+        continue;
+      }
       const src = sources.find((s) => s.id === ev.sourceId);
-      const norm = (src?.sourceType || "Unclassified").trim();
-      const existing = counts.get(norm) || { sourcesCount: 0, evidenceCount: 0 };
+      const canonMethod = canonicalizeCollectionMethod(src?.sourceType);
+      const existing = counts.get(canonMethod) || { sourcesCount: 0, evidenceCount: 0 };
       existing.evidenceCount += 1;
-      counts.set(norm, existing);
+      counts.set(canonMethod, existing);
+    }
+
+    // 3. Canonicalize planned methods map
+    const plannedMap = new Map<string, PlannedMethodTarget>();
+    for (const p of plannedMethods) {
+      const canon = canonicalizeCollectionMethod(p.method);
+      const existingP = plannedMap.get(canon);
+      if (!existingP || getPlannedTargetSourceCount(p) > getPlannedTargetSourceCount(existingP)) {
+        plannedMap.set(canon, p);
+      }
     }
 
     // Combine planned and observed methods
-    const allMethodNames = new Set<string>();
-    plannedMethods.forEach((p) => allMethodNames.add(p.method));
-    counts.forEach((_, name) => allMethodNames.add(name));
+    const allCanonicalMethods = new Set<string>();
+    plannedMap.forEach((_, canon) => allCanonicalMethods.add(canon));
+    counts.forEach((_, canon) => allCanonicalMethods.add(canon));
 
-    return Array.from(allMethodNames).map((name) => {
-      const planned = plannedMethods.find(
-        (p) => p.method.toLowerCase() === name.toLowerCase()
-      );
-      const actual = counts.get(name) || { sourcesCount: 0, evidenceCount: 0 };
+    return Array.from(allCanonicalMethods).map((canonName) => {
+      const planned = plannedMap.get(canonName);
+      const targetCount = planned ? getPlannedTargetSourceCount(planned) : undefined;
+      const actual = counts.get(canonName) || { sourcesCount: 0, evidenceCount: 0 };
 
       let statusLabel = "No target set";
       let statusColor = "text-[var(--muted)]";
 
-      if (planned?.plannedCount !== undefined && planned.plannedCount > 0) {
-        if (actual.sourcesCount >= planned.plannedCount) {
+      if (targetCount !== undefined && targetCount > 0) {
+        if (actual.sourcesCount >= targetCount) {
           statusLabel = "Target Reached";
           statusColor = "text-[var(--success)] font-semibold";
         } else if (actual.sourcesCount > 0) {
-          statusLabel = `${actual.sourcesCount} of ${planned.plannedCount}`;
+          statusLabel = `${actual.sourcesCount} of ${targetCount}`;
           statusColor = "text-[var(--warning)] font-semibold";
         } else {
-          statusLabel = `0 of ${planned.plannedCount}`;
+          statusLabel = `0 of ${targetCount}`;
           statusColor = "text-[var(--danger)]";
         }
       } else if (actual.sourcesCount > 0) {
@@ -93,8 +109,10 @@ export function StudyMethodsSourcesView({
       }
 
       return {
-        name,
-        plannedCount: planned?.plannedCount,
+        name: canonName,
+        rawMethod: planned?.method || canonName,
+        targetSourceCount: targetCount,
+        plannedCount: targetCount,
         description: planned?.description,
         isPlanned: !!planned,
         sourcesCount: actual.sourcesCount,
@@ -295,7 +313,7 @@ export function StudyMethodsSourcesView({
                               type="button"
                               onClick={() => {
                                 const target = plannedMethods.find(
-                                  (p) => p.method.toLowerCase() === item.name.toLowerCase()
+                                  (p) => canonicalizeCollectionMethod(p.method) === item.name
                                 );
                                 setEditingTarget(target || null);
                                 setIsMethodModalOpen(true);
@@ -307,8 +325,12 @@ export function StudyMethodsSourcesView({
                             <button
                               type="button"
                               onClick={() => {
-                                if (confirm(`Remove planned method "${item.name}"?`)) {
-                                  onDeletePlannedMethod(item.name);
+                                const target = plannedMethods.find(
+                                  (p) => canonicalizeCollectionMethod(p.method) === item.name
+                                );
+                                const targetName = target ? target.method : item.rawMethod;
+                                if (confirm(`Remove planned method "${targetName}"?`)) {
+                                  onDeletePlannedMethod(targetName);
                                 }
                               }}
                               className="text-xs text-[var(--danger)] hover:underline"

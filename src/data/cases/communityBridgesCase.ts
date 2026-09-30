@@ -132,26 +132,31 @@ export const communityBridgesCase: DemoCase = {
     plannedMethods: [
       {
         method: "Focus Group Discussion",
+        targetSourceCount: 12,
         plannedCount: 12,
         description: "Disaggregated by gender and youth age cohorts across all 3 districts",
       },
       {
         method: "Key Informant Interview",
+        targetSourceCount: 15,
         plannedCount: 15,
         description: "Municipal officials, center directors, and traditional community leaders",
       },
       {
         method: "Direct Observation",
+        targetSourceCount: 8,
         plannedCount: 8,
         description: "Structured observation of mixed dialogue and training sessions",
       },
       {
         method: "Document Review",
+        targetSourceCount: 6,
         plannedCount: 6,
         description: "Project monitoring logs, attendance rosters, and grant applications",
       },
       {
         method: "Community Meeting",
+        targetSourceCount: 4,
         plannedCount: 4,
         description: "Open neighborhood feedback and validation sessions",
       },

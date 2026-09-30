@@ -13,7 +13,13 @@ export function StudyReadinessBanner({
   readiness,
   onNavigateToTab,
 }: StudyReadinessBannerProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(readiness.state !== "ready");
+  const [previousState, setPreviousState] = useState(readiness.state);
+
+  if (readiness.state !== previousState) {
+    setPreviousState(readiness.state);
+    setIsExpanded(readiness.state !== "ready");
+  }
 
   const stateColors: Record<
     StudyReadinessResult["state"],

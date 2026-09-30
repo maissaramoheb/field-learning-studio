@@ -205,13 +205,17 @@ export interface EvidenceSupportProfile {
 }
 
 export interface PlannedMethodTarget {
+  id?: string;
   method: CollectionMethod | string;
-  plannedCount?: number;
   targetSourceCount?: number;
+  /** @deprecated Legacy compatibility fallback. Normalization falls back: targetSourceCount ?? plannedCount */
+  plannedCount?: number;
+  /** @deprecated Internal/historical field; not a primary planning target */
   targetEvidenceCount?: number;
   description?: string;
   notes?: string;
 }
+
 
 export interface StudyScopeConfig {
   targetSites: string[];

@@ -274,9 +274,25 @@ export function StudyQuestionsScopeView({
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          if (confirm(`Are you sure you want to delete "${q.id}"? Evidence links to this question will be unassigned.`)) {
-                            onDeleteQuestion(q.id);
+                        onClick={async () => {
+                          const newActive = q.isActive === false;
+                          await onSaveQuestion({ ...q, isActive: newActive });
+                        }}
+                        className="rounded px-2.5 py-1 text-xs font-semibold text-[var(--muted)] hover:text-[var(--foreground)] border border-[var(--border)]"
+                        title={q.isActive === false ? "Restore to active inquiry" : "Archive question to preserve analytical lineage"}
+                      >
+                        {q.isActive === false ? "Restore" : "Archive"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (confirm(`Are you sure you want to delete "${q.id}"? Unused questions can be deleted; questions linked to evidence or analysis must be archived.`)) {
+                            try {
+                              await onDeleteQuestion(q.id);
+                            } catch (err: unknown) {
+                              const msg = err instanceof Error ? err.message : String(err);
+                              alert(msg);
+                            }
                           }
                         }}
                         className="rounded p-1 text-xs text-[var(--danger)] hover:bg-[var(--danger-surface)]"

@@ -10,9 +10,6 @@ interface StudyQuestionSelectorProps {
   unassignedCount: number;
   isDemoCase: boolean;
   onSelectFilter: (filter: "all" | "question" | "unassigned", questionId?: string) => void;
-  onAddQuestion: () => void;
-  onEditQuestion: (question: StudyQuestion) => void;
-  onDeleteQuestion?: (questionId: string) => void;
   onManageInBlueprint?: () => void;
 }
 
@@ -21,14 +18,15 @@ export function StudyQuestionSelector({
   selectedQuestionId,
   activeFilter,
   unassignedCount,
-  isDemoCase,
   onSelectFilter,
-  onAddQuestion,
-  onEditQuestion,
-  onDeleteQuestion,
   onManageInBlueprint,
 }: StudyQuestionSelectorProps) {
   const currentQuestion = questions.find((q) => q.id === selectedQuestionId);
+  const activeQuestions = questions.filter((q) => q.isActive !== false);
+  const archivedQuestions = questions.filter((q) => q.isActive === false);
+
+  // If currently selected question is archived, ensure it is visible in the tab bar
+  const isSelectedQuestionArchived = currentQuestion?.isActive === false;
 
   return (
     <div className="fls-question-toolbar">
@@ -47,19 +45,10 @@ export function StudyQuestionSelector({
             <button
               type="button"
               onClick={onManageInBlueprint}
-              className="fls-button fls-button-quiet text-xs"
+              className="fls-button fls-button-quiet text-xs font-semibold"
               title="Manage questions, ordering, and inquiry scope in Study Blueprint"
             >
               Manage in Study Blueprint →
-            </button>
-          )}
-          {!isDemoCase && (
-            <button
-              type="button"
-              onClick={onAddQuestion}
-              className="fls-button fls-button-quiet"
-            >
-              <span>+</span> Add Study Question
             </button>
           )}
         </div>
@@ -76,10 +65,10 @@ export function StudyQuestionSelector({
               : "border border-[var(--border)] bg-[var(--surface-muted)] text-[var(--muted)] hover:text-[var(--foreground)]"
           }`}
         >
-          All Questions ({questions.length})
+          All Active Questions ({activeQuestions.length})
         </button>
 
-        {questions.map((q) => {
+        {activeQuestions.map((q) => {
           const isSelected = activeFilter === "question" && selectedQuestionId === q.id;
           return (
             <button
@@ -94,6 +83,11 @@ export function StudyQuestionSelector({
             >
               <span className="font-mono text-[11px] font-bold">{q.id}</span>
               <span>{q.shortLabel || q.question.slice(0, 30) + (q.question.length > 30 ? "…" : "")}</span>
+              {q.isPrimary && (
+                <span className="rounded bg-[var(--trace-soft)] px-1.5 py-0.2 text-[9px] font-bold text-[var(--trace)]">
+                  Primary
+                </span>
+              )}
               {q.criterion && (
                 <span
                   className={`rounded px-1.5 py-0.2 text-[9px] uppercase ${
@@ -105,6 +99,39 @@ export function StudyQuestionSelector({
                   {q.criterion}
                 </span>
               )}
+            </button>
+          );
+        })}
+
+        {/* If selected question is archived, show it distinctly */}
+        {isSelectedQuestionArchived && currentQuestion && (
+          <button
+            type="button"
+            onClick={() => onSelectFilter("question", currentQuestion.id)}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-semibold border border-amber-500/40 bg-amber-950/30 text-amber-200"
+          >
+            <span className="font-mono text-[11px] font-bold">{currentQuestion.id}</span>
+            <span>{currentQuestion.shortLabel || currentQuestion.question.slice(0, 25) + "…"}</span>
+            <span className="rounded bg-amber-500/30 px-1.5 py-0.2 text-[9px] font-bold uppercase text-amber-200">
+              Archived
+            </span>
+          </button>
+        )}
+
+        {/* Other archived questions (if any) rendered in secondary/muted style */}
+        {archivedQuestions.map((q) => {
+          if (q.id === selectedQuestionId) return null; // already rendered above
+          return (
+            <button
+              type="button"
+              key={q.id}
+              onClick={() => onSelectFilter("question", q.id)}
+              className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs opacity-60 border border-dashed border-[var(--border)] text-[var(--muted)] hover:opacity-90"
+              title="Archived question (preserved for historical lineage)"
+            >
+              <span className="font-mono text-[10px]">{q.id}</span>
+              <span className="text-[11px] truncate max-w-[120px]">{q.shortLabel || q.question}</span>
+              <span className="text-[9px] uppercase tracking-wider text-[var(--muted)]">Archived</span>
             </button>
           );
         })}
@@ -133,13 +160,27 @@ export function StudyQuestionSelector({
 
       {/* Selected Question Detail Card */}
       {activeFilter === "question" && currentQuestion && (
-        <div className="mt-4 rounded-lg border border-[var(--trace)]/30 bg-[var(--trace-wash)] p-4">
+        <div className={`mt-4 rounded-lg border p-4 ${
+          currentQuestion.isActive === false
+            ? "border-amber-500/30 bg-amber-950/20"
+            : "border-[var(--trace)]/30 bg-[var(--trace-wash)]"
+        }`}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="flex-1">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-xs font-bold text-[var(--trace)]">
                   {currentQuestion.id}
                 </span>
+                {currentQuestion.isActive === false && (
+                  <span className="rounded bg-amber-500/20 border border-amber-500/40 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-200">
+                    Archived Inquiry · Preserved for Historical Lineage
+                  </span>
+                )}
+                {currentQuestion.isPrimary && (
+                  <span className="rounded bg-[var(--trace-soft)] px-2 py-0.5 text-[10px] font-bold text-[var(--trace)]">
+                    Primary Question
+                  </span>
+                )}
                 {currentQuestion.criterion && (
                   <span className="rounded border border-[var(--trace)]/40 bg-[var(--trace)]/10 px-2 py-0.5 text-[10px] font-semibold text-[var(--trace)]">
                     Criterion: {currentQuestion.criterion}
@@ -156,29 +197,14 @@ export function StudyQuestionSelector({
               </h3>
             </div>
 
-            {!isDemoCase && (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => onEditQuestion(currentQuestion)}
-                  className="rounded border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
-                >
-                  Edit Question
-                </button>
-                {onDeleteQuestion && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (window.confirm(`Delete question ${currentQuestion.id}? Evidence mappings to this question will be detached.`)) {
-                        onDeleteQuestion(currentQuestion.id);
-                      }
-                    }}
-                    className="rounded border border-red-500/30 bg-red-950/20 px-2.5 py-1 text-xs text-red-300 hover:bg-red-950/40"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
+            {onManageInBlueprint && (
+              <button
+                type="button"
+                onClick={onManageInBlueprint}
+                className="rounded border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+              >
+                Manage in Study Blueprint →
+              </button>
             )}
           </div>
         </div>

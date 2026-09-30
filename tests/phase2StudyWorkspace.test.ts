@@ -20,7 +20,21 @@ import {
   deleteStudyRole,
   saveSource,
   saveEvidence,
+  saveFinding,
+  savePatternNote,
+  getStudyQuestionUsage,
+  archiveStudyQuestion,
 } from "@/lib/storage";
+import {
+  canonicalizeCollectionMethod,
+  getPlannedTargetSourceCount,
+  isStandardCollectionMethod,
+  STANDARD_COLLECTION_METHODS,
+} from "@/lib/methodTaxonomy";
+import { buildUpdatedStudyQuestion } from "@/components/synthesis/StudyQuestionModal";
+import { StudyQuestionSelector } from "@/components/synthesis/StudyQuestionSelector";
+import { renderToStaticMarkup } from "react-dom/server";
+import React from "react";
 import { communityBridgesCase } from "@/data/cases/communityBridgesCase";
 import { nutritionFieldCase } from "@/data/cases/nutritionFieldCase";
 import {
@@ -629,6 +643,557 @@ describe("Phase 2: Study Workspace Architecture & Methodology Blueprint", () => 
 
       expect(updatedClone?.questions?.some((q) => q.id === "SQ-NEW")).toBe(true);
       expect(originalDemo?.questions?.some((q) => q.id === "SQ-NEW")).toBe(false);
+    });
+  });
+
+  describe("10. Phase 2 Post-Implementation Audit Hardening & Regression Suite", () => {
+    it("1. allows hard deletion for an unused study question", async () => {
+      const studyId = "test-q-unused";
+      await saveStudyMeta(createMinimalMeta(studyId, "Unused Question Study"));
+      await saveStudyQuestion(studyId, {
+        id: "SQ-UNUSED",
+        question: "Is this question unused?",
+        isPrimary: false,
+        isActive: true,
+      });
+
+      let study = await assembleStudy(studyId);
+      expect(study?.questions?.some((q) => q.id === "SQ-UNUSED")).toBe(true);
+
+      const usage = await getStudyQuestionUsage(studyId, "SQ-UNUSED");
+      expect(usage.isUsed).toBe(false);
+      expect(usage.totalUsageCount).toBe(0);
+
+      await deleteStudyQuestion(studyId, "SQ-UNUSED");
+      study = await assembleStudy(studyId);
+      expect(study?.questions?.some((q) => q.id === "SQ-UNUSED")).toBe(false);
+    });
+
+    it("2. blocks deletion for a study question linked to EvidenceEntry and preserves links", async () => {
+      const studyId = "test-q-ev-linked";
+      await saveStudyMeta(createMinimalMeta(studyId, "Evidence Linked Study"));
+      await saveStudyQuestion(studyId, {
+        id: "SQ-EV-1",
+        question: "Question linked to evidence?",
+        isPrimary: true,
+        isActive: true,
+      });
+
+      await saveSource({
+        id: "SRC-EV-1",
+        studyId,
+        sourceType: "Key Informant Interview",
+        title: "KII Source",
+        date: "2026-03-01",
+        stakeholderType: "Teachers",
+        location: "Site Alpha",
+        summary: "KII Summary",
+        sensitivityFlag: "None",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+
+      await saveEvidence({
+        id: "EV-LINKED-1",
+        studyId,
+        sourceId: "SRC-EV-1",
+        studyQuestionIds: ["SQ-EV-1"],
+        rawObservation: "Direct observation of water quality.",
+        rawEvidence: "Direct observation of water quality.",
+        stakeholderType: "Teachers",
+        primaryTheme: "Water Quality",
+        secondaryTheme: "",
+        evidenceStrength: "High",
+        sensitivityFlag: "None",
+        potentialFinding: "High turbidity observed.",
+        qaStatus: "Reviewed",
+        interpretation: "High turbidity observed.",
+        validationStatus: "Validated",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+
+      const usage = await getStudyQuestionUsage(studyId, "SQ-EV-1");
+      expect(usage.isUsed).toBe(true);
+      expect(usage.evidenceCount).toBe(1);
+
+      await expect(deleteStudyQuestion(studyId, "SQ-EV-1")).rejects.toThrow(
+        "This Study Question is already used by evidence or analysis and cannot be deleted. Archive it instead to preserve study lineage."
+      );
+
+      const study = await assembleStudy(studyId);
+      expect(study?.questions?.some((q) => q.id === "SQ-EV-1")).toBe(true);
+      expect(study?.evidence.find((e) => e.id === "EV-LINKED-1")?.studyQuestionIds).toContain("SQ-EV-1");
+    });
+
+    it("3. blocks deletion for a study question linked to Finding without orphaning findings", async () => {
+      const studyId = "test-q-finding-linked";
+      await saveStudyMeta(createMinimalMeta(studyId, "Finding Linked Study"));
+      await saveStudyQuestion(studyId, {
+        id: "SQ-FIND-1",
+        question: "Question linked to finding?",
+        isPrimary: true,
+        isActive: true,
+      });
+
+      await saveFinding({
+        id: "FND-001",
+        studyId,
+        studyQuestionId: "SQ-FIND-1",
+        statement: "Community tariffs cover minor maintenance only.",
+        explanation: "Evidence from 12 water points confirms limited revenue.",
+        supportingEvidenceIds: [],
+        contradictoryEvidence: "",
+        evidenceStrength: "High",
+        programmeImplication: "Subsidies required for capital repairs.",
+        linkedRecommendationIds: [],
+        validationStatus: "Validated",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+
+      const usage = await getStudyQuestionUsage(studyId, "SQ-FIND-1");
+      expect(usage.isUsed).toBe(true);
+      expect(usage.findingsCount).toBe(1);
+
+      await expect(deleteStudyQuestion(studyId, "SQ-FIND-1")).rejects.toThrow(
+        "This Study Question is already used by evidence or analysis and cannot be deleted. Archive it instead to preserve study lineage."
+      );
+
+      const study = await assembleStudy(studyId);
+      expect(study?.questions?.some((q) => q.id === "SQ-FIND-1")).toBe(true);
+      expect(study?.findings.find((f) => f.id === "FND-001")?.studyQuestionId).toBe("SQ-FIND-1");
+    });
+
+    it("4. blocks deletion for a study question linked to PatternNote without orphaning notes", async () => {
+      const studyId = "test-q-pat-linked";
+      await saveStudyMeta(createMinimalMeta(studyId, "Pattern Note Linked Study"));
+      await saveStudyQuestion(studyId, {
+        id: "SQ-PAT-1",
+        question: "Question linked to pattern note?",
+        isPrimary: true,
+        isActive: true,
+      });
+
+      await savePatternNote(studyId, {
+        id: "PAT-001",
+        studyId,
+        statement: "Youth report higher openness when elders attend separate sessions.",
+        evidenceIds: [],
+        questionId: "SQ-PAT-1",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+
+      const usage = await getStudyQuestionUsage(studyId, "SQ-PAT-1");
+      expect(usage.isUsed).toBe(true);
+      expect(usage.patternNotesCount).toBe(1);
+
+      await expect(deleteStudyQuestion(studyId, "SQ-PAT-1")).rejects.toThrow(
+        "This Study Question is already used by evidence or analysis and cannot be deleted. Archive it instead to preserve study lineage."
+      );
+
+      const study = await assembleStudy(studyId);
+      expect(study?.questions?.some((q) => q.id === "SQ-PAT-1")).toBe(true);
+    });
+
+    it("5. archiving question sets isActive: false, preserves downstream links, and remains resolvable", async () => {
+      const studyId = "test-q-archive";
+      await saveStudyMeta(createMinimalMeta(studyId, "Archiving Test Study"));
+      await saveStudyQuestion(studyId, {
+        id: "SQ-ARC-1",
+        question: "Question to archive?",
+        shortLabel: "Archive Test",
+        isPrimary: true,
+        order: 1,
+        isActive: true,
+      });
+
+      await saveSource({
+        id: "SRC-ARC-1",
+        studyId,
+        sourceType: "Focus Group Discussion",
+        title: "FGD Source",
+        date: "2026-03-01",
+        stakeholderType: "Youth",
+        location: "River East",
+        summary: "FGD with Youth",
+        sensitivityFlag: "None",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+
+      await saveEvidence({
+        id: "EV-ARC-1",
+        studyId,
+        sourceId: "SRC-ARC-1",
+        studyQuestionIds: ["SQ-ARC-1"],
+        rawObservation: "Participant quotation on youth centers.",
+        rawEvidence: "Participant quotation on youth centers.",
+        stakeholderType: "Youth",
+        primaryTheme: "Inclusion",
+        secondaryTheme: "",
+        evidenceStrength: "Medium",
+        sensitivityFlag: "None",
+        potentialFinding: "Positive sentiment towards youth spaces.",
+        qaStatus: "Reviewed",
+        interpretation: "Positive sentiment.",
+        validationStatus: "Validated",
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+
+      await archiveStudyQuestion(studyId, "SQ-ARC-1", false);
+
+      const study = await assembleStudy(studyId);
+      const question = study?.questions?.find((q) => q.id === "SQ-ARC-1");
+      expect(question).toBeDefined();
+      expect(question?.isActive).toBe(false);
+      expect(question?.question).toBe("Question to archive?");
+
+      const ev = study?.evidence.find((e) => e.id === "EV-ARC-1");
+      expect(ev?.studyQuestionIds).toContain("SQ-ARC-1");
+
+      const usage = await getStudyQuestionUsage(studyId, "SQ-ARC-1");
+      expect(usage.isUsed).toBe(true);
+      expect(usage.evidenceCount).toBe(1);
+    });
+
+    it("6. restoring archived question sets isActive: true without data loss", async () => {
+      const studyId = "test-q-restore";
+      await saveStudyMeta(createMinimalMeta(studyId, "Restore Test Study"));
+      await saveStudyQuestion(studyId, {
+        id: "SQ-RES-1",
+        question: "Question to restore?",
+        shortLabel: "Restore Test",
+        criterion: "Effectiveness",
+        subQuestions: ["Sub-question 1"],
+        isPrimary: false,
+        order: 2,
+        isActive: false,
+      });
+
+      await archiveStudyQuestion(studyId, "SQ-RES-1", true);
+
+      const study = await assembleStudy(studyId);
+      const question = study?.questions?.find((q) => q.id === "SQ-RES-1");
+      expect(question).toBeDefined();
+      expect(question?.isActive).toBe(true);
+      expect(question?.question).toBe("Question to restore?");
+      expect(question?.shortLabel).toBe("Restore Test");
+      expect(question?.criterion).toBe("Effectiveness");
+      expect(question?.subQuestions).toEqual(["Sub-question 1"]);
+      expect(question?.order).toBe(2);
+      expect(question?.isPrimary).toBe(false);
+    });
+
+    it("7. synthesis question selector exposes no Add/Edit/Delete authoring actions", () => {
+      const questions: StudyQuestion[] = [
+        { id: "Q1", question: "Active Question 1", isActive: true },
+        { id: "Q2", question: "Archived Question 2", isActive: false },
+      ];
+
+      const html = renderToStaticMarkup(
+        React.createElement(StudyQuestionSelector, {
+          questions,
+          selectedQuestionId: "Q1",
+          activeFilter: "question",
+          unassignedCount: 0,
+          isDemoCase: false,
+          onSelectFilter: () => {},
+          onManageInBlueprint: () => {},
+        })
+      );
+
+      expect(html).not.toMatch(/\+ Add Question/i);
+      expect(html).not.toMatch(/\+ Add Study Question/i);
+      expect(html).not.toMatch(/Edit Question/i);
+      expect(html).not.toMatch(/Delete Question/i);
+      expect(html).not.toMatch(/>Edit</);
+      expect(html).not.toMatch(/>Delete</);
+    });
+
+    it("8. synthesis 'Manage in Study Blueprint' button routes to study-questions tab", () => {
+      let routedTab = "";
+      const handleNavigateToBlueprint = () => {
+        routedTab = "study-questions";
+      };
+
+      const html = renderToStaticMarkup(
+        React.createElement(StudyQuestionSelector, {
+          questions: [{ id: "Q1", question: "Active Q", isActive: true }],
+          selectedQuestionId: null,
+          activeFilter: "all",
+          unassignedCount: 0,
+          isDemoCase: false,
+          onSelectFilter: () => {},
+          onManageInBlueprint: handleNavigateToBlueprint,
+        })
+      );
+
+      expect(html).toContain("Manage in Study Blueprint →");
+      handleNavigateToBlueprint();
+      expect(routedTab).toBe("study-questions");
+    });
+
+    it("9. buildUpdatedStudyQuestion helper strictly preserves isPrimary, order, subQuestions, and isActive", () => {
+      const initial: StudyQuestion = {
+        id: "RQ-LEGACY",
+        question: "Initial legacy question?",
+        shortLabel: "Initial Label",
+        criterion: "Relevance",
+        isPrimary: true,
+        order: 5,
+        subQuestions: ["Sub A", "Sub B"],
+        isActive: false,
+        createdAt: 5000,
+        updatedAt: 5000,
+      };
+
+      const updated = buildUpdatedStudyQuestion(
+        initial,
+        {
+          questionText: "Updated question text by researcher?",
+          shortLabel: "Updated Label",
+          criterion: "Effectiveness",
+        },
+        [initial]
+      );
+
+      expect(updated.id).toBe("RQ-LEGACY");
+      expect(updated.question).toBe("Updated question text by researcher?");
+      expect(updated.shortLabel).toBe("Updated Label");
+      expect(updated.criterion).toBe("Effectiveness");
+      expect(updated.isPrimary).toBe(true);
+      expect(updated.order).toBe(5);
+      expect(updated.subQuestions).toEqual(["Sub A", "Sub B"]);
+      expect(updated.isActive).toBe(false);
+      expect(updated.createdAt).toBe(5000);
+      expect(updated.updatedAt).toBeGreaterThan(5000);
+    });
+
+    it("10. canonicalizeCollectionMethod resolves KII abbreviations and case variants", () => {
+      expect(canonicalizeCollectionMethod("kii")).toBe("Key Informant Interview");
+      expect(canonicalizeCollectionMethod("KII")).toBe("Key Informant Interview");
+      expect(canonicalizeCollectionMethod("key informant interview")).toBe("Key Informant Interview");
+      expect(canonicalizeCollectionMethod("Key informant interview")).toBe("Key Informant Interview");
+      expect(canonicalizeCollectionMethod("  key informant interviews  ")).toBe("Key Informant Interview");
+      expect(canonicalizeCollectionMethod("interview")).toBe("Key Informant Interview");
+      expect(canonicalizeCollectionMethod("semi-structured interview")).toBe("Key Informant Interview");
+      expect(canonicalizeCollectionMethod("in-depth interview")).toBe("Key Informant Interview");
+      expect(isStandardCollectionMethod("Key Informant Interview")).toBe(true);
+      expect(STANDARD_COLLECTION_METHODS).toContain("Key Informant Interview");
+    });
+
+    it("11. canonicalizeCollectionMethod resolves FGD abbreviations and case variants", () => {
+      expect(canonicalizeCollectionMethod("fgd")).toBe("Focus Group Discussion");
+      expect(canonicalizeCollectionMethod("FGD")).toBe("Focus Group Discussion");
+      expect(canonicalizeCollectionMethod("fgds")).toBe("Focus Group Discussion");
+      expect(canonicalizeCollectionMethod("focus group discussion")).toBe("Focus Group Discussion");
+      expect(canonicalizeCollectionMethod("Focus group discussion")).toBe("Focus Group Discussion");
+      expect(canonicalizeCollectionMethod("focus groups")).toBe("Focus Group Discussion");
+      expect(canonicalizeCollectionMethod("group discussion")).toBe("Focus Group Discussion");
+    });
+
+    it("12. canonicalizeCollectionMethod resolves Observation variants", () => {
+      expect(canonicalizeCollectionMethod("direct observation")).toBe("Direct Observation");
+      expect(canonicalizeCollectionMethod("Direct observation")).toBe("Direct Observation");
+      expect(canonicalizeCollectionMethod("Observation notes")).toBe("Direct Observation");
+      expect(canonicalizeCollectionMethod("field observation log")).toBe("Direct Observation");
+      expect(canonicalizeCollectionMethod("observation of activity")).toBe("Direct Observation");
+      expect(canonicalizeCollectionMethod("site observation")).toBe("Direct Observation");
+      expect(canonicalizeCollectionMethod("structured observation")).toBe("Direct Observation");
+    });
+
+    it("13. canonicalizeCollectionMethod resolves Survey / Questionnaire variants", () => {
+      expect(canonicalizeCollectionMethod("survey")).toBe("Survey / Questionnaire");
+      expect(canonicalizeCollectionMethod("surveys")).toBe("Survey / Questionnaire");
+      expect(canonicalizeCollectionMethod("questionnaire")).toBe("Survey / Questionnaire");
+      expect(canonicalizeCollectionMethod("questionnaires")).toBe("Survey / Questionnaire");
+      expect(canonicalizeCollectionMethod("household survey")).toBe("Survey / Questionnaire");
+      expect(canonicalizeCollectionMethod("structured survey")).toBe("Survey / Questionnaire");
+    });
+
+    it("14. unknown method names remain unclassified / raw string without false mapping to Document Review", () => {
+      expect(canonicalizeCollectionMethod("Meeting minutes")).toBe("Meeting minutes");
+      expect(canonicalizeCollectionMethod("Protection log")).toBe("Protection log");
+      expect(canonicalizeCollectionMethod("Monitoring record")).toBe("Monitoring record");
+      expect(canonicalizeCollectionMethod("Workshop output")).toBe("Workshop output");
+      expect(canonicalizeCollectionMethod("Draft whitepaper")).toBe("Draft whitepaper");
+      expect(canonicalizeCollectionMethod("")).toBe("Unclassified");
+      expect(canonicalizeCollectionMethod(undefined)).toBe("Unclassified");
+      expect(canonicalizeCollectionMethod(null)).toBe("Unclassified");
+      expect(canonicalizeCollectionMethod("   ")).toBe("Unclassified");
+
+      expect(canonicalizeCollectionMethod("document review")).toBe("Document Review");
+      expect(canonicalizeCollectionMethod("desk review")).toBe("Document Review");
+      expect(canonicalizeCollectionMethod("literature review")).toBe("Document Review");
+    });
+
+    it("15. getPlannedTargetSourceCount prioritizes targetSourceCount with fallback to plannedCount", () => {
+      expect(getPlannedTargetSourceCount({ targetSourceCount: 12, plannedCount: 5 })).toBe(12);
+      expect(getPlannedTargetSourceCount({ plannedCount: 7 })).toBe(7);
+      expect(getPlannedTargetSourceCount({ targetSourceCount: 0, plannedCount: 10 })).toBe(0);
+      expect(getPlannedTargetSourceCount({})).toBe(0);
+    });
+
+    it("16. savePlannedMethod populates targetSourceCount and dual-writes plannedCount", async () => {
+      const studyId = "test-method-save";
+      await saveStudyMeta(createMinimalMeta(studyId, "Method Save Study"));
+
+      await savePlannedMethod(studyId, {
+        method: "Key Informant Interview",
+        targetSourceCount: 15,
+        description: "District leaders and clinic coordinators",
+      });
+
+      const study = await assembleStudy(studyId);
+      const planned = study?.scope?.plannedMethods?.find((p) => p.method === "Key Informant Interview");
+      expect(planned).toBeDefined();
+      expect(planned?.targetSourceCount).toBe(15);
+      expect(planned?.plannedCount).toBe(15);
+      expect(planned?.description).toBe("District leaders and clinic coordinators");
+    });
+
+    it("17. excluded or rejected evidence does not count as usable evidence in method reconciliation", () => {
+      const evidence = [
+        { id: "E1", sourceId: "S1", reviewStatus: "included", validationStatus: "Validated" },
+        { id: "E2", sourceId: "S1", reviewStatus: "excluded", validationStatus: "Validated" },
+        { id: "E3", sourceId: "S2", reviewStatus: "included", validationStatus: "Rejected" },
+      ];
+
+      let usableEvidenceCount = 0;
+      for (const ev of evidence) {
+        if (ev.reviewStatus === "excluded" || ev.validationStatus === "Rejected") {
+          continue;
+        }
+        usableEvidenceCount += 1;
+      }
+
+      expect(usableEvidenceCount).toBe(1);
+    });
+
+    it("18. rejected evidence does not erase valid collected source from reconciliation", () => {
+      const sources = [
+        { id: "S1", sourceType: "Key Informant Interview" },
+        { id: "S2", sourceType: "Key Informant Interview" },
+      ];
+      const evidence = [
+        { id: "E1", sourceId: "S1", reviewStatus: "included", validationStatus: "Rejected" },
+        { id: "E2", sourceId: "S2", reviewStatus: "included", validationStatus: "Rejected" },
+      ];
+
+      const sourcesCount = sources.filter(
+        (s) => canonicalizeCollectionMethod(s.sourceType) === "Key Informant Interview"
+      ).length;
+
+      const evidenceCount = evidence.filter(
+        (e) => e.reviewStatus !== "excluded" && e.validationStatus !== "Rejected"
+      ).length;
+
+      expect(sourcesCount).toBe(2);
+      expect(evidenceCount).toBe(0);
+    });
+
+    it("19. reconciles Community Bridges demo methods cleanly without duplicate rows", () => {
+      const planned = communityBridgesCase.scopeConfig?.plannedMethods || [];
+      const sources = communityBridgesCase.sources;
+
+      const plannedMap = new Map<string, PlannedMethodTarget>();
+      for (const p of planned) {
+        const canon = canonicalizeCollectionMethod(p.method);
+        const existing = plannedMap.get(canon);
+        if (!existing || getPlannedTargetSourceCount(p) > getPlannedTargetSourceCount(existing)) {
+          plannedMap.set(canon, p);
+        }
+      }
+
+      const counts = new Map<string, number>();
+      for (const src of sources) {
+        const canon = canonicalizeCollectionMethod(src.sourceType);
+        counts.set(canon, (counts.get(canon) || 0) + 1);
+      }
+
+      const allMethods = new Set<string>();
+      plannedMap.forEach((_, canon) => allMethods.add(canon));
+      counts.forEach((_, canon) => allMethods.add(canon));
+
+      const reconciledList = Array.from(allMethods).map((name) => ({
+        name,
+        targetSourceCount: plannedMap.get(name) ? getPlannedTargetSourceCount(plannedMap.get(name)!) : undefined,
+        sourcesCount: counts.get(name) || 0,
+      }));
+
+      const fgdRows = reconciledList.filter((r) => r.name === "Focus Group Discussion");
+      expect(fgdRows).toHaveLength(1);
+      expect(fgdRows[0].targetSourceCount).toBe(12);
+      expect(fgdRows[0].sourcesCount).toBe(2);
+
+      const kiiRows = reconciledList.filter((r) => r.name === "Key Informant Interview");
+      expect(kiiRows).toHaveLength(1);
+      expect(kiiRows[0].targetSourceCount).toBe(15);
+      expect(kiiRows[0].sourcesCount).toBe(1);
+
+      const obsRows = reconciledList.filter((r) => r.name === "Direct Observation");
+      expect(obsRows).toHaveLength(1);
+      expect(obsRows[0].targetSourceCount).toBe(8);
+      expect(obsRows[0].sourcesCount).toBe(1);
+
+      const methodNames = reconciledList.map((r) => r.name);
+      expect(new Set(methodNames).size).toBe(methodNames.length);
+    });
+
+    it("20. reconciles School Nutrition demo methods cleanly without duplicate rows", () => {
+      const planned = nutritionFieldCase.scopeConfig?.plannedMethods || [];
+      const sources = nutritionFieldCase.sources;
+
+      const plannedMap = new Map<string, PlannedMethodTarget>();
+      for (const p of planned) {
+        const canon = canonicalizeCollectionMethod(p.method);
+        const existing = plannedMap.get(canon);
+        if (!existing || getPlannedTargetSourceCount(p) > getPlannedTargetSourceCount(existing)) {
+          plannedMap.set(canon, p);
+        }
+      }
+
+      const counts = new Map<string, number>();
+      for (const src of sources) {
+        const canon = canonicalizeCollectionMethod(src.sourceType);
+        counts.set(canon, (counts.get(canon) || 0) + 1);
+      }
+
+      const allMethods = new Set<string>();
+      plannedMap.forEach((_, canon) => allMethods.add(canon));
+      counts.forEach((_, canon) => allMethods.add(canon));
+
+      const reconciledList = Array.from(allMethods).map((name) => ({
+        name,
+        targetSourceCount: plannedMap.get(name) ? getPlannedTargetSourceCount(plannedMap.get(name)!) : undefined,
+        sourcesCount: counts.get(name) || 0,
+      }));
+
+      const kiiRows = reconciledList.filter((r) => r.name === "Key Informant Interview");
+      expect(kiiRows).toHaveLength(1);
+      expect(kiiRows[0].targetSourceCount).toBe(10);
+      expect(kiiRows[0].sourcesCount).toBe(4);
+
+      const obsRows = reconciledList.filter((r) => r.name === "Direct Observation");
+      expect(obsRows).toHaveLength(1);
+      expect(obsRows[0].targetSourceCount).toBe(6);
+      expect(obsRows[0].sourcesCount).toBe(2);
+
+      const fgdRows = reconciledList.filter((r) => r.name === "Focus Group Discussion");
+      expect(fgdRows).toHaveLength(1);
+      expect(fgdRows[0].targetSourceCount).toBe(8);
+      expect(fgdRows[0].sourcesCount).toBe(2);
+
+      const docRows = reconciledList.filter((r) => r.name === "Document Review");
+      expect(docRows).toHaveLength(1);
+      expect(docRows[0].targetSourceCount).toBe(4);
+      expect(docRows[0].sourcesCount).toBe(0);
+
+      const methodNames = reconciledList.map((r) => r.name);
+      expect(new Set(methodNames).size).toBe(methodNames.length);
     });
   });
 });

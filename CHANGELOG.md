@@ -19,11 +19,19 @@
 - **Showcase Case Enrichment**:
   - Enriched both demo fixtures (`communityBridgesCase` and `nutritionFieldCase`) with comprehensive, credible Phase 2 evaluation charters, structured primary and secondary questions, planned method quotas, analytical lenses, and team governance roles.
   - Extended `adaptDemoCaseToFieldStudy` to map all Phase 2 properties into runtime studies while strictly maintaining showcase data immutability.
+- **Post-Implementation Audit Hardening**:
+  - **Study Question Referential Integrity & Lineage Protection**: Hardened `deleteStudyQuestion` in `src/lib/storage/studyStore.ts` via `getStudyQuestionUsage` to strictly block deletion if referenced by downstream records (`EvidenceEntry.studyQuestionIds`, `Finding.studyQuestionId`, `PatternNote.questionId`). Added `archiveStudyQuestion` (`isActive = false`) to preserve question IDs, evidence links, and analytical lineage without cascading deletions or orphaning. Added user-facing domain alert in `StudyQuestionsScopeView`.
+  - **Study Blueprint as Sole Question Authoring Home**: Removed Add/Edit/Delete actions from `SynthesisWorkbench` and `StudyQuestionSelector`, retaining question selection, filtering, and `[Archived]` indicator with deep link "Manage in Study Blueprint →".
+  - **Canonical Method Normalization**: Implemented `src/lib/methodTaxonomy.ts` with `canonicalizeCollectionMethod(rawType)` mapping variants (e.g. "Focus group discussion", "FGD", "Observation notes", "Field observation log") to standard collection methods (`KII`, `FGD`, `Direct Observation`, `Survey`), preventing false mapping of arbitrary document titles to Document Review.
+  - **Planned Method Target Standardization**: Standardized `PlannedMethodTarget` on canonical `targetSourceCount?: number`, deprecating `plannedCount` and dual-writing on save for backward compatibility. Removed `targetEvidenceCount` as planning quota.
+  - **Actual Count Semantics**: Corrected actual counts so source count is primary from `SourceRecord` (unaffected by rejected evidence), while observation count excludes excluded/rejected evidence records (`reviewStatus === 'excluded'` or `validationStatus === 'Rejected'`).
+  - **Showcase Demo Reconciliation**: Resolved duplicate "Behind Target" / "Unplanned" rows in both showcase demo cases (`communityBridgesCase` and `nutritionFieldCase`), cleanly reconciling planned quotas and field-emergent methods.
+  - **Readiness Banner UX**: Default collapsed when `readiness.state === 'ready'`, expanded otherwise, with async hydration state synchronization.
 - **Quality Gates & Verification**:
-  - Added 15 comprehensive unit and integration tests in `tests/phase2StudyWorkspace.test.ts`.
-  - Total passing tests: 250 across 24 test files.
+  - Added 35 comprehensive unit and integration tests in `tests/phase2StudyWorkspace.test.ts` (15 baseline + 20 targeted audit regression tests).
+  - Total passing tests: 270 across 24 test files.
   - TypeScript compilation, ESLint, Next.js Turbopack build, and `git diff --check` all pass with 0 errors.
-  - Headless Chrome CDP visual QA verified 11 high-resolution screenshots across desktop and mobile (390px) in Day and Night themes.
+  - Headless Chrome CDP visual QA verified 6 targeted post-hardening screenshots in `phase2_hardening_qa/` in addition to the 11 baseline screenshots.
 
 ## Phase 1 - Study Library, Demo/Real Separation, and Workspace Identity Foundation
 

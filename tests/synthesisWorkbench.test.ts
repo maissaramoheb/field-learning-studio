@@ -251,7 +251,7 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
       expect(study?.questions?.[0].shortLabel).toBe("Updated Theme");
     });
 
-    it("deletes study question and unassigns evidence mapped to it", async () => {
+    it("blocks deletion of study question when referenced by evidence, and allows deletion when unused", async () => {
       const q1: StudyQuestion = {
         id: "RQ-001",
         question: "To be deleted question",
@@ -266,11 +266,26 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
       expect(study?.questions).toHaveLength(1);
       expect(study?.evidence.find((e) => e.id === "EV-001")?.studyQuestionIds).toContain("RQ-001");
 
+      // Attempting to delete a referenced question throws error to protect lineage
+      await expect(deleteStudyQuestion(testStudyId, "RQ-001")).rejects.toThrow(
+        "This Study Question is already used by evidence or analysis and cannot be deleted. Archive it instead to preserve study lineage."
+      );
+
+      // Verify evidence links were NOT stripped
+      study = await assembleStudy(testStudyId);
+      expect(study?.questions).toHaveLength(1);
+      expect(study?.evidence.find((e) => e.id === "EV-001")?.studyQuestionIds).toContain("RQ-001");
+
+      // When evidence is unassigned (downstream count is 0), deletion is allowed
+      for (const evId of ["EV-001", "EV-002"]) {
+        const ev = study?.evidence.find((e) => e.id === evId);
+        if (ev) {
+          await saveEvidence({ ...ev, studyId: testStudyId, studyQuestionIds: [] });
+        }
+      }
       await deleteStudyQuestion(testStudyId, "RQ-001");
       study = await assembleStudy(testStudyId);
       expect(study?.questions).toHaveLength(0);
-      expect(study?.evidence.find((e) => e.id === "EV-001")?.studyQuestionIds).toEqual([]);
-      expect(study?.evidence.find((e) => e.id === "EV-002")?.studyQuestionIds).toEqual([]);
     });
 
     it("preserves backward compatibility when questions field is omitted", async () => {

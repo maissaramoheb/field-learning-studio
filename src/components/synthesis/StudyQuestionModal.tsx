@@ -23,6 +23,35 @@ const EVALUATION_CRITERIA = [
   "Contextual / Process",
 ];
 
+/**
+ * Builds an updated StudyQuestion while strictly preserving Phase 2 metadata
+ * (isPrimary, order, subQuestions, isActive) when editing existing questions.
+ */
+export function buildUpdatedStudyQuestion(
+  initialQuestion: StudyQuestion | null | undefined,
+  formData: {
+    questionText: string;
+    shortLabel?: string;
+    criterion?: string;
+  },
+  existingQuestions: StudyQuestion[] = []
+): StudyQuestion {
+  const nextId =
+    initialQuestion?.id ||
+    getNextQuestionId(existingQuestions.map((q) => q.id));
+
+  return {
+    ...(initialQuestion || {}),
+    id: nextId,
+    question: formData.questionText.trim(),
+    shortLabel: formData.shortLabel?.trim() || undefined,
+    criterion: formData.criterion?.trim() || undefined,
+    isActive: initialQuestion?.isActive !== undefined ? initialQuestion.isActive : true,
+    createdAt: initialQuestion?.createdAt || Date.now(),
+    updatedAt: Date.now(),
+  };
+}
+
 export function StudyQuestionModal({
   isOpen,
   onClose,
@@ -78,24 +107,20 @@ function StudyQuestionModalContent({
       return;
     }
 
-    const nextId =
-      initialQuestion?.id ||
-      getNextQuestionId(existingQuestions.map((q) => q.id));
-
     const resolvedCriterion =
       selectedMode === "custom"
         ? customCriterion.trim() || undefined
         : selectedMode.trim() || undefined;
 
-    const updated: StudyQuestion = {
-      id: nextId,
-      question: trimmed,
-      shortLabel: shortLabel.trim() || undefined,
-      criterion: resolvedCriterion,
-      isActive: initialQuestion ? initialQuestion.isActive : true,
-      createdAt: initialQuestion?.createdAt || Date.now(),
-      updatedAt: Date.now(),
-    };
+    const updated = buildUpdatedStudyQuestion(
+      initialQuestion,
+      {
+        questionText: trimmed,
+        shortLabel,
+        criterion: resolvedCriterion,
+      },
+      existingQuestions
+    );
 
     onSave(updated);
     onClose();

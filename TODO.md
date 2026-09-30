@@ -12,8 +12,16 @@
   - [x] Dynamic 9-item `StudyReadinessBanner` with status badge, progress bar, and sub-view deep-links.
   - [x] Synthesis Workbench "Manage in Study Blueprint →" button linking to `study-questions`.
   - [x] Enriched demo cases (`communityBridgesCase` and `nutritionFieldCase`) and demo adapter mappings.
-  - [x] 15 new unit/integration tests in `tests/phase2StudyWorkspace.test.ts` (250/250 total passing tests).
-  - [x] Visual QA verified across 11 desktop and mobile (390px) screenshots in Day and Night themes.
+  - [x] Post-implementation audit hardening:
+    - [x] Study question referential integrity & lineage protection (blocked hard deletion if referenced; archive/restore `isActive = false` support; user alert).
+    - [x] Study Blueprint as sole question authoring home (removed Add/Edit/Delete from Synthesis Workbench & `StudyQuestionSelector`; archived question indicator).
+    - [x] Canonical method normalization via `src/lib/methodTaxonomy.ts` (`canonicalizeCollectionMethod`).
+    - [x] Standardized `PlannedMethodTarget` on `targetSourceCount?: number` with dual-write to `plannedCount`.
+    - [x] Actual count semantics (source count from `SourceRecord`, observation count excluding excluded/rejected evidence).
+    - [x] Showcase demo method reconciliation without duplicate rows.
+    - [x] Readiness banner default collapsed for ready studies with async hydration sync.
+  - [x] 35 total unit/integration tests in `tests/phase2StudyWorkspace.test.ts` (15 baseline + 20 post-audit regression tests, 270/270 total passing tests).
+  - [x] Visual QA verified across 11 baseline + 6 post-hardening desktop and mobile screenshots.
 - [ ] Phase 3 Field Material Workspace:
   - [ ] Source Inventory, Field Intake, and Material Qualification workflows.
 - [x] Phase 1 Study Library, Demo/Real Separation, and Workspace Identity Foundation (`feature/phase-1-study-library-workspace-shell`):

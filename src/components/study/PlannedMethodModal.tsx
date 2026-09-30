@@ -56,8 +56,8 @@ function PlannedMethodModalContent({
       ? initialTarget.method
       : ""
   );
-  const [plannedCount, setPlannedCount] = useState<number | string>(
-    initialTarget?.plannedCount ?? ""
+  const [targetSourceCount, setTargetSourceCount] = useState<number | string>(
+    initialTarget?.targetSourceCount ?? initialTarget?.plannedCount ?? ""
   );
   const [description, setDescription] = useState(initialTarget?.description || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,14 +76,14 @@ function PlannedMethodModalContent({
     }
 
     const countNum =
-      typeof plannedCount === "number"
-        ? plannedCount
-        : plannedCount.trim() !== ""
-        ? parseInt(plannedCount, 10)
+      typeof targetSourceCount === "number"
+        ? targetSourceCount
+        : typeof targetSourceCount === "string" && targetSourceCount.trim() !== ""
+        ? parseInt(targetSourceCount, 10)
         : undefined;
 
     if (countNum !== undefined && (isNaN(countNum) || countNum < 0)) {
-      setErrorMessage("Planned count must be a non-negative number.");
+      setErrorMessage("Target source count must be a non-negative number.");
       return;
     }
 
@@ -91,7 +91,8 @@ function PlannedMethodModalContent({
       setIsSubmitting(true);
       await onSave({
         method: methodName,
-        plannedCount: countNum,
+        targetSourceCount: countNum,
+        plannedCount: countNum, // Dual-write for backward compatibility
         description: description.trim() || undefined,
       });
       onClose();
@@ -168,13 +169,13 @@ function PlannedMethodModalContent({
 
         <div>
           <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
-            Planned Collection Target (Optional count)
+            Target Source Quota (Planned sources / sessions)
           </label>
           <input
             type="number"
             min={0}
-            value={plannedCount}
-            onChange={(e) => setPlannedCount(e.target.value)}
+            value={targetSourceCount}
+            onChange={(e) => setTargetSourceCount(e.target.value)}
             placeholder="e.g. 15 (Planned interviews or sessions)"
             className="w-full rounded-md border border-[var(--border)] bg-[var(--surface-raised)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:ring-1 focus:ring-[var(--trace)]"
           />
