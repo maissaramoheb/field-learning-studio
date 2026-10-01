@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-10-01 — Local Pre-Phase 5 Integrity Closure
+
+- Enforce canonical admissibility across all finding roles, analysis, validation and shared export policy. Invalidate reviewed authority on substantive evidence/source/finding edits; preserve historical attribution and Draft/Rejected states.
+- Reject normal import ID collisions atomically; check every output parent, block referenced finding deletion and exclude superseded findings from current outputs.
+- Retain structured JSON backup and add optional file-inclusive portable archive with atomic restore, ownership/file-ID remapping and safe malformed-shape rejection.
+- Remove unsupported import and learning defaults; retain nonstandard methods, normalize site aliases, qualify source-record/cell-alignment wording and repair PAT-001/PAT-003 without new evidence.
+- Carry stored caveats/challenge/context through the existing shared export model, distinguish real/showcase provenance and flag unlinked free text. Replace unearned Final Review assurance with current integrity/file checks.
+- Repair only reproduced accessibility defects; preserve navigation, visual identity, DB_VERSION 2, Analytics and copyright. No dependencies added.
+- Add seven behavioral sequence regressions: 344 tests across 27 files. Local branch only; no merge, push, deployment, Phase 5 or AI. Independent targeted verification is the next gate.
+
 ## Phase 4 Final Micro-Hardening - Evidence Eligibility & Qualification Semantics
 
 - **Strict Legacy Evidence Eligibility Fallback**:

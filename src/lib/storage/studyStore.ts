@@ -8,8 +8,13 @@ import {
   assertLessonEvidenceIntegrity,
   assertGoodPracticeEvidenceIntegrity,
   cascadeEvidenceInvalidationToFindings,
+  cascadeFindingInvalidationToOutputs,
+  assertCurrentFindingParents,
+  assertNewFindingEvidenceAdmissibility,
+  assertFindingEvidenceApprovalIntegrity,
 } from "./integrity";
-import { isSubstantiveEvidenceChange } from "@/lib/validation/validationLifecycle";
+import { getLinkedFindingIds, isLessonExportEligible, isGoodPracticeExportEligible, isRecommendationExportEligible } from "@/lib/exportPolicy";
+import { isSubstantiveEvidenceChange, applySubstantiveFindingEdit, isSubstantiveSourceChange } from "@/lib/validation/validationLifecycle";
 import {
   normalizeSourceRecord,
   normalizeEvidenceEntry,
@@ -18,6 +23,7 @@ import {
   normalizeLessonLearned,
   normalizeGoodPractice,
   normalizeRecommendation,
+  isEvidenceEligibleForAnalysis,
 } from "./normalization";
 import type {
   StudyId,
@@ -379,6 +385,11 @@ export async function savePatternNote(
   if (!meta) throw new Error(`Study "${studyId}" not found.`);
   const notes = meta.patternNotes ? [...meta.patternNotes] : [];
   const idx = notes.findIndex((p) => p.id === pattern.id);
+  for (const id of pattern.evidenceIds) {
+    const ev = await getEvidence(studyId, id);
+    if (!ev) throw new Error(`Pattern references missing evidence "${id}".`);
+    if (!notes[idx]?.evidenceIds.includes(id) && !isEvidenceEligibleForAnalysis(ev)) throw new Error(`Pattern evidence "${id}" is not qualified for analytical use.`);
+  }
   if (idx >= 0) {
     notes[idx] = { ...pattern, updatedAt: Date.now() };
   } else {
@@ -409,78 +420,14 @@ export async function deletePatternNote(
   });
 }
 
-export async function bulkAssignEvidenceToQuestion(
-  studyId: StudyId,
-  evidenceIds: EvidenceEntryId[],
-  questionId: string
-): Promise<void> {
-  const db = await getDb();
-  const tx = db.transaction("evidence", "readwrite");
-  const store = tx.objectStore("evidence");
-  const cascadeIds: EvidenceEntryId[] = [];
-
-  for (const evId of evidenceIds) {
-    const entry = await store.get([studyId, evId]);
-    if (entry) {
-      const currentQuestions = entry.studyQuestionIds ? [...entry.studyQuestionIds] : [];
-      if (!currentQuestions.includes(questionId)) {
-        currentQuestions.push(questionId);
-        const isSubstantive = entry.validationStatus === "Validated";
-        await store.put({
-          ...entry,
-          studyQuestionIds: currentQuestions,
-          validationStatus: isSubstantive ? "Needs Review" : entry.validationStatus,
-          previousValidationStatus: isSubstantive ? "Validated" : entry.previousValidationStatus,
-          revision: isSubstantive ? (entry.revision ?? 1) + 1 : entry.revision,
-          updatedAt: Date.now(),
-        });
-        if (isSubstantive) {
-          cascadeIds.push(evId);
-        }
-      }
-    }
-  }
-  await tx.done;
-
-  for (const id of cascadeIds) {
-    await cascadeEvidenceInvalidationToFindings(db, studyId, id);
-  }
+export async function bulkAssignEvidenceToQuestion(studyId: StudyId, evidenceIds: EvidenceEntryId[], questionId: string): Promise<void> {
+  const updates = (await listEvidence(studyId)).filter(e => evidenceIds.includes(e.id) && !e.studyQuestionIds?.includes(questionId)).map(e => ({ ...e, studyId, studyQuestionIds: [...(e.studyQuestionIds || []), questionId] }));
+  await saveEvidenceBatch(updates);
 }
 
-export async function bulkAssignEvidenceTheme(
-  studyId: StudyId,
-  evidenceIds: EvidenceEntryId[],
-  theme: string
-): Promise<void> {
-  const db = await getDb();
-  const tx = db.transaction("evidence", "readwrite");
-  const store = tx.objectStore("evidence");
-  const cascadeIds: EvidenceEntryId[] = [];
-
-  for (const evId of evidenceIds) {
-    const entry = await store.get([studyId, evId]);
-    if (entry) {
-      if (entry.primaryTheme !== theme) {
-        const isSubstantive = entry.validationStatus === "Validated";
-        await store.put({
-          ...entry,
-          primaryTheme: theme,
-          validationStatus: isSubstantive ? "Needs Review" : entry.validationStatus,
-          previousValidationStatus: isSubstantive ? "Validated" : entry.previousValidationStatus,
-          revision: isSubstantive ? (entry.revision ?? 1) + 1 : entry.revision,
-          updatedAt: Date.now(),
-        });
-        if (isSubstantive) {
-          cascadeIds.push(evId);
-        }
-      }
-    }
-  }
-  await tx.done;
-
-  for (const id of cascadeIds) {
-    await cascadeEvidenceInvalidationToFindings(db, studyId, id);
-  }
+export async function bulkAssignEvidenceTheme(studyId: StudyId, evidenceIds: EvidenceEntryId[], theme: string): Promise<void> {
+  const updates = (await listEvidence(studyId)).filter(e => evidenceIds.includes(e.id) && e.primaryTheme !== theme).map(e => ({ ...e, studyId, primaryTheme: theme }));
+  await saveEvidenceBatch(updates);
 }
 
 export async function deleteStudy(studyId: StudyId): Promise<void> {
@@ -556,6 +503,12 @@ export async function saveSource(
     }
   }
   const normalized = normalizeSourceRecord(source, false);
+  const previous = await db.get("sources", [source.studyId, source.id]);
+  if (previous && isSubstantiveSourceChange(previous, normalized)) {
+    for (const ev of await db.getAllFromIndex("evidence", "by_source", [source.studyId, source.id])) {
+      await cascadeEvidenceInvalidationToFindings(db, source.studyId, ev.id, "Source method, context, or provenance changed after review. Review the linked material again.");
+    }
+  }
   await db.put("sources", normalized as SourceRecord & { studyId: StudyId });
 }
 
@@ -587,13 +540,16 @@ export async function saveSourceBatch(
   }
 
   const db = await getDb();
-  const tx = db.transaction("sources", "readwrite");
-  const store = tx.objectStore("sources");
   for (const src of sources) {
-    const normalized = normalizeSourceRecord(src, false);
-    store.put(normalized as SourceRecord & { studyId: StudyId });
+    const previous = await db.get("sources", [src.studyId, src.id]);
+    if (previous && isSubstantiveSourceChange(previous, src)) {
+      for (const ev of await db.getAllFromIndex("evidence", "by_source", [src.studyId, src.id])) await cascadeEvidenceInvalidationToFindings(db, src.studyId, ev.id, "Source context or provenance changed after review.");
+    }
   }
+  const tx = db.transaction("sources", "readwrite");
+  for (const src of sources) await tx.objectStore("sources").put(normalizeSourceRecord(src, false) as SourceRecord & { studyId: StudyId });
   await tx.done;
+
 }
 
 export async function getSource(
@@ -644,14 +600,15 @@ export async function saveEvidence(
       );
     }
   }
+  evidence = normalizeEvidenceEntry(evidence, false) as EvidenceEntry & { studyId: StudyId };
   await assertEvidenceSourceIntegrity(db, evidence.studyId, evidence);
 
   // If this evidence was previously validated and is now being downgraded or substantively edited
   const existing = await db.get("evidence", [evidence.studyId, evidence.id]);
-  if (existing && existing.validationStatus === "Validated") {
+  if (existing) {
     const isSubstantive = isSubstantiveEvidenceChange(existing, evidence);
-    if (evidence.validationStatus !== "Validated" || isSubstantive) {
-      if (isSubstantive && evidence.validationStatus === "Validated") {
+    if (existing.validationStatus !== evidence.validationStatus || isSubstantive) {
+      if (isSubstantive && existing.validationStatus === "Validated" && evidence.validationStatus === "Validated") {
         evidence.validationStatus = "Needs Review";
         evidence.previousValidationStatus = "Validated";
         evidence.revision = (existing.revision ?? 1) + 1;
@@ -672,6 +629,7 @@ export async function saveEvidenceBatch(
     typeof evidenceOrStudyId === "string"
       ? (maybeEvidence || []).map((e) => ({ ...e, studyId: evidenceOrStudyId }))
       : evidenceOrStudyId;
+  for (let i = 0; i < evidenceList.length; i++) evidenceList[i] = normalizeEvidenceEntry(evidenceList[i], false) as EvidenceEntry & { studyId: StudyId };
   if (evidenceList.length === 0) return;
 
   const seenEvidenceIds = new Set<string>();
@@ -701,10 +659,10 @@ export async function saveEvidenceBatch(
 
   for (const ev of evidenceList) {
     const existing = await db.get("evidence", [ev.studyId, ev.id]);
-    if (existing && existing.validationStatus === "Validated") {
+    if (existing) {
       const isSubstantive = isSubstantiveEvidenceChange(existing, ev);
-      if (ev.validationStatus !== "Validated" || isSubstantive) {
-        if (isSubstantive && ev.validationStatus === "Validated") {
+      if (existing.validationStatus !== ev.validationStatus || isSubstantive) {
+        if (isSubstantive && existing.validationStatus === "Validated" && ev.validationStatus === "Validated") {
           ev.validationStatus = "Needs Review";
           ev.previousValidationStatus = "Validated";
           ev.revision = (existing.revision ?? 1) + 1;
@@ -712,6 +670,10 @@ export async function saveEvidenceBatch(
         cascadeEvidenceIds.push({ studyId: ev.studyId, id: ev.id });
       }
     }
+  }
+
+  for (const item of cascadeEvidenceIds) {
+    await cascadeEvidenceInvalidationToFindings(db, item.studyId, item.id);
   }
 
   const tx = db.transaction("evidence", "readwrite");
@@ -722,9 +684,7 @@ export async function saveEvidenceBatch(
   }
   await tx.done;
 
-  for (const item of cascadeEvidenceIds) {
-    await cascadeEvidenceInvalidationToFindings(db, item.studyId, item.id);
-  }
+
 }
 
 /**
@@ -781,14 +741,20 @@ export async function saveSourceAndEvidenceBatch(
   const sourceStore = tx.objectStore("sources");
   const evidenceStore = tx.objectStore("evidence");
 
-  for (const src of sources) {
-    const normalized = normalizeSourceRecord({ ...src, studyId }, false);
-    sourceStore.put(normalized as SourceRecord & { studyId: StudyId });
-  }
-
-  for (const ev of evidence) {
-    const normalized = normalizeEvidenceEntry({ ...ev, studyId }, false);
-    evidenceStore.put(normalized as EvidenceEntry & { studyId: StudyId });
+  try {
+    const conflicts: string[] = [];
+    for (const src of sources) if (await sourceStore.get([studyId, src.id])) conflicts.push(src.id);
+    for (const ev of evidence) if (await evidenceStore.get([studyId, ev.id])) conflicts.push(ev.id);
+    if (conflicts.length) throw new Error(`Import collision: records already exist in this study: ${conflicts.join(", ")}. No records were overwritten.`);
+    for (const ev of evidence) {
+      if (!seenSourceIds.has(ev.sourceId) && !await sourceStore.get([studyId, ev.sourceId])) throw new Error(`Import rejected: source "${ev.sourceId}" no longer exists in this study.`);
+    }
+    for (const src of sources) await sourceStore.add(normalizeSourceRecord({ ...src, studyId }, false) as SourceRecord & { studyId: StudyId });
+    for (const ev of evidence) await evidenceStore.add(normalizeEvidenceEntry({ ...ev, studyId }, false) as EvidenceEntry & { studyId: StudyId });
+  } catch (error) {
+    tx.abort();
+    await tx.done.catch(() => undefined);
+    throw error;
   }
 
   await tx.done;
@@ -872,9 +838,21 @@ export async function saveFinding(
       );
     }
   }
-  await assertFindingEvidenceIntegrity(db, finding.studyId, finding);
-  const normalized = normalizeFinding(finding, false);
+  const previous = await db.get("findings", [finding.studyId, finding.id]);
+  const proposed = previous ? applySubstantiveFindingEdit(previous, finding).updated : finding;
+  if (proposed.validationStatus === "Validated" && proposed.staleDependencyWarning?.trim()) proposed.validationStatus = "Needs Review";
+  for (const parentId of [proposed.supersededByFindingId, proposed.supersedesFindingId].filter(Boolean)) {
+    if (parentId === proposed.id || !await db.get("findings", [finding.studyId, parentId!])) throw new Error(`Finding supersession reference "${parentId}" does not resolve to another Finding in this study.`);
+  }
+  await assertFindingEvidenceIntegrity(db, finding.studyId, proposed);
+  await assertNewFindingEvidenceAdmissibility(db, finding.studyId, proposed, previous);
+  if (proposed.validationStatus === "Validated" && !proposed.supersededByFindingId && !proposed.supersededAt) await assertFindingEvidenceApprovalIntegrity(db, finding.studyId, proposed);
+  if (previous && (proposed.validationStatus !== "Validated" || proposed.supersededByFindingId || proposed.supersededAt || proposed.staleDependencyWarning)) {
+    await cascadeFindingInvalidationToOutputs(db, finding.studyId, finding.id);
+  }
+  const normalized = normalizeFinding({ ...proposed, studyId: finding.studyId }, false);
   await db.put("findings", normalized as Finding & { studyId: StudyId });
+
 }
 
 export async function getFinding(
@@ -895,6 +873,12 @@ export async function deleteFinding(
   findingId: FindingId
 ): Promise<void> {
   const db = await getDb();
+  for (const name of ["lessons", "goodPractices", "recommendations"] as const) {
+    const dependents = (await db.getAllFromIndex(name, "by_study", studyId)).filter(record => getLinkedFindingIds(record).includes(findingId));
+    if (dependents.length) throw new Error(`Cannot delete Finding "${findingId}": ${name} reference it (${dependents.map(r => r.id).join(", ")}). Preserve the historical Finding or resolve its dependents first.`);
+  }
+  const historicalLinks = (await db.getAllFromIndex("findings", "by_study", studyId)).filter(f => f.id !== findingId && (f.supersedesFindingId === findingId || f.supersededByFindingId === findingId));
+  if (historicalLinks.length) throw new Error(`Cannot delete Finding "${findingId}": supersession history references it.`);
   await db.delete("findings", [studyId, findingId]);
 }
 
@@ -919,6 +903,12 @@ export async function saveLesson(
     }
   }
   await assertLessonEvidenceIntegrity(db, lesson.studyId, lesson);
+  const previous = await db.get("lessons", [lesson.studyId, lesson.id]);
+  if (!previous || lesson.validationStatus === "Validated" || JSON.stringify(previous.linkedFindingIds) !== JSON.stringify(lesson.linkedFindingIds)) await assertCurrentFindingParents(db, lesson.studyId, lesson);
+  if (lesson.validationStatus === "Validated") {
+    const context = { evidence: await listEvidence(lesson.studyId), sources: await listSources(lesson.studyId), findings: await listFindings(lesson.studyId) };
+    if (!isLessonExportEligible(lesson, context)) throw new Error("Cannot approve: parent Findings and referenced evidence must be current and qualified.");
+  }
   const normalized = normalizeLessonLearned(lesson, false);
   await db.put("lessons", normalized as LessonLearned & { studyId: StudyId });
 }
@@ -965,6 +955,12 @@ export async function saveGoodPractice(
     }
   }
   await assertGoodPracticeEvidenceIntegrity(db, practice.studyId, practice);
+  const previous = await db.get("goodPractices", [practice.studyId, practice.id]);
+  if (!previous || practice.validationStatus === "Validated" || JSON.stringify(previous.linkedFindingIds) !== JSON.stringify(practice.linkedFindingIds)) await assertCurrentFindingParents(db, practice.studyId, practice);
+  if (practice.validationStatus === "Validated") {
+    const context = { evidence: await listEvidence(practice.studyId), sources: await listSources(practice.studyId), findings: await listFindings(practice.studyId) };
+    if (!isGoodPracticeExportEligible(practice, context)) throw new Error("Cannot approve: parent Findings and referenced evidence must be current and qualified.");
+  }
   const normalized = normalizeGoodPractice(practice, false);
   await db.put("goodPractices", normalized as GoodPractice & { studyId: StudyId });
 }
@@ -1011,6 +1007,11 @@ export async function saveRecommendation(
     }
   }
   await assertRecommendationFindingIntegrity(db, recommendation.studyId, recommendation);
+  if (recommendation.validationStatus === "Validated") {
+    await assertCurrentFindingParents(db, recommendation.studyId, recommendation);
+    const context = { evidence: await listEvidence(recommendation.studyId), sources: await listSources(recommendation.studyId), findings: await listFindings(recommendation.studyId) };
+    if (!isRecommendationExportEligible(recommendation, context)) throw new Error("Cannot approve Recommendation: referenced evidence and all parent Findings must be current and qualified.");
+  }
   const normalized = normalizeRecommendation(recommendation, false);
   await db.put("recommendations", normalized as Recommendation & { studyId: StudyId });
 }

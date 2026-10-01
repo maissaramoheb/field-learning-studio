@@ -116,7 +116,7 @@ describe("Dynamic Triangulation Engine & Epistemic Rules (Phase 0)", () => {
     // Because only 1 independent source supports it, it is single-source dependent
     expect(metrics.isSingleSourceDependent).toBe(true);
     expect(
-      metrics.transparencyFlags.some((f) => f.includes("single independent source"))
+      metrics.transparencyFlags.some((f) => f.includes("single distinct source record"))
     ).toBe(true);
   });
 
@@ -333,6 +333,6 @@ describe("Dynamic Triangulation Engine & Epistemic Rules (Phase 0)", () => {
     // Independent source count excludes supervisory debrief (only SRC-INTERVIEW counts)
     expect(profile.independentSourceCount).toBe(1);
     expect(profile.supportTier).toBe("Emerging");
-    expect(profile.transparencyFlags).toContain("Only 1 independent source");
+    expect(profile.transparencyFlags).toContain("Only 1 distinct source record");
   });
 });

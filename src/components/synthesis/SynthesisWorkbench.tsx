@@ -1,5 +1,7 @@
 "use client";
 
+import { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
+
 import React, { useState, useMemo } from "react";
 import type {
   FieldStudy,
@@ -70,7 +72,7 @@ export function SynthesisWorkbench({
 
   // Validated Evidence entries
   const validatedEvidence = useMemo(
-    () => study.evidence.filter((e) => (e.validationStatus ?? "Validated") === "Validated"),
+    () => study.evidence.filter((e) => isEvidenceEligibleForAnalysis(e)),
     [study.evidence]
   );
 
@@ -543,7 +545,8 @@ export function SynthesisWorkbench({
         onClose={() => setIsFindingModalOpen(false)}
         onSaveFinding={handleSaveFinding}
         existingFindings={study.findings}
-        validatedEvidence={validatedEvidence}
+        qualifiedEvidence={validatedEvidence}
+        allEvidence={study.evidence}
         sources={study.sources}
         scope={study.scope}
         questions={studyQuestions}

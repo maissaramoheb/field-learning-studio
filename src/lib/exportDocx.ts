@@ -327,7 +327,7 @@ export function buildBriefDocxDocument(model: BriefExportModel): Document {
         spaceAfter: 120,
       }),
     );
-    children.push(createParagraph(`Linked finding: ${rec.linkedFindingId}`));
+    children.push(createParagraph(`Linked finding: ${rec.linkedFindingIds?.join(", ") || rec.linkedFindingId}`));
     children.push(
       createParagraph(`Evidence base: ${rec.evidenceBase.join(", ")}`, {
         italic: true,

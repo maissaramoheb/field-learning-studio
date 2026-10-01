@@ -1,5 +1,7 @@
 "use client";
 
+import { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
+
 import React, { useState, useMemo } from "react";
 import type {
   EvidenceEntry,
@@ -50,7 +52,7 @@ export function SynthesisComparisonView({
 
   // Validation breakdown
   const validatedEvidence = useMemo(
-    () => evidence.filter((e) => (e.validationStatus ?? "Validated") === "Validated"),
+    () => evidence.filter((e) => isEvidenceEligibleForAnalysis(e)),
     [evidence]
   );
   const needsReviewCount = useMemo(

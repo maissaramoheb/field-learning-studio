@@ -368,6 +368,7 @@ export function EvidenceCard({
             {!isDemoCase && onLinkQuestion && availableActiveQuestions.length > 0 && (
               <div className="pt-1 border-t border-[var(--border)]">
                 <select
+                  aria-label={`Link active study question to ${entry.id}`}
                   value=""
                   onChange={(e) => {
                     if (e.target.value) {

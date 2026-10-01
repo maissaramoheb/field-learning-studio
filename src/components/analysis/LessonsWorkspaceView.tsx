@@ -1,5 +1,7 @@
 "use client";
 
+import { isFindingExportEligible, isLessonExportEligible, isGoodPracticeExportEligible } from "@/lib/exportPolicy";
+
 import React, { useState, useMemo } from "react";
 import type {
   FieldStudy,
@@ -51,7 +53,7 @@ export function LessonsWorkspaceView({
   const [whatWorkedOrDidNotWork, setWhatWorkedOrDidNotWork] = useState("");
   const [whyItHappened, setWhyItHappened] = useState("");
   const [conditionsRequired, setConditionsRequired] = useState("");
-  const [transferability, setTransferability] = useState("Applicable across comparable programme contexts");
+  const [transferability, setTransferability] = useState("");
   // Good Practice specific
   const [gpTitle, setGpTitle] = useState("");
   const [gpDescription, setGpDescription] = useState("");
@@ -63,8 +65,8 @@ export function LessonsWorkspaceView({
 
   const findings = useMemo(() => study.findings || [], [study.findings]);
   const validatedFindings = useMemo(
-    () => findings.filter((f) => f.validationStatus === "Validated"),
-    [findings]
+    () => findings.filter((f) => isFindingExportEligible(f, study)),
+    [findings, study]
   );
   const findingMap = useMemo(
     () => new Map<string, Finding>(findings.map((f) => [f.id, f])),
@@ -83,14 +85,14 @@ export function LessonsWorkspaceView({
       setWhatWorkedOrDidNotWork("");
       setWhyItHappened(initialF ? initialF.explanation : "");
       setConditionsRequired("");
-      setTransferability("Applicable across comparable programme contexts");
+      setTransferability("");
     } else {
       setGpTitle(initialF ? `Practice: ${initialF.statement.slice(0, 50)}` : "");
       setGpDescription(initialF ? initialF.explanation : "");
       setWhyItWorked("");
       setConditionsForReplication("");
-      setRisksLimits("Requires dedicated supervision and resourcing");
-      setRecommendedUse("Recommended for phased institutional expansion");
+      setRisksLimits("");
+      setRecommendedUse("");
     }
     setFormError(null);
     setIsAuthoringOpen(true);
@@ -127,7 +129,7 @@ export function LessonsWorkspaceView({
     }
 
     const parentFinding = findingMap.get(selectedFindingId);
-    if (!parentFinding || parentFinding.validationStatus !== "Validated") {
+    if (!parentFinding || !isFindingExportEligible(parentFinding, study)) {
       setFormError("The selected parent finding must be in 'Validated' status.");
       return;
     }
@@ -145,13 +147,13 @@ export function LessonsWorkspaceView({
           id: nextId,
           studyId: study.id,
           statement: statement.trim(),
-          whatWorkedOrDidNotWork: whatWorkedOrDidNotWork.trim() || statement.trim(),
-          whyItHappened: whyItHappened.trim() || parentFinding.explanation,
-          conditionsRequired: conditionsRequired.trim() || "Local contextual alignment and stakeholder consent",
+          whatWorkedOrDidNotWork: whatWorkedOrDidNotWork.trim(),
+          whyItHappened: whyItHappened.trim(),
+          conditionsRequired: conditionsRequired.trim(),
           evidenceBase: parentFinding.supportingEvidenceIds || [],
           linkedFindingIds: [parentFinding.id],
           lineageStatus: "resolved",
-          transferability: transferability.trim() || "Applicable across similar contexts",
+          transferability: transferability.trim(),
           validationStatus: "Draft",
           revision: 1,
           audit: {
@@ -175,11 +177,11 @@ export function LessonsWorkspaceView({
           id: nextId,
           studyId: study.id,
           title: gpTitle.trim(),
-          description: gpDescription.trim() || parentFinding.explanation,
-          whyItWorked: whyItWorked.trim() || "Demonstrated positive outcome in field implementation",
-          conditionsForReplication: conditionsForReplication.trim() || "Adequate staff training and operational oversight",
-          risksLimits: risksLimits.trim() || "Resource constraints and logistical barriers",
-          recommendedUse: recommendedUse.trim() || "Recommended for phased deployment",
+          description: gpDescription.trim(),
+          whyItWorked: whyItWorked.trim(),
+          conditionsForReplication: conditionsForReplication.trim(),
+          risksLimits: risksLimits.trim(),
+          recommendedUse: recommendedUse.trim(),
           evidenceBase: parentFinding.supportingEvidenceIds || [],
           linkedFindingIds: [parentFinding.id],
           lineageStatus: "resolved",
@@ -412,6 +414,7 @@ export function LessonsWorkspaceView({
             </div>
           ) : (
             lessons.map((lesson) => {
+              const displayStatus = lesson.validationStatus === "Validated" && !isLessonExportEligible(lesson, study) ? "Needs Review" : lesson.validationStatus;
               const parentFinding = lesson.linkedFindingIds?.[0]
                 ? findingMap.get(lesson.linkedFindingIds[0])
                 : null;
@@ -428,10 +431,11 @@ export function LessonsWorkspaceView({
                       </span>
                       <span
                         className={`rounded border px-2 py-0.5 text-[9px] font-bold uppercase ${getStatusBadge(
-                          lesson.validationStatus
+                          displayStatus
                         )}`}
+                        title={displayStatus !== lesson.validationStatus ? "Historical validation retained; current dependencies require review." : undefined}
                       >
-                        {lesson.validationStatus || "Draft"}
+                        {displayStatus || "Draft"}
                       </span>
                       {parentFinding && (
                         <button
@@ -547,6 +551,7 @@ export function LessonsWorkspaceView({
             </div>
           ) : (
             goodPractices.map((practice) => {
+              const displayStatus = practice.validationStatus === "Validated" && !isGoodPracticeExportEligible(practice, study) ? "Needs Review" : practice.validationStatus;
               const parentFinding = practice.linkedFindingIds?.[0]
                 ? findingMap.get(practice.linkedFindingIds[0])
                 : null;
@@ -563,10 +568,11 @@ export function LessonsWorkspaceView({
                       </span>
                       <span
                         className={`rounded border px-2 py-0.5 text-[9px] font-bold uppercase ${getStatusBadge(
-                          practice.validationStatus
+                          displayStatus
                         )}`}
+                        title={displayStatus !== practice.validationStatus ? "Historical validation retained; current dependencies require review." : undefined}
                       >
-                        {practice.validationStatus || "Draft"}
+                        {displayStatus || "Draft"}
                       </span>
                       {parentFinding && (
                         <button

@@ -1,4 +1,7 @@
 import { assembleStudy, getStudyMeta } from "./studyStore";
+import { getLinkedFindingIds } from "@/lib/exportPolicy";
+import { sourceFileRepository } from "./sourceFileRepository";
+import { normalizeRecommendation } from "./normalization";
 import { getDb } from "./indexedDb";
 import type {
   StudyId,
@@ -11,6 +14,8 @@ import type {
   GoodPractice,
   Recommendation,
   ValidationStatus,
+  SourceFileMetadata,
+  SourceFileId,
 } from "@/lib/types";
 
 export const BACKUP_FORMAT_IDENTIFIER = "field-learning-studio-backup";
@@ -31,6 +36,9 @@ export interface StudyBackupEnvelope {
   lessons: LessonLearned[];
   goodPractices: GoodPractice[];
   recommendations: Recommendation[];
+  /** Optional portable extension; the original structured v1 JSON format remains supported. */
+  fileArchiveVersion?: 1;
+  sourceFiles?: { metadata: SourceFileMetadata; extractedText?: string; binaryBase64?: string; binaryType?: string }[];
 }
 
 export type ImportStrategy = "reject_collision" | "overwrite" | "import_as_new";
@@ -115,10 +123,10 @@ export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResu
     errors.push("Study metadata is missing required scope configuration.");
   } else {
     const scope = study.scope as Record<string, unknown>;
-    if (scope.targetSites !== undefined && !Array.isArray(scope.targetSites)) {
+    if (scope.targetSites !== undefined && (!Array.isArray(scope.targetSites) || !scope.targetSites.every(value => typeof value === "string"))) {
       errors.push("Study scope targetSites must be an array if provided.");
     }
-    if (scope.geographicAreas !== undefined && !Array.isArray(scope.geographicAreas)) {
+    if (scope.geographicAreas !== undefined && (!Array.isArray(scope.geographicAreas) || !scope.geographicAreas.every(value => typeof value === "string"))) {
       errors.push("Study scope geographicAreas must be an array if provided.");
     }
   }
@@ -143,6 +151,19 @@ export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResu
   if (errors.length > 0) {
     return { valid: false, errors, warnings };
   }
+
+  const idArrays = ["supportingEvidenceIds", "contradictoryEvidenceIds", "qualifyingEvidenceIds", "linkedFindingIds", "linkedLessonIds", "evidenceBase", "evidenceIds", "studyQuestionIds", "frameworkThemeIds", "contradictionIds", "linkedSourceIds", "linkedEvidenceIds", "siteIds", "attendees", "tomorrowPriorities", "supersedesFindingIds"];
+  for (const field of arrayFields) {
+    for (const [index, value] of (obj[field] as unknown[]).entries()) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) { errors.push(`${field}[${index}] must be an object.`); continue; }
+      const record = value as Record<string, unknown>;
+      for (const key of idArrays) if (record[key] !== undefined && (!Array.isArray(record[key]) || !(record[key] as unknown[]).every(id => typeof id === "string" && id.trim()))) errors.push(`${field}[${index}].${key} must be an array of non-empty strings.`);
+      if (record.studyId !== undefined && record.studyId !== study.id) errors.push(`${field}[${index}] belongs to a different study.`);
+      for (const key of ["id", "title", "statement", "recommendation", "sourceId", "linkedFindingId", "sourceFileId", "sourceType", "date", "stakeholderType", "location", "siteId", "summary", "rawText", "rawEvidence", "rawObservation", "potentialFinding", "interpretation", "primaryTheme", "secondaryTheme", "explanation", "limitationNote", "alternativeInterpretations", "staleDependencyWarning"]) if (record[key] !== undefined && typeof record[key] !== "string") errors.push(`${field}[${index}].${key} must be a string.`);
+    }
+  }
+  if (study.patternNotes !== undefined && (!Array.isArray(study.patternNotes) || !study.patternNotes.every(note => note && typeof note === "object" && Array.isArray(note.evidenceIds) && note.evidenceIds.every((id: unknown) => typeof id === "string")))) errors.push("Study patternNotes and evidenceIds must have valid array shapes.");
+  if (errors.length) return { valid: false, errors, warnings };
 
   const sources = (obj.sources || []) as SourceRecord[];
   const evidence = (obj.evidence || []) as EvidenceEntry[];
@@ -343,6 +364,35 @@ export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResu
     debriefIdSet.add(d.id);
   });
 
+  for (const f of findings) {
+    for (const id of f.qualifyingEvidenceIds || []) if (!evidenceIdSet.has(id)) errors.push(`Finding "${f.id}" references missing qualifying Evidence "${id}".`);
+    for (const id of [f.supersededByFindingId, f.supersedesFindingId].filter(Boolean)) if (!findingIdSet.has(id!)) errors.push(`Finding "${f.id}" references missing supersession Finding "${id}".`);
+  }
+  for (const child of [...lessons, ...goodPractices, ...recommendations]) {
+    for (const id of getLinkedFindingIds(child)) if (!findingIdSet.has(id)) errors.push(`"${child.id}" references missing parent Finding "${id}".`);
+  }
+  const referencedFiles = new Set([...sources, ...evidence].map(record => record.sourceFileId).filter(Boolean));
+  if (obj.fileArchiveVersion !== undefined) {
+    if (obj.fileArchiveVersion !== 1 || !Array.isArray(obj.sourceFiles)) errors.push("Invalid portable file archive manifest.");
+    else {
+      const fileIds = new Set<string>();
+      for (const [index, file] of obj.sourceFiles.entries()) {
+        const meta = file?.metadata;
+        if (!meta || typeof meta.id !== "string" || !meta.id.startsWith("SF-") || meta.studyId !== study.id || typeof meta.filename !== "string" || typeof meta.mimeType !== "string" || typeof meta.fileSizeBytes !== "number" || typeof meta.importedAt !== "number" || typeof meta.parsingVersion !== "number") { errors.push(`Invalid source file metadata at index ${index}.`); continue; }
+        if (fileIds.has(meta.id)) errors.push(`Duplicate source file "${meta.id}".`);
+        fileIds.add(meta.id);
+        if (file.extractedText !== undefined && typeof file.extractedText !== "string") errors.push(`Invalid extracted text for "${meta.id}".`);
+        if (file.binaryBase64 !== undefined && (typeof file.binaryBase64 !== "string" || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(file.binaryBase64))) errors.push(`Invalid binary encoding for "${meta.id}".`);
+        if (file.binaryType !== undefined && typeof file.binaryType !== "string") errors.push(`Invalid binary MIME type for "${meta.id}".`);
+        if (file.binaryBase64 === undefined && file.extractedText === undefined) errors.push(`Source file "${meta.id}" has no recoverable content.`);
+      }
+      for (const id of referencedFiles) if (!fileIds.has(id!)) errors.push(`Portable archive is missing source file "${id}".`);
+    }
+  } else {
+    if (obj.sourceFiles !== undefined) errors.push("Source files require a portable archive manifest.");
+    warnings.push("ORIGINAL SOURCE FILES ARE NOT INCLUDED in this structured backup. Use the file-inclusive archive for portable recovery.");
+  }
+
   const envelope = obj as unknown as StudyBackupEnvelope;
 
   return {
@@ -446,7 +496,9 @@ export async function importStudyBackup(
     }
     envelope = inspection.envelope;
   } else {
-    envelope = envelopeOrJson;
+    const inspection = validateStudyBackupEnvelope(envelopeOrJson);
+    if (!inspection.valid || !inspection.envelope) throw new Error(`Invalid backup archive: ${inspection.errors.join("; ")}`);
+    envelope = inspection.envelope;
   }
 
   const originalStudyId = envelope.study.id;
@@ -482,13 +534,17 @@ export async function importStudyBackup(
     updatedAt: Date.now(),
   };
 
+  const fileIdMap = new Map((envelope.sourceFiles || []).map((file, index) => [file.metadata.id, `SF-${targetStudyId}-${Date.now().toString(36)}-${index}` as SourceFileId]));
+  const remapFile = (id?: SourceFileId) => id ? fileIdMap.get(id) || id : undefined;
   const targetSources = envelope.sources.map((s) => ({
     ...s,
+    sourceFileId: remapFile(s.sourceFileId),
     studyId: targetStudyId,
   }));
 
   const targetEvidence = envelope.evidence.map((e) => ({
     ...e,
+    sourceFileId: remapFile(e.sourceFileId),
     studyId: targetStudyId,
   }));
 
@@ -513,7 +569,7 @@ export async function importStudyBackup(
   }));
 
   const targetRecommendations = envelope.recommendations.map((r) => ({
-    ...r,
+    ...normalizeRecommendation(r, true),
     studyId: targetStudyId,
   }));
 
@@ -528,6 +584,8 @@ export async function importStudyBackup(
       "lessons",
       "goodPractices",
       "recommendations",
+      "sourceFileMetadata",
+      "sourceFileContent",
     ],
     "readwrite"
   );
@@ -542,9 +600,13 @@ export async function importStudyBackup(
       "lessons",
       "goodPractices",
       "recommendations",
+      "sourceFileMetadata",
+      "sourceFileContent",
     ] as const;
 
     for (const storeName of childStores) {
+      // A structured-only restore carries no replacement file stores. Preserve local originals.
+      if (!envelope.sourceFiles && (storeName === "sourceFileMetadata" || storeName === "sourceFileContent")) continue;
       const store = tx.objectStore(storeName);
       const keys = await store.index("by_study").getAllKeys(targetStudyId);
       for (const key of keys) {
@@ -590,6 +652,12 @@ export async function importStudyBackup(
     await recStore.put(r);
   }
 
+  for (const file of envelope.sourceFiles || []) {
+    const id = fileIdMap.get(file.metadata.id)!;
+    const bytes = file.binaryBase64 !== undefined ? Uint8Array.from(atob(file.binaryBase64), char => char.charCodeAt(0)) : undefined;
+    await tx.objectStore("sourceFileMetadata").put({ ...file.metadata, id, studyId: targetStudyId, hasContent: true });
+    await tx.objectStore("sourceFileContent").put({ id, studyId: targetStudyId, extractedText: file.extractedText, blob: bytes ? new Blob([bytes], { type: file.binaryType || file.metadata.mimeType }) : undefined });
+  }
   await tx.done;
 
   return {
@@ -597,4 +665,27 @@ export async function importStudyBackup(
     studyId: targetStudyId,
     message: `Study successfully restored as "${targetStudyId}".`,
   };
+}
+
+/** Portable extension of the existing JSON backup; binary files use base64, no new storage schema. */
+export async function exportStudyArchive(studyId: StudyId): Promise<string> {
+  const envelope: StudyBackupEnvelope = JSON.parse(await exportStudyBackup(studyId));
+  const files = await sourceFileRepository.listMetadataForStudy(studyId);
+  envelope.fileArchiveVersion = 1;
+  envelope.sourceFiles = [];
+  for (const metadata of files) {
+    const content = await sourceFileRepository.getFileContent(metadata.id);
+    if (!content || content.studyId !== studyId) throw new Error(`Cannot create portable archive: original content for "${metadata.id}" is unavailable.`);
+    let binaryBase64: string | undefined;
+    if (content.blob) {
+      const bytes = new Uint8Array(await content.blob.arrayBuffer());
+      const chunks: string[] = [];
+      for (let i = 0; i < bytes.length; i += 8192) chunks.push(String.fromCharCode(...bytes.subarray(i, i + 8192)));
+      binaryBase64 = btoa(chunks.join(""));
+    }
+    envelope.sourceFiles.push({ metadata, extractedText: content.extractedText, binaryBase64, binaryType: content.blob?.type });
+  }
+  const check = validateStudyBackupEnvelope(envelope);
+  if (!check.valid) throw new Error(`Cannot create portable archive: ${check.errors.join("; ")}`);
+  return JSON.stringify(envelope, null, 2);
 }

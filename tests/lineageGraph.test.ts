@@ -7,6 +7,7 @@ import {
   saveEvidence,
   saveFinding,
   saveLesson,
+  saveCompleteStudy,
   saveGoodPractice,
   saveRecommendation,
   getRecommendation,
@@ -287,7 +288,8 @@ describe("Lineage Graph & M:N Traversal (Phase 0)", () => {
       revision: 1,
     };
 
-    await saveLesson(unlinkedLegacyLesson);
+    const legacyStudy = (await assembleStudy(studyId))!;
+    await saveCompleteStudy({ ...legacyStudy, lessons: [unlinkedLegacyLesson] });
 
     const study = await assembleStudy(studyId);
     const lesson = study?.lessons.find((l) => l.id === "LES-LEGACY-UNLINKED");

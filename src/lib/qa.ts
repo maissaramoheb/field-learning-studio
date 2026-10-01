@@ -1,5 +1,7 @@
 import type { DemoCase, QAReviewItem, QAReviewStatus, QAReviewItemId } from "@/lib/types";
 
+import { getLinkedFindingIds } from "@/lib/exportPolicy";
+
 function statusFromCheck(check: boolean): QAReviewStatus {
   return check ? "Pass" : "Warning";
 }
@@ -10,18 +12,15 @@ function statusFromCheck(check: boolean): QAReviewStatus {
  * "Human Review Required", "Not Assessed", or "Informational" rather than false "Pass".
  */
 export function generateQAReview(demoCase: DemoCase): QAReviewItem[] {
-  const everyFindingHasEvidence = demoCase.findings.every(
-    (finding) => (finding.supportingEvidenceIds || []).length > 0
-  );
-  const everyRecommendationHasFinding = demoCase.recommendations.every(
-    (recommendation) =>
-      demoCase.findings.some(
-        (finding) => finding.id === recommendation.linkedFindingId
-      )
-  );
-  const everyRecommendationHasEvidence = demoCase.recommendations.every(
-    (recommendation) => (recommendation.evidenceBase || []).length > 0
-  );
+  const evidenceIds = new Set<string>(demoCase.evidence.map(entry => entry.id));
+  const sources = new Set(demoCase.sources.map(source => source.id));
+  const linksResolve = (ids: string[]) => ids.every(id => evidenceIds.has(id) && sources.has(demoCase.evidence.find(entry => entry.id === id)!.sourceId));
+  const everyFindingHasEvidence = demoCase.findings.every(finding => Boolean(finding.supportingEvidenceIds?.length) && linksResolve([...finding.supportingEvidenceIds, ...(finding.contradictoryEvidenceIds || []), ...(finding.qualifyingEvidenceIds || [])]));
+  const everyRecommendationHasFinding = demoCase.recommendations.every(recommendation => {
+    const ids = getLinkedFindingIds(recommendation);
+    return ids.length > 0 && ids.every(id => demoCase.findings.some(finding => finding.id === id));
+  });
+  const everyRecommendationHasEvidence = demoCase.recommendations.every(recommendation => Boolean(recommendation.evidenceBase?.length) && linksResolve(recommendation.evidenceBase));
   const contradictionsDisplayed = demoCase.findings.every(
     (finding) => (finding.contradictoryEvidence?.trim() || "").length > 0
   );
@@ -49,7 +48,7 @@ export function generateQAReview(demoCase: DemoCase): QAReviewItem[] {
         everyFindingHasEvidence && everyRecommendationHasEvidence
       ),
       notes:
-        "Deterministic check: verifies that finding and recommendation structures contain non-empty evidence links.",
+        "Deterministic check: finding evidence roles and recommendation evidence links resolve to stored observations and sources. Current authority is checked separately; substantive grounding is not certified.",
     },
     {
       id: "QA-002",
@@ -174,7 +173,7 @@ export function generateQAReview(demoCase: DemoCase): QAReviewItem[] {
         "Can the recommendations inform concrete programme adjustments?",
       status: statusFromCheck(everyRecommendationHasFinding),
       notes: everyRecommendationHasFinding
-        ? "Deterministic check: each recommendation links to a parent finding."
+        ? "Deterministic check: all parent IDs of every recommendation resolve. This does not certify practical value or current analytical authority."
         : "Unlinked recommendations detected.",
     },
   ];

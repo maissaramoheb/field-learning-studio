@@ -95,7 +95,7 @@ export function mapTabularRowsToCandidates(
       }
     });
 
-    const canonicalMethod = canonicalizeCollectionMethod(rawMethod || "Direct Observation");
+    const canonicalMethod = canonicalizeCollectionMethod(rawMethod);
     const fallbackTitle = title || excerpt.slice(0, 50) || `Field Log Row ${rowIndex + 1}`;
 
     // Automatic suggestion of material category
@@ -112,7 +112,7 @@ export function mapTabularRowsToCandidates(
     candidates.push({
       rowIndex,
       title: fallbackTitle,
-      date: date || new Date().toISOString().slice(0, 10),
+      date: date || "Unknown",
       siteId: siteId || "Unspecified Site",
       stakeholderType: stakeholderType || "General Stakeholder",
       collectionMethod: canonicalMethod,
@@ -203,8 +203,8 @@ export async function importTabularCandidates(
       stakeholderType: cand.stakeholderType,
       sourceType: cand.collectionMethod,
       collectorName: cand.collectorName,
-      consentStatus: "Oral",
-      anonymizationStatus: "Pseudonymized",
+      consentStatus: undefined,
+      anonymizationStatus: undefined,
       sensitivityFlag: "None",
       materialCategory: cand.materialCategory,
       summary: cand.excerpt.slice(0, 180) + (cand.excerpt.length > 180 ? "…" : ""),

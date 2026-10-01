@@ -27,7 +27,7 @@ export function generateMarkdownFromModel(model: BriefExportModel): string {
   const recommendationsText = model.recommendations
     .map(
       r =>
-        `### ${r.id}: ${r.recommendation}\n\nLinked finding: ${r.linkedFindingId}\n\nEvidence base: ${r.evidenceBase.join(", ")}\n\nResponsible actor: ${r.responsibleActor}\n\nPriority: ${r.priority}\n\nTimeframe: ${r.timeframe}\n\nFeasibility: ${r.feasibility}\n\nRisk / sensitivity: ${r.riskSensitivity}\n\nExpected benefit: ${r.expectedBenefit}\n\nSuccess indicator: ${r.successIndicator}`,
+        `### ${r.id}: ${r.recommendation}\n\nLinked finding: ${r.linkedFindingIds?.join(", ") || r.linkedFindingId}\n\nEvidence base: ${r.evidenceBase.join(", ")}\n\nResponsible actor: ${r.responsibleActor}\n\nPriority: ${r.priority}\n\nTimeframe: ${r.timeframe}\n\nFeasibility: ${r.feasibility}\n\nRisk / sensitivity: ${r.riskSensitivity}\n\nExpected benefit: ${r.expectedBenefit}\n\nSuccess indicator: ${r.successIndicator}`,
     )
     .join("\n\n");
 

@@ -459,7 +459,7 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
       const inReview = submitForReview(draftFinding);
       expect(inReview.validationStatus).toBe("Needs Review");
 
-      const validated = validateArtifact(inReview, "Lead Evaluator", "Evaluated against field notes.");
+      const validated = validateArtifact(inReview, "Lead Evaluator", "Evaluated against field notes.", { evidence: sampleEvidence, sources: sampleSources });
       expect(validated.validationStatus).toBe("Validated");
       expect(validated.lastValidatedBy).toBe("Lead Evaluator");
       expect(validated.limitationNote).toBe("Evaluated against field notes.");
@@ -608,7 +608,7 @@ describe("Phase 6: Study Framework & Synthesis Workbench Test Suite", () => {
       expect(isRecommendationExportEligible(validRecommendation, editedParent.updated)).toBe(false);
 
       // Re-validate parent finding -> recommendation becomes export-eligible again
-      const revalidatedParent = validateArtifact(editedParent.updated, "Senior Lead Evaluator");
+      const revalidatedParent = validateArtifact(editedParent.updated, "Senior Lead Evaluator", undefined, { evidence: sampleEvidence, sources: sampleSources });
       expect(revalidatedParent.validationStatus).toBe("Validated");
       expect(isRecommendationExportEligible(validRecommendation, revalidatedParent)).toBe(true);
     });

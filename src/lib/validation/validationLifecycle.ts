@@ -13,6 +13,7 @@ import {
   getRecommendationDependencyWarning,
   isLessonExportEligible,
   isGoodPracticeExportEligible,
+  getLinkedFindingIds,
   type CanonicalExportContext,
 } from "@/lib/exportPolicy";
 export {
@@ -23,7 +24,8 @@ export {
   isGoodPracticeExportEligible,
   type CanonicalExportContext,
 };
-export { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
+import { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
+export { isEvidenceEligibleForAnalysis };
 
 /**
  * Normalizes text for substantive change comparison by trimming and collapsing
@@ -48,10 +50,21 @@ function normalizeComparableText(text?: string): string {
  * - stakeholderType
  * - siteId
  */
+export function isSubstantiveSourceChange(original: SourceRecord, proposed: SourceRecord): boolean {
+  return (["sourceType", "collectionMethod", "stakeholderType", "siteId", "location", "date", "materialCategory", "sourceFileId", "collectorName", "consentStatus", "anonymizationStatus", "sensitivityFlag", "summary", "rawText", "notes"] as const).some(key => normalizeComparableText(String(proposed[key as keyof SourceRecord] ?? "")) !== normalizeComparableText(String(original[key as keyof SourceRecord] ?? "")));
+}
+
 export function isSubstantiveEvidenceChange(
   original: EvidenceEntry,
   proposed: Partial<EvidenceEntry>
 ): boolean {
+  for (const key of ["sourceId", "sourceFileId", "reviewStatus", "materialCategory", "collectorName", "collectionMethod", "date"] as const) {
+    if (key in proposed && proposed[key as keyof EvidenceEntry] !== original[key as keyof EvidenceEntry]) return true;
+  }
+  for (const key of ["frameworkThemeIds", "studyQuestionIds", "contradictionIds"] as const) {
+    if (key in proposed && JSON.stringify([...(proposed[key] || [])].sort()) !== JSON.stringify([...(original[key] || [])].sort())) return true;
+  }
+  if ("sourceCoordinate" in proposed && JSON.stringify(proposed.sourceCoordinate) !== JSON.stringify(original.sourceCoordinate)) return true;
   // Check observation text
   if (proposed.rawEvidence !== undefined) {
     if (
@@ -203,168 +216,45 @@ export function validateArtifact<
 
   const anyArtifact = artifact as unknown as Record<string, unknown>;
 
-  // Finding Approval Guard
+  // Every authoritative evidence role uses the same analytical-admissibility rule.
   if (Array.isArray(anyArtifact.supportingEvidenceIds)) {
-    const suppIds = anyArtifact.supportingEvidenceIds as string[];
-    if (suppIds.length === 0) {
-      throw new Error(
-        "Cannot approve Finding: A formal Finding must have at least one supporting Evidence link."
-      );
-    }
-    if (context?.evidence) {
-      const evMap = new Map<string, EvidenceEntry>(context.evidence.map((e) => [e.id, e]));
-      for (const evId of suppIds) {
-        const ev = evMap.get(evId);
-        if (!ev) {
-          throw new Error(
-            `Cannot approve Finding: Supporting evidence "${evId}" is missing from this study.`
-          );
+    if (!(anyArtifact.supportingEvidenceIds as string[]).length) throw new Error("Cannot approve Finding: A formal Finding must have at least one supporting Evidence link.");
+    if (!context?.evidence) throw new Error("Cannot approve Finding: study evidence context is required.");
+    if (anyArtifact.supersededByFindingId || anyArtifact.supersededAt) throw new Error("Cannot approve Finding: superseded Findings are historical.");
+    const seen = new Set<string>();
+    for (const [key, role] of [["supportingEvidenceIds", "Supporting"], ["contradictoryEvidenceIds", "Challenging"], ["qualifyingEvidenceIds", "Qualifying"]]) {
+      for (const id of (anyArtifact[key] as string[] | undefined) || []) {
+        if (seen.has(id)) throw new Error(`Cannot approve Finding: evidence "${id}" has conflicting roles.`);
+        seen.add(id);
+        const ev = context.evidence.find(e => e.id === id);
+        if (!ev) throw new Error(`Cannot approve Finding: ${role} evidence "${id}" is missing from this study.`);
+        if (!isEvidenceEligibleForAnalysis(ev)) {
+          const reason = ev.reviewStatus === "excluded" ? "is marked as excluded and cannot support a Finding" : ev.reviewStatus ? `is not yet qualified for analytical use (reviewStatus: "${ev.reviewStatus}")` : ev.validationStatus === "Rejected" ? "has been marked as Rejected" : `is not yet validated (legacy status: "${ev.validationStatus}")`;
+          throw new Error(`Cannot approve Finding: ${role} evidence "${id}" ${reason}.`);
         }
-        // Qualification check: usable reviewStatus qualifies evidence for analysis
-        if (ev.reviewStatus === "usable") {
-          // Qualified to support finding regardless of validationStatus
-        } else if (ev.reviewStatus === "excluded") {
-          throw new Error(
-            `Cannot approve Finding: Supporting evidence "${evId}" is marked as excluded and cannot support a Finding.`
-          );
-        } else if (ev.reviewStatus === "pending" || ev.reviewStatus === "needs_clarification") {
-          throw new Error(
-            `Cannot approve Finding: Supporting evidence "${evId}" is not yet qualified for analytical use (reviewStatus: "${ev.reviewStatus}"). Evidence must have reviewStatus 'usable' before it can support a Finding.`
-          );
-        } else if (ev.validationStatus !== "Validated") {
-          // Legacy record without reviewStatus: must be Validated under pre-existing product rule
-          throw new Error(
-            `Cannot approve Finding: Supporting evidence "${evId}" is not yet validated (legacy status: "${ev.validationStatus}"). All supporting evidence without a qualification status must be Validated before a Finding can be approved.`
-          );
-        }
-        if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
-          throw new Error(
-            `Cannot approve Finding: Supporting evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
-          );
-        }
-        if (context.sources && ev.sourceId) {
-          const src = context.sources.find((s) => s.id === ev.sourceId);
-          if (!src) {
-            throw new Error(
-              `Cannot approve Finding: Parent Source "${ev.sourceId}" for supporting evidence "${evId}" is missing from this study.`
-            );
-          }
-        }
+        if (ev.staleDependencyWarning?.trim()) throw new Error(`Cannot approve Finding: ${role} evidence "${id}" has an active stale dependency warning.`);
+        if (context.sources && !context.sources.some(s => s.id === ev.sourceId)) throw new Error(`Cannot approve Finding: Parent Source "${ev.sourceId}" is missing from this study.`);
       }
+    }
+  } else if (Array.isArray(anyArtifact.evidenceBase) || "linkedFindingId" in anyArtifact || "linkedFindingIds" in anyArtifact) {
+    const parentIds = getLinkedFindingIds(anyArtifact as { linkedFindingIds?: string[]; linkedFindingId?: string });
+    if (!parentIds.length) throw new Error("Cannot approve: at least one current Validated parent Finding is required.");
+    if (!context?.findings) throw new Error("Cannot approve: parent Finding context is required.");
+    for (const id of (anyArtifact.evidenceBase as string[] | undefined) || []) {
+      const ev = context.evidence?.find(e => e.id === id);
+      if (!ev || !isEvidenceEligibleForAnalysis(ev) || ev.staleDependencyWarning?.trim()) throw new Error(`Cannot approve: Referenced evidence "${id}" ${ev?.reviewStatus === "excluded" ? "is marked as excluded" : "is not qualified for analytical use"}.`);
+    }
+    for (const id of parentIds) {
+      const parent = context.findings.find(f => f.id === id);
+      if (!parent || !isFindingExportEligible(parent, context)) throw new Error(`Cannot approve: Linked Finding "${id}" is missing, not validated, stale, or superseded. Parent Finding must be Validated first and remain current.`);
+    }
+    if ("responsibleActor" in anyArtifact) {
+      const actor = String(anyArtifact.responsibleActor || "").trim();
+      if (!actor || actor.toLowerCase() === "unassigned") throw new Error("Cannot approve Recommendation: Intended Actor is required.");
+    }
 
-      if (Array.isArray(anyArtifact.contradictoryEvidenceIds)) {
-        const contraIds = anyArtifact.contradictoryEvidenceIds as string[];
-        for (const evId of contraIds) {
-          const ev = evMap.get(evId);
-          if (!ev) {
-            throw new Error(
-              `Cannot approve Finding: Challenging evidence "${evId}" is missing from this study.`
-            );
-          }
-          if (ev.validationStatus === "Rejected") {
-            throw new Error(
-              `Cannot approve Finding: Challenging evidence "${evId}" has been marked as Rejected. Reconsider the challenging evidence before approving this Finding.`
-            );
-          }
-          if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
-            throw new Error(
-              `Cannot approve Finding: Challenging evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
-            );
-          }
-        }
-      }
-
-      if (Array.isArray(anyArtifact.qualifyingEvidenceIds)) {
-        const qualIds = anyArtifact.qualifyingEvidenceIds as string[];
-        for (const evId of qualIds) {
-          const ev = evMap.get(evId);
-          if (!ev) {
-            throw new Error(
-              `Cannot approve Finding: Qualifying evidence "${evId}" is missing from this study.`
-            );
-          }
-          if (ev.validationStatus === "Rejected") {
-            throw new Error(
-              `Cannot approve Finding: Qualifying evidence "${evId}" has been marked as Rejected. Reconsider the qualifying evidence before approving this Finding.`
-            );
-          }
-          if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
-            throw new Error(
-              `Cannot approve Finding: Qualifying evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
-            );
-          }
-        }
-      }
-    } else if (artifact.staleDependencyWarning && artifact.staleDependencyWarning.trim().length > 0) {
-      throw new Error(
-        `Cannot approve: ${artifact.staleDependencyWarning}`
-      );
-    }
-  } else if (artifact.staleDependencyWarning && artifact.staleDependencyWarning.trim().length > 0) {
-    throw new Error(
-      `Cannot approve: ${artifact.staleDependencyWarning}`
-    );
-  }
-
-  // Recommendation Approval Guard
-  if (typeof anyArtifact.linkedFindingId === "string") {
-    const linkedId = anyArtifact.linkedFindingId.trim();
-    if (!linkedId) {
-      throw new Error("Cannot approve Recommendation: Linked Finding ID is required.");
-    }
-    const actor = typeof anyArtifact.responsibleActor === "string" ? anyArtifact.responsibleActor.trim() : "";
-    if (!actor || actor.toLowerCase() === "unassigned") {
-      throw new Error(
-        "Cannot approve Recommendation: Intended Actor is required. Specify an identified role/actor or explicit 'Responsibility to be agreed'."
-      );
-    }
-    if (context?.findings) {
-      const linkedFinding = context.findings.find((f) => f.id === linkedId);
-      if (!linkedFinding) {
-        throw new Error(`Cannot approve Recommendation: Linked Finding "${linkedId}" was not found in this study.`);
-      }
-      if (linkedFinding.validationStatus !== "Validated") {
-        throw new Error(
-          `Cannot approve Recommendation: Linked Finding "${linkedId}" is not validated (current status: "${linkedFinding.validationStatus}"). Parent Finding must be Validated first.`
-        );
-      }
-      if (linkedFinding.staleDependencyWarning && linkedFinding.staleDependencyWarning.trim().length > 0) {
-        throw new Error(
-          `Cannot approve Recommendation: Linked Finding "${linkedId}" has an active stale dependency warning.`
-        );
-      }
-    }
-  }
-
-  // Lesson & Good Practice Approval Guard
-  if (Array.isArray(anyArtifact.evidenceBase) && context?.evidence) {
-    const evIds = anyArtifact.evidenceBase as string[];
-    const evMap = new Map<string, EvidenceEntry>(context.evidence.map((e) => [e.id, e]));
-    for (const evId of evIds) {
-      const ev = evMap.get(evId);
-      if (!ev || ev.validationStatus !== "Validated") {
-        throw new Error("Cannot approve: All referenced evidence must be Validated first.");
-      }
-      if (ev.reviewStatus === "excluded") {
-        throw new Error(`Cannot approve: Referenced evidence "${evId}" is marked as excluded.`);
-      }
-    }
-  }
-
-  if (Array.isArray(anyArtifact.linkedFindingIds) && anyArtifact.linkedFindingIds.length > 0 && context?.findings) {
-    const fIds = anyArtifact.linkedFindingIds as string[];
-    const fMap = new Map<string, Finding>(context.findings.map((f) => [f.id, f]));
-    for (const fId of fIds) {
-      const f = fMap.get(fId);
-      if (!f) {
-        throw new Error(`Cannot approve: Linked Finding "${fId}" was not found in this study.`);
-      }
-      if (f.validationStatus !== "Validated") {
-        throw new Error(
-          `Cannot approve: Linked Finding "${fId}" is not validated (current status: "${f.validationStatus}"). Parent Finding must be Validated first.`
-        );
-      }
-    }
+  } else if (artifact.staleDependencyWarning?.trim()) {
+    throw new Error(`Cannot approve: ${artifact.staleDependencyWarning}`);
   }
 
   const now = Date.now();
@@ -573,6 +463,10 @@ export function isSubstantiveFindingChange(
   original: Finding,
   proposed: Partial<Finding>
 ): boolean {
+  for (const key of ["limitationNote", "alternativeInterpretations", "studyQuestionId"] as const) {
+    if (key in proposed && normalizeComparableText(proposed[key]) !== normalizeComparableText(original[key])) return true;
+  }
+  if ("frameworkThemeIds" in proposed && JSON.stringify([...(proposed.frameworkThemeIds || [])].sort()) !== JSON.stringify([...(original.frameworkThemeIds || [])].sort())) return true;
   if (
     proposed.statement !== undefined &&
     normalizeComparableText(proposed.statement) !== normalizeComparableText(original.statement)
@@ -651,6 +545,8 @@ export function applySubstantiveFindingEdit(
         revision: nextRevision,
         previousValidationStatus: "Validated",
         validationStatus: "Needs Review",
+        staleDependencyWarning: "Finding changed after human validation. Review this revision before approving it again.",
+        audit: original.audit,
         lastValidatedAt: original.lastValidatedAt,
         lastValidatedBy: original.lastValidatedBy,
         updatedAt: now,

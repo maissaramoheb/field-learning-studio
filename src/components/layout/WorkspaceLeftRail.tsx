@@ -139,8 +139,8 @@ export function WorkspaceLeftRail({
               id={buttonId}
               data-space-id={space.id}
               type="button"
-              role="tab"
-              aria-selected={isActive}
+              role="button"
+              aria-current={isActive ? "page" : undefined}
               aria-label={`${space.stepNumber}. ${space.label} — ${purposeLabels[space.id]}`}
               title={`${space.stepNumber}. ${space.label} (${purposeLabels[space.id]})${
                 countLabel ? ` · ${countLabel}` : ""

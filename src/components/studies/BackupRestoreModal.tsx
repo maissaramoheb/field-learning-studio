@@ -1,8 +1,10 @@
 "use client";
 
+import { WorkspaceDialog } from "@/components/WorkspaceDialog";
 import React, { useState } from "react";
 import {
   exportStudyBackup,
+  exportStudyArchive,
   inspectStudyBackup,
   importStudyBackup,
   type BackupInspectionResult,
@@ -40,23 +42,23 @@ export function BackupRestoreModal({
 
   if (!isOpen) return null;
 
-  const handleDownloadBackup = async () => {
+  const handleDownloadBackup = async (includeFiles = false) => {
     if (!currentStudy) return;
     try {
       setIsExporting(true);
-      const json = await exportStudyBackup(currentStudy.id);
+      const json = await (includeFiles ? exportStudyArchive : exportStudyBackup)(currentStudy.id);
       const blob = new Blob([json], { type: "application/json;charset=utf-8" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       const safeTitle = currentStudy.title.replace(/[^a-zA-Z0-9_-]/g, "_").toLowerCase();
       const dateStr = new Date().toISOString().slice(0, 10);
       link.href = url;
-      link.download = `fls-backup-${safeTitle}-${dateStr}.fls.json`;
+      link.download = `fls-${includeFiles ? "archive" : "backup"}-${safeTitle}-${dateStr}.fls.json`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      setExportNotice("Backup file downloaded successfully.");
+      setExportNotice(includeFiles ? "File-inclusive archive downloaded. Stored binaries/text are included; keep this unencrypted file secure." : "Structured backup downloaded. ORIGINAL SOURCE FILES ARE NOT INCLUDED.");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Failed to export backup.");
     } finally {
@@ -100,12 +102,7 @@ export function BackupRestoreModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="backup-restore-title"
-    >
+    <WorkspaceDialog labelledBy="backup-restore-title" onClose={onClose}>
       <div className="w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl">
         <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
           <div>
@@ -113,12 +110,13 @@ export function BackupRestoreModal({
               Study Backup & Recovery
             </h3>
             <p className="mt-0.5 text-xs text-[var(--muted)]">
-              Local, self-contained study archives (.fls.json)
+              Structured backups and file-inclusive portable archives (.fls.json)
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label="Close backup and restore"
             className="text-[var(--muted)] hover:text-[var(--foreground)] text-lg"
           >
             ✕
@@ -192,10 +190,12 @@ export function BackupRestoreModal({
               </div>
             )}
 
-            <div className="flex justify-end pt-3">
+            <p className="text-xs text-[var(--muted)]">Structured backup: ORIGINAL SOURCE FILES ARE NOT INCLUDED. Use the file-inclusive archive to carry stored original binaries and extracted text to another browser. Large files increase archive size.</p>
+            <div className="flex flex-wrap justify-end gap-2 pt-3">
+              <button type="button" onClick={() => handleDownloadBackup(true)} disabled={isExporting || !currentStudy} className="rounded bg-sky-600 px-5 py-2.5 text-xs font-semibold text-white disabled:opacity-50">Download file-inclusive archive</button>
               <button
                 type="button"
-                onClick={handleDownloadBackup}
+                onClick={() => handleDownloadBackup(false)}
                 disabled={isExporting || !currentStudy}
                 className="rounded bg-sky-600 px-5 py-2.5 text-xs font-semibold text-white shadow hover:bg-sky-500 disabled:opacity-50 transition cursor-pointer"
               >
@@ -209,10 +209,11 @@ export function BackupRestoreModal({
         {activeTab === "restore" && (
           <div className="mt-5 space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-[var(--foreground)] mb-1">
+              <label htmlFor="restore-archive-file" className="block text-xs font-semibold text-[var(--foreground)] mb-1">
                 Select .fls.json Archive File
               </label>
               <input
+                id="restore-archive-file"
                 type="file"
                 accept=".json,.fls.json"
                 onChange={handleFileSelect}
@@ -221,6 +222,7 @@ export function BackupRestoreModal({
               {fileName && <p className="mt-1 text-[11px] text-[var(--muted)]">Loaded: {fileName}</p>}
             </div>
 
+            {inspection?.warnings.map(warning => <p key={warning} role="status" className="text-xs text-amber-400">{warning}</p>)}
             {/* Inspection Preview */}
             {inspection && (
               <div className="space-y-3">
@@ -345,6 +347,6 @@ export function BackupRestoreModal({
           </div>
         )}
       </div>
-    </div>
+    </WorkspaceDialog>
   );
 }

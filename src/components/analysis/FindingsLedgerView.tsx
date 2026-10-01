@@ -662,7 +662,7 @@ export function FindingsLedgerView({
 
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                     <div className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-2.5">
-                      <span className="text-[10px] text-[var(--muted)] block">Independent Sources</span>
+                      <span className="text-[10px] text-[var(--muted)] block">Distinct Source Records</span>
                       <span className="text-base font-bold text-[var(--foreground)]">
                         {selectedFindingProfile.independentSourceCount}
                       </span>

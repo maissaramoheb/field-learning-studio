@@ -6,6 +6,7 @@ import {
   saveSource,
   saveEvidence,
   saveFinding,
+  saveCompleteStudy,
   saveRecommendation,
   assembleStudy,
   exportStudyBackup,
@@ -323,10 +324,12 @@ describe("Codex Audit Resolution & Evidence Integrity Suite", () => {
       };
 
       await saveFinding(fndValidated);
-      await saveFinding(fndDraft);
+      const historicalStudy = (await assembleStudy(studyA))!;
+      await saveCompleteStudy({ ...historicalStudy, findings: [...historicalStudy.findings, fndDraft] });
       await saveFinding(fndNeedsReview);
       await saveRecommendation(rec1);
-      await saveRecommendation(rec2);
+      const historyWithDraftParent = (await assembleStudy(studyA))!;
+      await saveCompleteStudy({ ...historyWithDraftParent, recommendations: [...historyWithDraftParent.recommendations, rec2] });
 
       const assembled = await assembleStudy(studyA);
       expect(assembled).toBeDefined();
@@ -410,7 +413,7 @@ describe("Codex Audit Resolution & Evidence Integrity Suite", () => {
       expect(warning).toMatch(/Linked Finding requires re-validation/i);
 
       // Revalidating finding restores recommendation eligibility
-      const revalidatedFinding = validateArtifact(editResult.updated, "Lead Reviewer");
+      const revalidatedFinding = validateArtifact(editResult.updated, "Lead Reviewer", undefined, { evidence: [{ id: "EV-001", sourceId: "SRC-001", rawEvidence: "Reviewed synthetic material", primaryTheme: "Access", secondaryTheme: "", stakeholderType: "Teachers", evidenceStrength: "Medium", sensitivityFlag: "None", potentialFinding: "", qaStatus: "Reviewed", reviewStatus: "usable" }] });
       expect(revalidatedFinding.validationStatus).toBe("Validated");
       expect(isRecommendationExportEligible(validRecommendation, revalidatedFinding)).toBe(true);
       expect(getRecommendationDependencyWarning(validRecommendation, revalidatedFinding)).toBeNull();

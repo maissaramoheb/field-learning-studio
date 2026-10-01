@@ -228,6 +228,7 @@ function FindingAuthoringModalContent({
       getNextFindingId(existingFindings.map((f) => f.id));
 
     const finalFinding: Finding = {
+      ...initialFinding,
       ...tempFinding,
       id: nextId,
       statement: statement.trim(),
@@ -260,14 +261,14 @@ function FindingAuthoringModalContent({
               Finding Authoring
             </span>
             <span className="rounded bg-slate-500/10 border border-slate-500/30 px-1.5 py-0.2 text-[9px] font-semibold text-[var(--muted)]">
-              Draft · Revision 1
+              {initialFinding?.validationStatus || "Draft"} · Revision {initialFinding?.revision || 1}
             </span>
           </div>
           <h3 id="finding-modal-title" className="text-lg font-semibold text-[var(--foreground)]">
             {initialFinding ? `Edit Finding (${initialFinding.id})` : "Synthesize New Draft Finding"}
           </h3>
           <p className="mt-0.5 text-xs text-[var(--muted)]">
-            Transform multi-source validated evidence into an evaluator-authored claim.
+            Transform qualified field evidence into an evaluator-authored claim.
           </p>
         </div>
 
@@ -350,6 +351,7 @@ function FindingAuthoringModalContent({
                   Associated Study Question
                 </label>
                 <select
+                  aria-label="Associated Study Question"
                   value={studyQuestionId}
                   onChange={(e) => setStudyQuestionId(e.target.value)}
                   className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-2.5 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
@@ -381,6 +383,7 @@ function FindingAuthoringModalContent({
                 </div>
                 {isStakeholderSpecific && (
                   <select
+                    aria-label="Target stakeholder group"
                     value={targetStakeholderGroup}
                     onChange={(e) => setTargetStakeholderGroup(e.target.value)}
                     className="mt-1.5 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-2.5 py-1 text-xs text-[var(--foreground)]"
@@ -584,6 +587,7 @@ function FindingAuthoringModalContent({
                     const isSupp = supportingEvidenceIds.includes(ev.id);
                     const isContra = contradictoryEvidenceIds.includes(ev.id);
                     const isQual = qualifyingEvidenceIds.includes(ev.id);
+                    const isAdmissible = isEvidenceEligibleForAnalysis(ev);
                     const isExcluded = ev.reviewStatus === "excluded";
                     const isNeedsClarification = ev.reviewStatus === "needs_clarification";
 
@@ -628,7 +632,7 @@ function FindingAuthoringModalContent({
                             <button
                               type="button"
                               onClick={() => handleAssignRole(ev.id, "SUPPORT")}
-                              disabled={isExcluded || isNeedsClarification}
+                              disabled={!isAdmissible && !isSupp}
                               title={
                                 isExcluded
                                   ? "Excluded evidence cannot support a finding"
@@ -649,6 +653,7 @@ function FindingAuthoringModalContent({
                             <button
                               type="button"
                               onClick={() => handleAssignRole(ev.id, "CONTRADICT")}
+                              disabled={!isAdmissible && !isContra}
                               title="Assign as Challenging / Contradictory Evidence"
                               className={`rounded px-2 py-0.5 text-[10px] font-semibold transition cursor-pointer ${
                                 isContra
@@ -661,6 +666,7 @@ function FindingAuthoringModalContent({
                             <button
                               type="button"
                               onClick={() => handleAssignRole(ev.id, "QUALIFY")}
+                              disabled={!isAdmissible && !isQual}
                               title="Assign as Qualifying / Bounding Evidence"
                               className={`rounded px-2 py-0.5 text-[10px] font-semibold transition cursor-pointer ${
                                 isQual

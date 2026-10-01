@@ -48,7 +48,7 @@ function OptionalOutputsModalContent({
     mode === "lesson" ? linkedFinding.explanation : ""
   );
   const [conditionsRequired, setConditionsRequired] = useState("");
-  const [transferability, setTransferability] = useState("Applicable across similar contexts");
+  const [transferability, setTransferability] = useState("");
 
   // Good Practice fields
   const [gpTitle, setGpTitle] = useState(
@@ -59,8 +59,8 @@ function OptionalOutputsModalContent({
   );
   const [whyItWorked, setWhyItWorked] = useState("");
   const [conditionsForReplication, setConditionsForReplication] = useState("");
-  const [risksLimits, setRisksLimits] = useState("Requires dedicated supervision and resourcing");
-  const [recommendedUse, setRecommendedUse] = useState("Recommended for phased expansion");
+  const [risksLimits, setRisksLimits] = useState("");
+  const [recommendedUse, setRecommendedUse] = useState("");
 
   const [error, setError] = useState<string | null>(null);
 
@@ -81,6 +81,8 @@ function OptionalOutputsModalContent({
         whyItHappened: whyItHappened.trim(),
         conditionsRequired: conditionsRequired.trim(),
         evidenceBase: linkedFinding.supportingEvidenceIds || [],
+        linkedFindingIds: [linkedFinding.id],
+        lineageStatus: "resolved",
         transferability: transferability.trim(),
         validationStatus: "Draft",
         revision: 1,
@@ -101,6 +103,8 @@ function OptionalOutputsModalContent({
         description: gpDescription.trim(),
         whyItWorked: whyItWorked.trim(),
         evidenceBase: linkedFinding.supportingEvidenceIds || [],
+        linkedFindingIds: [linkedFinding.id],
+        lineageStatus: "resolved",
         conditionsForReplication: conditionsForReplication.trim(),
         risksLimits: risksLimits.trim(),
         recommendedUse: recommendedUse.trim(),

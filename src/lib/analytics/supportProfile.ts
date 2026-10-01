@@ -1,14 +1,15 @@
+import { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
+import { canonicalizeSite, evidenceSite } from "./siteNormalization";
 import type {
   Finding,
   EvidenceEntry,
   SourceRecord,
   StudyScopeConfig,
-  CollectionMethod,
   SupportTier,
   EvidenceSupportProfile,
 } from "@/lib/types";
 
-import { canonicalizeCollectionMethod, isStandardCollectionMethod } from "@/lib/methodTaxonomy";
+import { canonicalizeCollectionMethod } from "@/lib/methodTaxonomy";
 
 export interface SupportProfileContext {
   scope: StudyScopeConfig;
@@ -52,8 +53,7 @@ export function computeSupportProfile(
   const supportingEvidence = allEvidence.filter(
     (e) =>
       supportingEvidenceIds.has(e.id) &&
-      e.validationStatus !== "Rejected" &&
-      e.reviewStatus !== "excluded"
+      isEvidenceEligibleForAnalysis(e)
   );
 
   // Map sources for fast lookup
@@ -85,12 +85,12 @@ export function computeSupportProfile(
   const independentSourceCount = independentSourceIds.size;
 
   // 2. Method Diversity: methods found across supporting sources
-  const methodsSet = new Set<CollectionMethod>();
+  const methodsSet = new Set<string>();
   for (const srcId of uniqueSourceIds) {
     const src = sourceMap.get(srcId);
     if (src && src.sourceType) {
       const normalized = canonicalizeCollectionMethod(src.sourceType);
-      if (isStandardCollectionMethod(normalized)) {
+      if (normalized !== "Unclassified") {
         methodsSet.add(normalized);
       }
     }
@@ -139,13 +139,8 @@ export function computeSupportProfile(
 
   const sitesSet = new Set<string>();
   for (const ev of supportingEvidence) {
-    if (ev.siteId && ev.siteId.trim()) {
-      sitesSet.add(ev.siteId.trim());
-    }
-    const src = sourceMap.get(ev.sourceId);
-    if (src && src.location && src.location.trim()) {
-      sitesSet.add(src.location.trim());
-    }
+    const site = evidenceSite(ev, sourceMap.get(ev.sourceId), allSources);
+    if (site) sitesSet.add(site);
   }
   const sitesFound = Array.from(sitesSet);
 
@@ -154,7 +149,7 @@ export function computeSupportProfile(
 
   if (isSingleSiteStudy) {
     isCrossSite = false;
-    const targetSite = scope.targetSites?.[0];
+    const targetSite = canonicalizeSite(scope.targetSites?.[0], allSources);
     if (targetSite) {
       const targetMatches = sitesFound.some(
         (sf) => sf.toLowerCase() === targetSite.toLowerCase()
@@ -169,7 +164,7 @@ export function computeSupportProfile(
     }
   } else {
     isCrossSite = sitesFound.length >= 2;
-    const configuredSites = scope.targetSites || [];
+    const configuredSites = (scope.targetSites || []).map(site => canonicalizeSite(site, allSources));
     missingSites = configuredSites.filter(
       (cs) => !sitesFound.some((sf) => sf.toLowerCase() === cs.toLowerCase())
     );
@@ -230,7 +225,7 @@ export function computeSupportProfile(
 
     let hasAdequateSite = false;
     if (isSingleSiteStudy) {
-      const targetSite = scope.targetSites?.[0];
+      const targetSite = canonicalizeSite(scope.targetSites?.[0], allSources);
       hasAdequateSite = targetSite
         ? sitesFound.some((sf) => sf.toLowerCase() === targetSite.toLowerCase())
         : sitesFound.length >= 1;
@@ -264,9 +259,9 @@ export function computeSupportProfile(
   if (independentSourceCount === 0) {
     transparencyFlags.push("No supporting sources identified");
   } else if (independentSourceCount === 1) {
-    transparencyFlags.push("Only 1 independent source");
+    transparencyFlags.push("Only 1 distinct source record");
   } else {
-    transparencyFlags.push(`${independentSourceCount} independent sources identified`);
+    transparencyFlags.push(`${independentSourceCount} distinct source records identified`);
   }
 
   // Method diversity flag

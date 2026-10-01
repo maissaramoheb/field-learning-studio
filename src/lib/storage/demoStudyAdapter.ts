@@ -242,6 +242,10 @@ export function adaptDemoCaseToFieldStudy(demoCase: DemoCase): FieldStudy {
 
 export function adaptFieldStudyToDemoCase(study: FieldStudy): DemoCase {
   return {
+    isDemoCase: study.isDemoCase,
+    purposeAndScope: study.purpose,
+    purpose: study.purpose,
+    framework: study.framework,
     id: study.id,
     project: study.title,
     subtitle: study.subtitle,

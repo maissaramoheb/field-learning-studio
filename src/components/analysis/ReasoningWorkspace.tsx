@@ -239,6 +239,7 @@ export function ReasoningWorkspace({
         {/* Filters */}
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
           <select
+            aria-label="Reasoning type filter"
             value={filterReasoningType}
             onChange={(e) => setFilterReasoningType(e.target.value)}
             className="rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[11px] text-[var(--foreground)]"
@@ -252,6 +253,7 @@ export function ReasoningWorkspace({
           </select>
 
           <select
+            aria-label="Reasoning study question filter"
             value={filterQuestionId}
             onChange={(e) => setFilterQuestionId(e.target.value)}
             className="rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[11px] text-[var(--foreground)]"
@@ -350,6 +352,7 @@ export function ReasoningWorkspace({
                   Study Question Focus
                 </label>
                 <select
+                  aria-label="Study Question Focus"
                   value={questionId}
                   onChange={(e) => setQuestionId(e.target.value)}
                   className="w-full rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-xs text-[var(--foreground)]"
