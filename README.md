@@ -8,12 +8,7 @@ Raw field evidence -> source inventory -> evidence matrix -> findings -> lessons
 
 ## Current Stage
 
-Phases 0–4 and the independently verified integrity closure are merged/deployed at `main @ f7ed3f63bd678f751cec9f839de42a5fd00ea1c1`. Phase 5 decision translation is implemented locally on `feature/phase5-decision-translation` for independent verification; it is not merged or deployed. No AI generation is implemented.
-
-- Published application: [Field Learning Studio](https://field-learning-studio.vercel.app/)
-- Local current status: [Technical Status](TECHNICAL_STATUS.md)
-- Storage schema: IndexedDB `DB_VERSION = 2`; no server database.
-
+Phases 0–5 are merged into main. Phase 5 adds the decision-translation workflow, including Professional Draft assembly, draft-readiness checks, and controlled professional export. No external AI generation is implemented.
 ## Documentation
 
 - [Demo & Validation Pack v0.1](docs/demo_validation_pack_v01.md)
