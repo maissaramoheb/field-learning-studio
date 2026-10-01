@@ -1,5 +1,13 @@
 # Changelog
 
+## Phase 5 decision translation — local, pending independent verification
+
+- Add multi-parent Recommendation authoring/editing and accessible human-review confirmation, retaining canonical lineage/currentness rules. Preserve unrecorded priority/decision metadata.
+- Add saved structured Professional Draft inclusion snapshots and explicitly unlinked manual summary/key messages in existing study metadata; no DB_VERSION change.
+- Extend Final Review and shared exports with current inclusion checks, historical inspection, stale exclusions and deterministic professional-export gating. Preserve limitations, alternatives, challenging/qualifying context and real/showcase notices.
+- Preserve all four primary spaces, rail/global UI, themes, Analytics, copyright and Phase 4 integrity. No AI, backend, merge or deployment.
+
+
 ## 2026-10-01 — Local Pre-Phase 5 Integrity Closure
 
 - Enforce canonical admissibility across all finding roles, analysis, validation and shared export policy. Invalidate reviewed authority on substantive evidence/source/finding edits; preserve historical attribution and Draft/Rejected states.

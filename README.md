@@ -8,7 +8,7 @@ Raw field evidence -> source inventory -> evidence matrix -> findings -> lessons
 
 ## Current Stage
 
-Phases 0–4 provide editable local studies and showcase cases, stored source files, evidence qualification, human findings/learning validation and draft exports. The pre-Phase 5 integrity closure is isolated on `feature/pre-phase5-integrity-closure` and requires independent targeted verification; it is not a deployed release. No AI generation is implemented.
+Phases 0–4 and the independently verified integrity closure are merged/deployed at `main @ f7ed3f63bd678f751cec9f839de42a5fd00ea1c1`. Phase 5 decision translation is implemented locally on `feature/phase5-decision-translation` for independent verification; it is not merged or deployed. No AI generation is implemented.
 
 - Published application: [Field Learning Studio](https://field-learning-studio.vercel.app/)
 - Local current status: [Technical Status](TECHNICAL_STATUS.md)
@@ -55,7 +55,8 @@ npx tsc --noEmit --incremental false
 2. Define its questions, scope and framework; import field material and qualify observations.
 3. Develop and review findings with supporting, challenging and qualifying relationships.
 4. Create and review lessons, practices and recommendations from current findings.
-5. Check Final Review, preview/download draft exports and retain a suitable recovery backup.
+5. Assemble and save selected analytical outputs in Professional Draft; manual summary/key messages remain visibly unlinked.
+6. Check Final Review, choose working draft or professional export, and retain a suitable recovery backup. Non-current/changed selected records remain inspectable but block professional-export mode.
 
 ## Folder Structure
 

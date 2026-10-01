@@ -13,14 +13,14 @@ export function generateMarkdownFromModel(model: BriefExportModel): string {
   const lessonsText = model.lessons
     .map(
       l =>
-        `### ${l.id}: ${l.statement}\n\nWhat worked / did not work: ${l.whatWorkedOrDidNotWork}\n\nWhy it happened: ${l.whyItHappened}\n\nConditions required: ${l.conditionsRequired}\n\nEvidence base: ${l.evidenceBase.join(", ")}\n\nTransferability: ${l.transferability}`,
+        `### ${l.id}: ${l.statement}\n\nLinked Findings: ${(l.linkedFindingIds || []).join(", ")}\n\nWhat worked / did not work: ${l.whatWorkedOrDidNotWork}\n\nWhy it happened: ${l.whyItHappened}\n\nConditions required: ${l.conditionsRequired}\n\nEvidence base: ${l.evidenceBase.join(", ")}\n\nTransferability: ${l.transferability}`,
     )
     .join("\n\n");
 
   const practicesText = model.goodPractices
     .map(
       g =>
-        `### ${g.id}: ${g.title}\n\n${g.description}\n\nWhy it worked: ${g.whyItWorked}\n\nEvidence base: ${g.evidenceBase.join(", ")}\n\nConditions for replication: ${g.conditionsForReplication}\n\nRisks / limits: ${g.risksLimits}\n\nRecommended use: ${g.recommendedUse}`,
+        `### ${g.id}: ${g.title}\n\n${g.description}\n\nLinked Findings: ${(g.linkedFindingIds || []).join(", ")}\n\nWhy it worked: ${g.whyItWorked}\n\nEvidence base: ${g.evidenceBase.join(", ")}\n\nConditions for replication: ${g.conditionsForReplication}\n\nRisks / limits: ${g.risksLimits}\n\nRecommended use: ${g.recommendedUse}`,
     )
     .join("\n\n");
 

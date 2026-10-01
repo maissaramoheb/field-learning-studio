@@ -256,7 +256,7 @@ export function LearningBriefPdfDocument({ model }: { model: BriefExportModel })
                   {l.id}: {l.statement}
                 </Text>
                 <Text style={styles.body}>
-                  What worked / did not work: {l.whatWorkedOrDidNotWork}
+                  Linked Findings: {(l.linkedFindingIds || []).join(", ")} | What worked / did not work: {l.whatWorkedOrDidNotWork}
                 </Text>
                 <Text style={styles.body}>Why it happened: {l.whyItHappened}</Text>
                 <Text style={styles.body}>Conditions required: {l.conditionsRequired}</Text>
@@ -279,6 +279,7 @@ export function LearningBriefPdfDocument({ model }: { model: BriefExportModel })
                   {g.id}: {g.title}
                 </Text>
                 <Text style={styles.body}>{g.description}</Text>
+                <Text style={styles.detailsBox}>Linked Findings: {(g.linkedFindingIds || []).join(", ")}</Text>
                 <Text style={styles.body}>Why it worked: {g.whyItWorked}</Text>
                 <Text style={styles.body}>
                   Conditions for replication: {g.conditionsForReplication}

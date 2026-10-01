@@ -259,6 +259,7 @@ export function adaptFieldStudyToDemoCase(study: FieldStudy): DemoCase {
       goodPractices: study.goodPractices.length,
       recommendations: study.recommendations.length,
     },
+    professionalDraft: study.professionalDraft,
     executiveSummary: study.executiveSummary,
     keyMessages: [...(study.keyMessages || [])],
     limitations: [...(study.limitations || [])],

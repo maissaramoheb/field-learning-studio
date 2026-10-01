@@ -123,3 +123,13 @@ Only add a new feature if one of the following happens:
 - User testing shows the app is unusable without it.
 - The feature directly improves the evidence-to-learning workflow.
 - The feature improves safety, traceability, or export quality.
+
+
+## Phase 5 — Decision Translation (authorized local implementation)
+
+- Deliverables secondary workflow: Recommendations → Professional Draft → Final Review. Preserve the four primary spaces and existing global navigation/themes.
+- Create/edit human Recommendations with multiple current Finding parents, explicit optional decision metadata and existing review lifecycle. Priority may remain unrecorded; no inferred owner, deadline, feasibility or impact.
+- Persist intentional selections of Findings/Lessons/Good Practices/Recommendations with inclusion snapshots and manual summary/key messages in an optional study-metadata field. Parent Findings accompany selected learning/actions as analytical context.
+- Keep manual prose visibly unlinked; preserve historical snapshots and block professional export when selected material is non-current, changed, missing or has unavailable referenced originals. Working drafts remain available with exclusions/warnings.
+- Feed the existing shared preview/Markdown/DOCX/PDF model; no Word clone, immutable publication system, AI, backend, schema migration or global UI polish. DB_VERSION remains 2; ValidationStatus remains Draft/Needs Review/Validated/Rejected.
+- Local verification and local commit only. Independent Phase 5 verification precedes any later merge/deployment authorization.

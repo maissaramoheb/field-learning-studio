@@ -13,6 +13,8 @@ import {
   assertNewFindingEvidenceAdmissibility,
   assertFindingEvidenceApprovalIntegrity,
 } from "./integrity";
+import { isProfessionalDraft } from "@/lib/professionalDraft";
+import { applySubstantiveRecommendationEdit } from "@/lib/validation/validationLifecycle";
 import { getLinkedFindingIds, isLessonExportEligible, isGoodPracticeExportEligible, isRecommendationExportEligible } from "@/lib/exportPolicy";
 import { isSubstantiveEvidenceChange, applySubstantiveFindingEdit, isSubstantiveSourceChange } from "@/lib/validation/validationLifecycle";
 import {
@@ -43,6 +45,7 @@ import type {
   GoodPractice,
   GoodPracticeId,
   Recommendation,
+  ProfessionalDraft,
   RecommendationId,
   FieldStudy,
   FrameworkTheme,
@@ -76,7 +79,27 @@ export async function saveStudyMeta(study: StudyMeta): Promise<void> {
   delete pureMeta.lessons;
   delete pureMeta.goodPractices;
   delete pureMeta.recommendations;
-  await db.put("studies", pureMeta as unknown as StudyMeta);
+  const tx = db.transaction("studies", "readwrite");
+  const latest = await tx.store.get(study.id);
+  // Dedicated draft saves own this field. Ordinary metadata edits cannot overwrite it.
+  if (latest?.professionalDraft) pureMeta.professionalDraft = latest.professionalDraft;
+  await tx.store.put(pureMeta as unknown as StudyMeta);
+  await tx.done;
+}
+
+/** Atomic metadata patch with optimistic draft revision protection. */
+export async function saveProfessionalDraft(studyId: StudyId, draft: ProfessionalDraft): Promise<ProfessionalDraft> {
+  if (!isProfessionalDraft(draft)) throw new Error("Invalid Professional Draft structure.");
+  const db = await getDb();
+  const tx = db.transaction("studies", "readwrite");
+  const latest = await tx.store.get(studyId);
+  const conflict = !latest ? "Study not found." : latest.isDemoCase ? "Clone the showcase study before saving a draft." :
+    (latest.professionalDraft?.revision ?? 0) !== draft.revision ? "Professional Draft changed in another view. Reload before saving." : null;
+  if (conflict) { tx.abort(); await tx.done.catch(() => undefined); throw new Error(conflict); }
+  const saved = { ...draft, revision: draft.revision + 1, updatedAt: Date.now() };
+  await tx.store.put({ ...latest!, professionalDraft: saved, updatedAt: Date.now() });
+  await tx.done;
+  return saved;
 }
 
 export async function saveStudyScopeConfig(
@@ -1006,6 +1029,8 @@ export async function saveRecommendation(
       );
     }
   }
+  const existingRecommendation = await db.get("recommendations", [recommendation.studyId, recommendation.id]);
+  if (existingRecommendation) recommendation = { ...applySubstantiveRecommendationEdit(existingRecommendation, recommendation).updated, studyId: recommendation.studyId };
   await assertRecommendationFindingIntegrity(db, recommendation.studyId, recommendation);
   if (recommendation.validationStatus === "Validated") {
     await assertCurrentFindingParents(db, recommendation.studyId, recommendation);
