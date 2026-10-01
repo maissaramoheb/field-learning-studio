@@ -283,6 +283,20 @@ function FindingAuthoringModalContent({
       </div>
 
       <form onSubmit={handleSubmit} className="mt-4 space-y-4">
+        {initialFinding?.validationStatus === "Validated" && (
+          <div className="rounded-lg border border-[var(--warning-border)] bg-[var(--warning-soft)] p-3 text-xs text-[var(--warning-text)]">
+            <div className="flex items-center gap-1.5 font-semibold text-[var(--warning-text)]">
+              <span>ℹ Substantive Edit Notice</span>
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--warning-border)]/40 text-[var(--warning-text)]">
+                Advances to Revision {(initialFinding.revision || 1) + 1}
+              </span>
+            </div>
+            <p className="mt-1 text-[11px] leading-relaxed text-[var(--warning-text)] opacity-90">
+              This finding is currently <strong>Validated</strong>. Saving changes to its statement, explanation, or evidence links will advance its revision and return its status to <strong>Needs Review</strong> for renewed evaluator re-certification. Prior validation history is safely preserved.
+            </p>
+          </div>
+        )}
+
         {error && (
           <div className="rounded-lg border border-red-500/40 bg-red-950/20 p-3 text-xs text-red-300">
             {error}
