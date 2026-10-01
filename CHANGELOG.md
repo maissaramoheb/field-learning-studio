@@ -1,6 +1,23 @@
 # Changelog
 
-## Phase 5 decision translation — local, pending independent verification
+## Phase 5.5 Bounded UI / UX Completion Pass — local feature branch
+
+- **Primary Left Rail & Typography Hierarchy**:
+  - Implemented cohesive inline SVG vector icons for the 4 primary practitioner spaces (Study, Field Material, Analysis, Deliverables), replacing platform-dependent emojis.
+  - Refined rail typography hierarchy: prominent space label (`13px font-semibold`) with monospace step number $\to$ dedicated purpose subtitle (`Define`, `Capture & Qualify`, `Interpret & Validate`, `Communicate & Decide`) on its own row to eliminate truncation $\to$ quiet operational counts badge (`10px font-mono`).
+  - Improved collapsed rail with centered icons, step numbers, and elevated accessible hover/focus tooltips.
+- **Global Context Header & 390px Mobile Viewport**:
+  - Resolved mobile horizontal header overspill at 390px: wrapped flex containers, added compact utility labels (`Backup`, `+ New`), and enforced `max-width: 100%; overflow-x: hidden;`.
+  - Allowed context header badge and subview title to wrap cleanly without layout blowout.
+- **Renewed Review Communication**:
+  - Added "Renewed Review Required" helper on Findings Ledger when a validated finding transitions to Needs Review, explaining why the revision advanced and confirming that validation history is preserved.
+  - Added "Substantive Edit Notice" in Finding Authoring Modal when editing a currently Validated finding.
+- **Deliverables Visual Completion**:
+  - Polished `DraftReadiness` banner with status-appropriate borders (emerald for Ready, amber for Working Draft / Needs Attention) and distinct file verification tags.
+  - Refined `ProfessionalDraftEditor` card hierarchy, fieldset spacing, accessible text inspection, and elevated warning callout for unlinked substantive free text.
+- Preserved all domain logic, validation lifecycles, storage schema (`DB_VERSION = 2`), Analytics, and copyright. Zero AI.
+
+## Phase 5 Decision Translation & Professional Drafts — Released (v0.10.0)
 
 - Add multi-parent Recommendation authoring/editing and accessible human-review confirmation, retaining canonical lineage/currentness rules. Preserve unrecorded priority/decision metadata.
 - Add saved structured Professional Draft inclusion snapshots and explicitly unlinked manual summary/key messages in existing study metadata; no DB_VERSION change.

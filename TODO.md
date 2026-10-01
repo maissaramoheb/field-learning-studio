@@ -1,14 +1,19 @@
 # TODO
 
-## Phase 5 local handoff
+## Phase 5.5 Bounded UI / UX Completion Pass (local)
+
+- [x] Primary Left Rail: cohesive SVG icons replace emojis; visual hierarchy (Primary Space → purpose subtitle → quiet operational counts badge) established; subtitles never truncate.
+- [x] Global Context Header & 390px Mobile: resolved mobile horizontal header overflow at 390px through flex-wrap containers, compact utility labels (`Backup`, `+ New`), and `max-width: 100%; overflow-x: hidden;`.
+- [x] Reassuring Needs Review Communication: added inline helper on Findings Ledger and substantive edit notice in Finding Authoring Modal for previously validated findings.
+- [x] Deliverables Visual Completion: polished `DraftReadiness` banner and `ProfessionalDraftEditor` card hierarchy, fieldset spacing, accessible snapshot inspectability, and prominent free-text warning callout.
+- [x] Verified quality gates: 358 tests passing, 0 TypeScript errors, 0 lint warnings, clean build. Zero domain/storage logic changes. Zero AI.
+
+## Phase 5 Decision Translation & Professional Drafts (Merged & Released)
 
 - [x] Complete Recommendation → saved Professional Draft → scoped Final Review → shared export, without new storage stores/lifecycle states.
 - [x] Keep manual text warnings, inclusion snapshots, stale/missing/superseded exclusions and explicit output modes.
-- [ ] Independently verify the local Phase 5 branch before any separate merge/deploy decision.
-- [ ] Global rail typography/subtitle/icons/counts/truncation and broader mobile polish remain a separate Antigravity task.
-- [ ] Optional Recommendation-to-Lesson authoring needs an explicit lesson-currentness contract before new UI links; preserved legacy linkedLessonIds do not certify lesson grounding.
-- [ ] AI and Phase 6 remain out of scope.
-- [ ] Deferred UI / UX observation: the existing context-header badge/title row spills beyond a 390px viewport in Professional Draft. New draft controls fit; global header, rail and breakpoints remain unchanged.
+- [x] Independently verify the local Phase 5 branch before any separate merge/deploy decision (verified and merged into main).
+- [x] Phase 5 merged and released to production at commit `0dbc643`.
 
 
 ## Current Integrity Closure

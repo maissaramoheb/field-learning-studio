@@ -2,12 +2,13 @@
 
 ## Current Status
 
-Integrity closure is independently verified, merged and deployed at `main == origin/main == f7ed3f63bd678f751cec9f839de42a5fd00ea1c1` (owner-confirmed release baseline). Phase 5 decision translation is implemented locally on `feature/phase5-decision-translation` and is not merged, pushed or deployed. No AI.
+Phase 5 decision translation is verified, merged and released in production (`main == origin/main == 0dbc643d33426db19ca82a078c4fba6f2832c15c`). Phase 5.5 bounded UI/UX completion pass is implemented on local feature branch `feature/ui-ux-completion` and is not merged, pushed or deployed. No AI.
 
-- Recommendation creation/editing in Deliverables supports multiple current Finding parents, no inferred decision metadata, and human review through the shared dialog. Existing lineage/approval policy is reused; substantive Recommendation edits withdraw reviewed authority.
-- Professional Draft intentionally selects current Findings, Lessons, Good Practices and Recommendations. An optional studies-store metadata field saves references, inclusion snapshots/signatures and manual summary/key messages. DB_VERSION remains 2. Optimistic draft revisions and atomic metadata patches prevent stale draft writers and ordinary metadata saves from overwriting it.
-- Non-current/missing/changed inclusions stay inspectable, are omitted from current output and block professional mode until deliberately removed/refreshed after appropriate review. Selected learning/actions bring current parent Findings into shared output as analytical context.
-- Final Review adds scoped draft readiness, referenced-original availability and manual-text warnings. Professional downloads re-read local records and file ownership/content. Working draft versus professional export are computed output modes, not new ValidationStatus values. Human judgment/sign-off remain separate.
+- Primary Left Rail: cohesive SVG icons replace platform emojis; visual hierarchy established (PRIMARY SPACE $\to$ dedicated purpose subtitle on its own row $\to$ quiet operational counts badge); zero truncation.
+- Global Context Header & 390px Mobile: resolved header and badge flex-wrap behavior, compact utility button labels, and `overflow-x: hidden` preventing mobile horizontal body overflow.
+- Reassuring Needs Review Communication: added inline helper on Findings Ledger for previously validated findings and substantive edit notice in Finding Authoring Modal.
+- Deliverables Visual Polish: refined `DraftReadiness` banner and `ProfessionalDraftEditor` card hierarchy, fieldset spacing, accessible snapshot inspectability, and prominent free-text warning callout.
+- Preservation: All domain logic, validation lifecycles, storage schema (`DB_VERSION = 2`), canonical `ValidationStatus`, Analytics, and copyright are preserved. Zero external dependencies added. Zero AI.
 
 - One canonical admissibility rule: modern observations require `reviewStatus: usable`; legacy observations without that field require `validationStatus: Validated`. SUPPORT, CONTRADICT and QUALIFY share it across analysis, validation and output policy.
 - Substantive evidence/source/finding changes invalidate reviewed conclusions at storage boundaries. Validated records become Needs Review; Draft/Rejected states remain truthful. Prior validation attribution is historical, never renewed automatically.

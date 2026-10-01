@@ -2,6 +2,7 @@
 
 import type { PractitionerSpaceId } from "@/components/FieldLearningStudioApp";
 import { PRACTITIONER_SPACES } from "@/components/FieldLearningStudioApp";
+import { WorkspaceSpaceIcon } from "@/components/icons/WorkspaceIcons";
 
 interface WorkspaceLeftRailProps {
   activeSpaceId: PractitionerSpaceId;
@@ -65,7 +66,7 @@ export function WorkspaceLeftRail({
     <aside
       aria-label="Primary Workspace Navigation"
       className={`fls-workspace-rail transition-all duration-200 select-none flex flex-col shrink-0 border-r border-[var(--border)] bg-[var(--background-secondary)] ${
-        isCollapsed ? "w-[64px]" : "w-[230px]"
+        isCollapsed ? "w-[64px]" : "w-[240px]"
       }`}
     >
       {/* Rail Header / Collapse Toggle */}
@@ -82,7 +83,7 @@ export function WorkspaceLeftRail({
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="fls-rail-toggle-btn p-1.5 rounded text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-elevated)] transition flex items-center justify-center"
+          className="fls-rail-toggle-btn p-1.5 rounded text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-elevated)] transition flex items-center justify-center cursor-pointer"
           title={isCollapsed ? "Expand workspace rail" : "Collapse workspace rail"}
           aria-label={isCollapsed ? "Expand workspace rail" : "Collapse workspace rail"}
           aria-expanded={!isCollapsed}
@@ -146,10 +147,10 @@ export function WorkspaceLeftRail({
                 countLabel ? ` · ${countLabel}` : ""
               }`}
               onClick={() => onSpaceChange(space.id)}
-              className={`fls-rail-item group relative flex items-center rounded-lg transition text-left ${
+              className={`fls-rail-item group relative flex items-start rounded-lg transition text-left cursor-pointer ${
                 isCollapsed
                   ? "justify-center p-2.5"
-                  : "px-3 py-2.5 gap-3"
+                  : "px-3 py-2.5 gap-2.5"
               } ${
                 isActive
                   ? "border font-semibold shadow-xs"
@@ -175,10 +176,8 @@ export function WorkspaceLeftRail({
               )}
 
               {/* Icon & Step Number */}
-              <div className="flex items-center gap-1.5 shrink-0">
-                <span className="text-base" aria-hidden="true">
-                  {space.icon}
-                </span>
+              <div className="flex flex-col items-center gap-1 shrink-0 pt-0.5">
+                <WorkspaceSpaceIcon spaceId={space.id} className="w-[18px] h-[18px]" />
                 {isCollapsed && (
                   <span className="text-[10px] font-mono font-bold opacity-80" aria-hidden="true">
                     {space.stepNumber}
@@ -189,39 +188,44 @@ export function WorkspaceLeftRail({
               {/* Text content when expanded */}
               {!isCollapsed && (
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1 leading-tight">
-                    <span className="text-xs font-semibold truncate flex items-center gap-1.5">
-                      <span className="text-[11px] font-mono opacity-60 font-medium">
-                        {space.stepNumber}.
-                      </span>
-                      <span>{space.label}</span>
+                  {/* Row 1: Step Number + Primary Space Label */}
+                  <div className="flex items-center gap-1.5 leading-tight">
+                    <span className="text-[11px] font-mono font-bold opacity-60 shrink-0">
+                      {space.stepNumber}.
+                    </span>
+                    <span className="text-[13px] font-semibold tracking-tight text-[var(--foreground)]">
+                      {space.label}
                     </span>
                   </div>
-                  <div className="flex items-center justify-between gap-1 mt-0.5">
-                    <span className="text-[11px] font-normal opacity-75 truncate">
-                      {purposeLabels[space.id]}
-                    </span>
-                    {countLabel && (
-                      <span className="text-[10px] font-mono text-[var(--muted-soft)] font-normal tabular-nums shrink-0">
+
+                  {/* Row 2: Purpose Subtitle (Never truncated!) */}
+                  <div className="mt-0.5 text-[11px] font-medium leading-tight text-[var(--muted)]">
+                    {purposeLabels[space.id]}
+                  </div>
+
+                  {/* Row 3: Operational Counts (Quiet metadata) */}
+                  {countLabel && (
+                    <div className="mt-1 flex items-center">
+                      <span className="inline-flex items-center text-[10px] font-mono text-[var(--muted-soft)] px-1.5 py-0.5 rounded bg-[var(--surface-muted)] border border-[var(--border)] tabular-nums">
                         {countLabel}
                       </span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Hover tooltip when collapsed */}
               {isCollapsed && (
-                <div className="fls-rail-tooltip pointer-events-none absolute left-full ml-2 px-2.5 py-1.5 rounded-md bg-[var(--surface-elevated)] border border-[var(--border)] text-xs text-[var(--foreground)] whitespace-nowrap shadow-md opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity z-50">
-                  <div className="font-semibold flex items-center gap-1.5">
-                    <span>{space.icon}</span>
+                <div className="fls-rail-tooltip pointer-events-none absolute left-full ml-2 px-3 py-2 rounded-lg bg-[var(--surface-elevated)] border border-[var(--border)] text-xs text-[var(--foreground)] whitespace-nowrap shadow-lg opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity z-50">
+                  <div className="font-semibold flex items-center gap-2 text-sm text-[var(--foreground)]">
+                    <WorkspaceSpaceIcon spaceId={space.id} className="w-4 h-4" />
                     <span>{space.stepNumber}. {space.label}</span>
                   </div>
-                  <div className="text-[11px] text-[var(--muted-soft)] mt-0.5">
+                  <div className="text-[11px] font-medium text-[var(--muted)] mt-0.5">
                     {purposeLabels[space.id]}
                   </div>
                   {countLabel && (
-                    <div className="text-[10px] font-mono text-[var(--muted)] mt-1 pt-1 border-t border-[var(--border)]">
+                    <div className="text-[10px] font-mono text-[var(--muted-soft)] mt-1.5 pt-1.5 border-t border-[var(--border)]">
                       {countLabel}
                     </div>
                   )}

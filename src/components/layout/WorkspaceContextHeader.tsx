@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { PractitionerSpaceId, WorkspaceTabId } from "@/components/FieldLearningStudioApp";
+import { WorkspaceSpaceIcon } from "@/components/icons/WorkspaceIcons";
 
 export interface WorkspaceContextDefinition {
   stepNumber: string;
@@ -66,15 +67,15 @@ export function WorkspaceContextHeader({
       aria-label={`Workspace context: ${context.label}`}
     >
       <div className="fls-workspace-context-meta">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-baseline gap-2 min-w-0">
           <span className="fls-workspace-badge" data-space={spaceId}>
-            <span aria-hidden="true">{context.icon}</span>
+            <WorkspaceSpaceIcon spaceId={spaceId} className="w-3.5 h-3.5 shrink-0" />
             <span>{context.stepNumber}. {context.label}</span>
             <span className="opacity-50">·</span>
             <span>{context.purpose}</span>
           </span>
           {tabLabel && (
-            <span className="fls-workspace-context-title">
+            <span className="fls-workspace-context-title min-w-0 break-words">
               {tabLabel}
             </span>
           )}

@@ -2,6 +2,7 @@
 
 import React from "react";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { WorkspaceSpaceIcon } from "@/components/icons/WorkspaceIcons";
 import type {
   WorkspaceTabId,
   PractitionerSpace,
@@ -111,7 +112,8 @@ export function StudyWorkspaceHeader({
                 onClick={onOpenBackupRestore}
                 title="Backup / Restore study data"
               >
-                Backup / Restore
+                <span className="hidden sm:inline">Backup / Restore</span>
+                <span className="sm:hidden">Backup</span>
               </button>
             )}
             {onCreateNewStudy && (
@@ -121,7 +123,8 @@ export function StudyWorkspaceHeader({
                 onClick={onCreateNewStudy}
                 title="Create a new study"
               >
-                + New study
+                <span className="hidden sm:inline">+ New study</span>
+                <span className="sm:hidden">+ New</span>
               </button>
             )}
           </div>
@@ -154,8 +157,8 @@ export function StudyWorkspaceHeader({
                   }}
                   className={`fls-mobile-space-btn ${isActive ? "active" : ""}`}
                 >
-                  <span className="fls-mobile-space-icon" aria-hidden="true">{space.icon}</span>
-                  <span className="fls-mobile-space-name">{space.label}</span>
+                  <WorkspaceSpaceIcon spaceId={space.id} className="w-3.5 h-3.5 shrink-0" />
+                  <span className="fls-mobile-space-name">{space.stepNumber}. {space.label}</span>
                 </button>
               );
             })}

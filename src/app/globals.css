@@ -157,10 +157,14 @@ html[data-theme="day"] {
 
 html {
   scroll-behavior: smooth;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
+  max-width: 100%;
+  overflow-x: hidden;
   background: var(--background);
   color: var(--foreground);
   font-family: ui-sans-serif, system-ui, sans-serif;
@@ -907,13 +911,27 @@ html[data-theme="day"] .light-image {
   .fls-app-bar {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
-    padding-block: 8px;
+    gap: 6px;
+    padding-block: 6px;
+    padding-inline: 12px;
   }
   .fls-app-bar-context {
     width: 100%;
     justify-content: flex-start;
-    gap: 8px;
+    gap: 6px;
+    min-width: 0;
+  }
+  .fls-header-study-info {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+  }
+  .fls-header-study-title {
+    max-width: 140px;
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .fls-brand { display: none; }
   .fls-brand-mobile {
@@ -931,34 +949,52 @@ html[data-theme="day"] .light-image {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
     padding-top: 6px;
     border-top: 1px solid var(--border);
   }
   .fls-utilities-group {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
+    flex-wrap: wrap;
   }
   .fls-back-btn-label { display: none; }
   .fls-back-to-library-btn {
     padding: 3px 8px;
-    font-size: 12.5px;
-    min-height: 28px;
-  }
-  .fls-header-study-title {
-    max-width: 160px;
-    font-size: 12.5px;
+    font-size: 12px;
+    min-height: 32px;
   }
   .fls-demo-label-full { display: none; }
   .fls-demo-label-compact { display: inline; }
   .fls-badge-demo {
-    padding: 1px 6px;
-    font-size: 9.5px;
+    padding: 1px 5px;
+    font-size: 9px;
   }
   .fls-app-utilities .fls-button {
-    min-height: 28px;
-    padding: 4px 8px;
+    min-height: 30px;
+    padding: 3px 7px;
     font-size: 11px;
+  }
+  .fls-workspace-context-header {
+    padding: 10px 12px;
+    margin-bottom: 14px;
+    gap: 6px;
+  }
+  .fls-workspace-context-meta {
+    gap: 6px;
+  }
+  .fls-workspace-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+  .fls-workspace-context-title {
+    font-size: 12.5px;
+  }
+  .fls-workspace-context-purpose {
+    font-size: 11px;
+    line-height: 1.4;
   }
   .fls-library-masthead {
     flex-direction: column;
