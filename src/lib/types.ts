@@ -117,7 +117,7 @@ export interface TriangulationMetrics {
   distinctSourceCount: number;
   independentSourceCount: number;
   methodDiversityCount: number;
-  methodsFound: CollectionMethod[];
+  methodsFound: string[];
   stakeholderCoverageCount: number;
   stakeholdersFound: string[];
   siteCoverageCount: number;
@@ -177,7 +177,7 @@ export interface EvidenceSupportProfile {
   independentSourceCount: number;
 
   methodDiversity: {
-    methodsFound: CollectionMethod[];
+    methodsFound: string[];
     isMultiMethod: boolean;
   };
 
@@ -543,6 +543,7 @@ export interface LearningBriefSection {
 }
 
 export interface DemoCase {
+  isDemoCase?: boolean;
   id: string;
   project: string;
   subtitle: string;

@@ -163,6 +163,8 @@ export function EvidenceReviewWorkspace({
     };
   }, [rawEvidenceList, isDemoCase]);
 
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
   // Derive available study questions
   const availableQuestions = useMemo(() => {
     return currentStudy?.questions || [];
@@ -408,7 +410,7 @@ export function EvidenceReviewWorkspace({
         <div>
           <p className="fls-eyebrow">Field Material</p>
           <h1>Evidence review</h1>
-          <p>Review observations before validation. Only validated evidence can support findings and deliverables.</p>
+          <p>Review observations before validation. Only qualified observations (usable, or legacy Validated without a qualification status) can support authoritative findings and deliverables.</p>
         </div>
         <div className="flex items-center gap-2.5">
           {onOpenDocxModal && (
@@ -481,13 +483,14 @@ export function EvidenceReviewWorkspace({
           counts={statusCounts}
         />
 
+        <button type="button" className="sm:hidden text-xs text-[var(--foreground)]" aria-expanded={mobileFiltersOpen} aria-controls="review-analytical-filters" onClick={() => setMobileFiltersOpen(open => !open)}>{mobileFiltersOpen ? "Hide analytical filters" : "Show analytical filters"}</button>
         {/* Analytical Dimension Filters */}
-        <div className="grid gap-3 pt-3 border-t border-[var(--border)] grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
+        <div id="review-analytical-filters" className={`${mobileFiltersOpen ? "grid" : "hidden"} sm:grid gap-3 pt-3 border-t border-[var(--border)] grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7`}>
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
+            <label htmlFor="review-theme" className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
               Theme
             </label>
-            <select
+            <select id="review-theme"
               value={filters.theme}
               onChange={(e) =>
                 onFiltersChange({ ...filters, theme: e.target.value })
@@ -506,10 +509,10 @@ export function EvidenceReviewWorkspace({
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
+            <label htmlFor="review-stakeholder" className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
               Stakeholder
             </label>
-            <select
+            <select id="review-stakeholder"
               value={filters.stakeholderType}
               onChange={(e) =>
                 onFiltersChange({ ...filters, stakeholderType: e.target.value })
@@ -528,10 +531,10 @@ export function EvidenceReviewWorkspace({
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
+            <label htmlFor="review-reliability" className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
               Reliability
             </label>
-            <select
+            <select id="review-reliability"
               value={filters.evidenceStrength}
               onChange={(e) =>
                 onFiltersChange({ ...filters, evidenceStrength: e.target.value })
@@ -550,10 +553,10 @@ export function EvidenceReviewWorkspace({
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
+            <label htmlFor="review-sensitivity" className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
               Sensitivity
             </label>
-            <select
+            <select id="review-sensitivity"
               value={filters.sensitivityFlag}
               onChange={(e) =>
                 onFiltersChange({ ...filters, sensitivityFlag: e.target.value })
@@ -572,10 +575,10 @@ export function EvidenceReviewWorkspace({
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
+            <label htmlFor="review-study-question" className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
               Study Question
             </label>
-            <select
+            <select id="review-study-question"
               value={filters.studyQuestionId || "All"}
               onChange={(e) =>
                 onFiltersChange({ ...filters, studyQuestionId: e.target.value })
@@ -595,10 +598,10 @@ export function EvidenceReviewWorkspace({
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
+            <label htmlFor="review-site-location" className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
               Site / Location
             </label>
-            <select
+            <select id="review-site-location"
               value={filters.siteId || "All"}
               onChange={(e) =>
                 onFiltersChange({ ...filters, siteId: e.target.value })
@@ -615,10 +618,10 @@ export function EvidenceReviewWorkspace({
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
+            <label htmlFor="review-method" className="block text-[11px] font-semibold text-[var(--muted)] mb-1">
               Method
             </label>
-            <select
+            <select id="review-method"
               value={filters.collectionMethod || "All"}
               onChange={(e) =>
                 onFiltersChange({ ...filters, collectionMethod: e.target.value })

@@ -1,5 +1,15 @@
 # TODO
 
+## Current Integrity Closure
+
+- [x] Implement pre-Phase 5 integrity contracts on `feature/pre-phase5-integrity-closure` from `3c94a523`.
+- [x] Exercise seven behavioral sequences, including fresh-database binary recovery and atomic collision rejection.
+- [ ] Independent targeted verification of the local committed branch. No merge, push or deployment authorized.
+- [ ] Separate bounded UI polish: workspace title hierarchy, subtitle readability, description truncation, count treatment and icon consistency. Preserve navigation and themes.
+- [ ] Phase 5 / AI remain deferred pending independent review and later authorization.
+
+The milestones below are historical; their test counts and branch references are not current release claims.
+
 ## P0
 
 - [x] Phase 2 Study Workspace: Study Brief, Questions & Scope, Methods & Sources, Framework & Roles (`feature/phase-2-study-workspace`):

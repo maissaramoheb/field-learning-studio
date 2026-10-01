@@ -550,6 +550,7 @@ export function ImportMappingView({
                         Default Material Category:
                       </label>
                       <select
+                        aria-label="Default Material Category"
                         value={defaultCategory}
                         onChange={(e) => setDefaultCategory(e.target.value as MaterialCategory)}
                         className="rounded border border-[var(--border)] bg-[var(--surface-elevated)] px-2.5 py-1 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
@@ -587,6 +588,7 @@ export function ImportMappingView({
                               </td>
                               <td className="p-2.5">
                                 <select
+                                  aria-label={`Map column ${hdr || idx + 1}`}
                                   value={currentField}
                                   onChange={(e) =>
                                     setColumnMapping({

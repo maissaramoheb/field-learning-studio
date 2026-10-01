@@ -172,7 +172,7 @@ describe("MEP-01: Formal Claim Boundary & Export Parity Verification", () => {
 
       // Recommendation warning must explain parent needs review
       const rec = await getRecommendation(studyId, "REC-101");
-      const warning = getRecommendationDependencyWarning(rec!, findingAfter);
+      const warning = getRecommendationDependencyWarning(rec!, findingAfter, { findings: [findingAfter!] });
       expect(warning).toContain("Supporting evidence changed after this Finding was reviewed");
     });
   });
@@ -217,7 +217,7 @@ describe("MEP-01: Formal Claim Boundary & Export Parity Verification", () => {
 
       // 2. Step 1: Re-review and validate Evidence
       const evToValidate = await getEvidence(studyId, "EV-101");
-      const validatedEv = validateArtifact(evToValidate!, "Lead Field Evaluator");
+      const validatedEv = { ...validateArtifact(evToValidate!, "Lead Field Evaluator"), reviewStatus: "usable" as const };
       await saveEvidence({ ...validatedEv, studyId });
       expect(validatedEv.validationStatus).toBe("Validated");
 
@@ -242,6 +242,9 @@ describe("MEP-01: Formal Claim Boundary & Export Parity Verification", () => {
       await saveFinding({ ...validatedFinding, studyId });
       expect(validatedFinding.validationStatus).toBe("Validated");
       expect(validatedFinding.staleDependencyWarning).toBeUndefined();
+
+      const recommendationForReview = await getRecommendation(studyId, "REC-101");
+      await saveRecommendation({ ...validateArtifact(recommendationForReview!, "Decision Reviewer", undefined, { findings: [validatedFinding], evidence: [validatedEv], sources: [sampleSource] }), studyId });
 
       // 4. Step 3: Eligibility is restored for both finding and recommendation
       const restoredStudy = await assembleStudy(studyId);
@@ -498,6 +501,7 @@ describe("MEP-01: Formal Claim Boundary & Export Parity Verification", () => {
         whyItHappened: "Early replacement prevents abrupt failure.",
         conditionsRequired: "Dedicated technician.",
         evidenceBase: ["EV-101"],
+        linkedFindingIds: ["FND-101"],
         transferability: "Applicable to all solar-powered sites.",
         validationStatus: "Validated",
         revision: 1,
@@ -511,6 +515,7 @@ describe("MEP-01: Formal Claim Boundary & Export Parity Verification", () => {
         description: "Staff record charge readings at 9 AM and 1 PM.",
         whyItWorked: "Identifies capacity decline before class disruption.",
         evidenceBase: ["EV-101"],
+        linkedFindingIds: ["FND-101"],
         conditionsForReplication: "Digital or paper logbook.",
         risksLimits: "Requires compliance.",
         recommendedUse: "Standard operating procedure.",

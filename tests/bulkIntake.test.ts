@@ -580,7 +580,7 @@ No title specified in this block.
       expect(profile.independentSourceCount).toBe(1);
       // Because only 1 independent source exists and Minya + Parents/Warehouse are missing, support tier CANNOT be Strongly Supported!
       expect(profile.supportTier).toBe("Emerging");
-      expect(profile.transparencyFlags).toContain("Only 1 independent source");
+      expect(profile.transparencyFlags).toContain("Only 1 distinct source record");
       expect(profile.siteCoverage.isCrossSite).toBe(false);
       expect(profile.stakeholderCoverage.isMultiStakeholder).toBe(false);
       expect(profile.methodDiversity.isMultiMethod).toBe(false);

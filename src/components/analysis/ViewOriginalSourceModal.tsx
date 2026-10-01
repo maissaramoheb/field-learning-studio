@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { WorkspaceDialog } from "@/components/WorkspaceDialog";
-import type { EvidenceEntry, SourceRecord, SourceFileMetadata } from "@/lib/types";
+import type { EvidenceEntry, SourceRecord, SourceFileMetadata, SourceFileContent } from "@/lib/types";
 import { sourceFileRepository } from "@/lib/storage/sourceFileRepository";
 
 interface ViewOriginalSourceModalProps {
@@ -24,6 +24,7 @@ function ViewOriginalSourceModalContent({
   source,
 }: ViewOriginalSourceModalProps) {
   const fileId = evidence?.sourceFileId || source?.sourceFileId;
+  const [fileContent, setFileContent] = useState<SourceFileContent | null>(null);
   const [fileMeta, setFileMeta] = useState<SourceFileMetadata | null>(null);
   const [loadingMeta, setLoadingMeta] = useState(() => Boolean(fileId));
 
@@ -31,11 +32,13 @@ function ViewOriginalSourceModalContent({
     let active = true;
     if (!fileId) return;
 
-    sourceFileRepository
-      .getFileMetadata(fileId)
-      .then((meta) => {
+    Promise.all([sourceFileRepository.getFileMetadata(fileId), sourceFileRepository.getFileContent(fileId)])
+      .then(([meta, content]) => {
         if (active) {
-          setFileMeta(meta || null);
+          const owner = evidence?.studyId || source?.studyId;
+          const belongs = Boolean(meta && content && (!owner || (meta.studyId === owner && content.studyId === owner)));
+          setFileMeta(belongs ? meta! : null);
+          setFileContent(belongs ? content! : null);
           setLoadingMeta(false);
         }
       })
@@ -49,7 +52,7 @@ function ViewOriginalSourceModalContent({
     return () => {
       active = false;
     };
-  }, [fileId]);
+  }, [fileId, evidence?.studyId, source?.studyId]);
 
   const coord = evidence?.sourceCoordinate;
 
@@ -123,6 +126,19 @@ function ViewOriginalSourceModalContent({
               </div>
             </div>
           ) : null}
+
+          {fileContent && (
+            <section className="rounded-xl border border-[var(--border)] p-4 space-y-2">
+              <h3 className="font-semibold text-[var(--foreground)]">Stored original source context</h3>
+              {fileContent.blob && <button type="button" className="text-[var(--trace)] underline" onClick={() => {
+                const url = URL.createObjectURL(fileContent.blob!);
+                const link = document.createElement("a"); link.href = url; link.download = fileMeta?.filename || "original-source";
+                link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+              }}>Download stored original file</button>}
+              {fileContent.extractedText !== undefined && <pre className="max-h-64 overflow-auto whitespace-pre-wrap text-xs">{fileContent.extractedText}</pre>}
+            </section>
+          )}
+          {fileId && !loadingMeta && !fileContent && <p role="status" className="text-amber-400">Original file content is unavailable in this study. A structured backup does not include original files.</p>}
 
           {/* Source Record Card */}
           {source && (
@@ -262,7 +278,7 @@ function ViewOriginalSourceModalContent({
                     Strength: {evidence.evidenceStrength}
                   </span>
                   <span className="rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 text-[10px] font-semibold">
-                    {evidence.reviewStatus || "usable"}
+                    {evidence.reviewStatus || (evidence.validationStatus === "Validated" ? "Legacy eligible" : "Not qualified")}
                   </span>
                 </div>
               </div>

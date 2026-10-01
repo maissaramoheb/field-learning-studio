@@ -2,54 +2,35 @@
 
 ## Current Status
 
-**Phase 4 — Analysis Architecture & Hardening Pass** is fully completed, hardened, and verified on dedicated feature branch `feature/phase-4-analysis-architecture` based on authoritative production baseline `main @ 4f0097523eaf65734a7145d6247f86fef366cb2d`.
+Pre-Phase 5 targeted integrity closure implemented locally on `feature/pre-phase5-integrity-closure`, starting from clean `main == origin/main == 3c94a52344707037d33dcaf5f15ac398759c16da`. This branch is not merged, pushed or deployed. Phase 5 and AI have not begun.
 
-1. **Analytical Architecture & Local Workspaces (Space 3: Analysis)**:
-   - Restructured the Analysis practitioner space into 4 purposeful, interconnected workspaces:
-     - **Synthesis Workbench** (`synthesis`): "What patterns, tensions, contradictions, explanations, and gaps can I see?"
-     - **Triangulation Matrix** (`triangulation`): "How is the evidence distributed across perspectives, methods, sites, and sources?"
-     - **Findings Ledger** (`findings`): "What analytical claims are sufficiently reasoned and reviewed to become formal findings?"
-     - **Lessons** (`lessons`): "What transferable learning emerges from validated findings?"
-2. **Evidence Qualification vs Finding Validation Boundary & Canonical Eligibility**:
-   - Explicitly decoupled `reviewStatus` (evidence qualification / admissibility) from `validationStatus` (finding evaluator lifecycle sign-off).
-   - Implemented canonical `isEvidenceEligibleForAnalysis` helper in `src/lib/storage/normalization.ts`:
-     - Modern / Phase-3+ records: require `reviewStatus === "usable"`.
-     - Legacy records lacking `reviewStatus`: require `validationStatus === "Validated"` (legacy Draft/Needs Review/Rejected records are strictly blocked).
-   - Hard validation guard: evidence marked `reviewStatus === "excluded"`, `"pending"`, or `"needs_clarification"` is strictly blocked from certifying Finding approval.
-   - Standardized qualification error terminology for pending and clarification records: `"Supporting evidence <id> is not yet qualified for analytical use (reviewStatus: <status>). Evidence must have reviewStatus 'usable' before it can support a Finding."`
-   - Authoring modal disables `+ Support` button for evidence flagged with `needs_clarification`.
-3. **Typed Evidence Relationships (SUPPORT, CONTRADICT, QUALIFY)**:
-   - Grounded finding authoring and ledger inspection in 3 distinct relationship categories:
-     - **Supporting Field Observations** (`supportingEvidenceIds`): Direct corroboration (Emerald styling).
-     - **Challenging / Contradictory Evidence** (`contradictoryEvidenceIds`): Dissenting observations and counter-evidence (Rose/Amber styling).
-     - **Qualifying / Contextual Evidence** (`qualifyingEvidenceIds`): Scope conditions, caveats, and boundary definitions (Indigo/Blue styling).
-   - Enforced mutual exclusivity: assigning an observation to CONTRADICT or QUALIFY automatically removes it from SUPPORT, and vice versa.
-   - Substantive change detection in validation lifecycle accounts for modifications to `qualifyingEvidenceIds`.
-   - Cascade invalidation across all 3 roles: modifications or exclusions to qualifying evidence cascade to downstream Validated findings with `STALE_QUALIFYING_DEPENDENCY_WARNING_TEXT` and transition them to "Needs Review".
-4. **Triangulation Matrix & Epistemic Transparency**:
-   - Cross-tabulation matrix grid evaluating evidence distribution across analytical framing (Framework Themes, Study Questions) against triangulation vectors (Methods, Stakeholders, Sites, Material Categories).
-   - Refined cell signal descriptors for internal intersection semantics: 2+ independent sources with contradictions -> `MIXED`; fewer than 2 independent sources with contradictions -> `DIVERGENT`; 2+ independent sources without contradictions -> `CONVERGENT`; <=1 source without contradictions -> `SPARSE`.
-   - Accessible matrix cells: focusable (`tabIndex=0`), interactive keyboard controls (Enter/Space), and screen-reader `aria-label`/`aria-pressed` states.
-   - Updated transparency bar and disclaimer copy clarifying cell-level alignment inside specific intersections and strict exclusion of supervisory debriefs from independent source counts.
-5. **Findings Ledger & Lineage Provenance**:
-   - Detail panel renders Superseded Notice banner linking to replacement finding (`selectedFinding.supersededByFindingId`) and supersedes notice banner linking to prior findings.
-   - Suggests configured governance validator (`validator` role from `study.teamRoles`) during human certification prompt.
-6. **Data Integrity & Backup Remapping**:
-   - `import_as_new` strategy in portable `.fls.json` backup accurately remaps all `patternNotes[].studyId` to `targetStudyId`.
-   - Showcase demo case updated: `EV-012` set to `reviewStatus: "needs_clarification"`, `EV-021` added as unsubstantiated rumor with `reviewStatus: "excluded"` and direct defensible `exclusionReason` without invented policy references.
-7. **Epistemic Invariants & Zero-AI Invariant**:
-   - Zero external AI model calls, prompts, RAG, or AI generation implemented. Strictly preserved human evaluator analytical integrity.
-   - Preserved `DB_VERSION = 2` without breaking schema bumps.
-   - Preserved copyright notice across all studio and responsive surfaces.
-8. **Quality Gates & Verification**:
-   - Tests: **330/330** tests passing across **26** test files (`tests/phase4AnalysisArchitecture.test.ts` with 33 comprehensive regression tests).
-   - TypeScript: `npx tsc --noEmit --incremental false` exits with **0 errors**.
-   - Linting: `npm run lint` exits with **0 errors, 0 warnings**.
-   - Build: Next.js Turbopack `npm run build` succeeds cleanly.
-   - Git diff check: `git diff --check` clean.
-   - Visual QA: Automated headless Chrome CDP verification across desktop (1440px), small desktop (1024px), tablet (768px), and mobile (390px) in both Day and Night modes.
+- One canonical admissibility rule: modern observations require `reviewStatus: usable`; legacy observations without that field require `validationStatus: Validated`. SUPPORT, CONTRADICT and QUALIFY share it across analysis, validation and output policy.
+- Substantive evidence/source/finding changes invalidate reviewed conclusions at storage boundaries. Validated records become Needs Review; Draft/Rejected states remain truthful. Prior validation attribution is historical, never renewed automatically.
+- New combined source/evidence imports reject persisted ID collisions atomically. Current parents are required for new lessons/practices and approval/export of every derived output; all recommendation parents are checked. Referenced finding deletion is blocked and superseded findings remain historical.
+- Existing structured v1 JSON backups remain supported and clearly exclude original files. An optional file-inclusive v1 archive extension carries study-owned file metadata, extracted text and stored binaries in the same JSON envelope. Restore remaps global file IDs and ownership; schema remains DB_VERSION 2. Fresh-database restore is tested without any original records/files.
+- Backup shapes are checked before graph traversal and before writes. Imported missing method/date/consent/anonymization remain unclassified/unknown/undefined. Empty learning fields no longer acquire invented findings or applicability claims.
+- Support calculations and the matrix use eligible observations, distinct source-record wording, nonstandard method retention and shared site normalization. Cell alignment describes coverage and recorded tension; it does not certify agreement or independence.
+- Shared Markdown/DOCX/PDF output includes stored limitations, alternatives and challenge/context material; stale/superseded claims are excluded. Explicit showcase provenance prevents demo notices in real studies. Free summary/key-message text is flagged as unlinked.
+- Existing Final Review checks current policy, stored evidence/source/parent relationships and study-owned file availability. It reports CHECKED / NEEDS ATTENTION / NOT CHECKED / UNAVAILABLE; human judgment and summary grounding are not certified.
+- Targeted accessibility: shared Backup/Restore dialog focus/Escape behavior, named selects, corrected rail semantics and mobile filter disclosure. Four practitioner spaces, navigation architecture, rail dimensions/behavior, breakpoints, themes and visual identity are preserved.
 
-**Authoritative Baseline**: `main @ 4f0097523eaf65734a7145d6247f86fef366cb2d` (Phases 0–3 merged in production). Phase 4 changes are isolated to `feature/phase-4-analysis-architecture` with zero production deployment or merge.
+## Validation Results
+
+- Baseline: 330 tests in 26 files; TypeScript, lint, build and diff check passed.
+- Integrity regression suite: 344 tests in 27 files, including the seven requested behavioral sequences.
+- Final TypeScript: 0 errors. Lint: 0 errors/warnings. Production build: passed. Diff and OPS JSON checks: passed. Targeted local production-browser checks covered finding edit/qualification cascades, lessons, synthesis, matrix, Deliverables/Final Review, backup focus/Escape, absent-provenance import and 390px filters. Engineering checks do not constitute independent methodological or visual approval.
+
+## Remaining Boundaries
+
+- Browser-local IndexedDB; no authentication, backend, collaboration, encryption or external AI. Vercel Analytics remains installed.
+- Structured-only backups cannot recover absent original files. File-inclusive archives fail clearly if referenced content is unavailable; they carry what was actually stored and cannot reconstruct missing originals. Base64 JSON uses memory and is subject to browser storage/file-size limits.
+- Invalidation precedes dependency mutations conservatively; the whole graph is not rewritten into a new transactional architecture. A failed mutation may leave records needing review, never automatically recertified.
+- Historical imported records remain visible; current validation/export checks determine present authority. Legacy status-only helper calls are compatibility inspections, not full output certification.
+- Free-text claim grounding, substantive agreement, evidence independence and professional judgment require human review. No Phase 5 traceability engine has been added.
+
+## Next Recommended Step
+
+Independent targeted verification of this local branch and its seven behavioral sequences. UI polish is a separate bounded task. Do not merge, push, deploy or begin Phase 5/AI without later authorization.
 
 ## Historical Milestones
 
@@ -261,42 +242,6 @@
     - Added 19 new Vitest unit and integration tests in `tests/synthesisWorkbench.test.ts`. Total test suite: 122 passing tests across 12 files.
     - Conducted full 18-step browser acceptance audit via CDP in headless Chrome with all 14 screenshots verified.
 
-## Pending Items
-
-- Implement Action Desk & Defensible Claim Synthesis (cross-case gap review, contradiction resolution board, field mission closure).
-
-## Known Risks
-
-- Scope creep before user validation.
-- Overbuilding into SaaS features too early.
-- Accidental handling of sensitive field evidence.
-- `npm audit --omit=dev` reports two moderate findings for PostCSS inside the Next.js dependency tree. npm suggests `npm audit fix --force`, but that would downgrade Next.js to an old breaking version, so it was not applied.
-
-## Next Recommended Step
-
-Begin structured partner demonstration sessions and field pilot engagements with evaluators, MEL teams, and NGOs using the production release at `https://field-learning-studio.vercel.app`.
-
-## Validation Commands
-
-```bash
-npm run lint
-npm run build
-npm test
-python3 -m json.tool OPS_UPDATE.json
-git diff --check
-```
-
-## Validation Results
-
-- `npx tsc --noEmit --incremental false`: passed (0 errors across whole repository).
-- `npm run lint`: passed (0 errors, 0 warnings).
-- `npm run build`: passed (Next.js 16 Turbopack production bundle cleanly compiled).
-- `npm test`: passed (24 test files, 250 passing tests: 235 previous tests + 15 Phase 2 tests).
-- `python3 -m json.tool OPS_UPDATE.json`: passed.
-- `git diff --check`: passed (0 whitespace errors).
-- Automated Headless Chrome CDP visual QA: passed across 11 desktop and mobile (390px) screenshots in Day and Night themes.
-- Permanent Vercel Production deployment: https://field-learning-studio.vercel.app/ (Live v1.2 Phase 1 baseline; Phase 2 feature branch not deployed).
-
 ## Last Update
 
-2026-09-30: Phase 2 Study Workspace implemented on `feature/phase-2-study-workspace` against baseline `9117a58`. All Section 28 requirements satisfied (250 tests passing across 24 test files). Zero schema migrations, no external AI/auth, zero production deployment, halted for review.
+2026-10-01: Local pre-Phase 5 integrity closure against baseline `3c94a523`; no production release claimed. Earlier milestones below/above are historical records, not current deployment status.

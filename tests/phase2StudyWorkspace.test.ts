@@ -747,7 +747,7 @@ describe("Phase 2: Study Workspace Architecture & Methodology Blueprint", () => 
         evidenceStrength: "High",
         programmeImplication: "Subsidies required for capital repairs.",
         linkedRecommendationIds: [],
-        validationStatus: "Validated",
+        validationStatus: "Draft",
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });

@@ -237,10 +237,10 @@ export function EvidenceExplorer({
         <div className="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs">
           {/* Study Question */}
           <div>
-            <label className="block text-[10px] font-medium text-[var(--muted)] mb-1">
+            <label htmlFor="explorer-study-question" className="block text-[10px] font-medium text-[var(--muted)] mb-1">
               Study Question
             </label>
-            <select
+            <select id="explorer-study-question"
               value={selectedQuestionId}
               onChange={(e) => setSelectedQuestionId(e.target.value)}
               className="w-full rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[11px] text-[var(--foreground)]"
@@ -256,10 +256,10 @@ export function EvidenceExplorer({
 
           {/* Framework Theme */}
           <div>
-            <label className="block text-[10px] font-medium text-[var(--muted)] mb-1">
+            <label htmlFor="explorer-framework-theme" className="block text-[10px] font-medium text-[var(--muted)] mb-1">
               Framework Theme
             </label>
-            <select
+            <select id="explorer-framework-theme"
               value={selectedThemeId}
               onChange={(e) => setSelectedThemeId(e.target.value)}
               className="w-full rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[11px] text-[var(--foreground)]"
@@ -275,10 +275,10 @@ export function EvidenceExplorer({
 
           {/* Collection Method */}
           <div>
-            <label className="block text-[10px] font-medium text-[var(--muted)] mb-1">
+            <label htmlFor="explorer-collection-method" className="block text-[10px] font-medium text-[var(--muted)] mb-1">
               Collection Method
             </label>
-            <select
+            <select id="explorer-collection-method"
               value={selectedMethod}
               onChange={(e) => setSelectedMethod(e.target.value)}
               className="w-full rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[11px] text-[var(--foreground)]"
@@ -294,10 +294,10 @@ export function EvidenceExplorer({
 
           {/* Stakeholder */}
           <div>
-            <label className="block text-[10px] font-medium text-[var(--muted)] mb-1">
+            <label htmlFor="explorer-stakeholder" className="block text-[10px] font-medium text-[var(--muted)] mb-1">
               Stakeholder
             </label>
-            <select
+            <select id="explorer-stakeholder"
               value={selectedStakeholder}
               onChange={(e) => setSelectedStakeholder(e.target.value)}
               className="w-full rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[11px] text-[var(--foreground)]"
@@ -313,10 +313,10 @@ export function EvidenceExplorer({
 
           {/* Site */}
           <div>
-            <label className="block text-[10px] font-medium text-[var(--muted)] mb-1">
+            <label htmlFor="explorer-site-location" className="block text-[10px] font-medium text-[var(--muted)] mb-1">
               Site / Location
             </label>
-            <select
+            <select id="explorer-site-location"
               value={selectedSite}
               onChange={(e) => setSelectedSite(e.target.value)}
               className="w-full rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[11px] text-[var(--foreground)]"
@@ -332,10 +332,10 @@ export function EvidenceExplorer({
 
           {/* Sensitivity */}
           <div>
-            <label className="block text-[10px] font-medium text-[var(--muted)] mb-1">
+            <label htmlFor="explorer-sensitivity" className="block text-[10px] font-medium text-[var(--muted)] mb-1">
               Sensitivity
             </label>
-            <select
+            <select id="explorer-sensitivity"
               value={selectedSensitivity}
               onChange={(e) => setSelectedSensitivity(e.target.value)}
               className="w-full rounded border border-[var(--border)] bg-[var(--surface)] px-2 py-1 text-[11px] text-[var(--foreground)]"

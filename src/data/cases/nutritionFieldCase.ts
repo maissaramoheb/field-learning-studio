@@ -3,6 +3,7 @@ import { DEMO_AUDIT } from "@/lib/storage/normalization";
 
 export const nutritionFieldCase: DemoCase = {
   id: "school-nutrition",
+  isDemoCase: true,
   project: "School Nutrition & Child Wellbeing Field Learning Case",
   subtitle: "A sanitized real-world-inspired field synthesis case",
   status: "Sanitized real-world-inspired case",

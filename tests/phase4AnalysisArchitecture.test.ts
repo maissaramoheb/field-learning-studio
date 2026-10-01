@@ -200,8 +200,10 @@ describe("Phase 4: Analysis Architecture & Traceable Validation", () => {
       const noteTypes = patternNotes.map((p) => p.reasoningType);
       expect(noteTypes).toContain("pattern");
       expect(noteTypes).toContain("tension");
-      expect(noteTypes).toContain("contradiction");
       expect(noteTypes).toContain("possible_explanation");
+      expect(patternNotes.find(p => p.id === "PAT-001")?.evidenceIds).toEqual(["EV-001"]);
+      expect(patternNotes.find(p => p.id === "PAT-001")?.explanation).not.toContain("tripled");
+      expect(patternNotes.find(p => p.id === "PAT-003")?.evidenceIds).toEqual(["EV-008"]);
       expect(noteTypes).toContain("evidence_gap");
     });
   });

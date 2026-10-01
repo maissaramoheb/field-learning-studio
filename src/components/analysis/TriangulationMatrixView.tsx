@@ -111,7 +111,7 @@ export function TriangulationMatrixView({
                 {matrixResult.totalQualifiedEvidenceCount} Qualified Observations
               </span>
               <span className="rounded bg-blue-500/10 border border-blue-500/30 px-2 py-0.5 text-[10px] font-semibold text-blue-400">
-                {matrixResult.totalIndependentSourcesCount} Independent Sources
+                {matrixResult.totalIndependentSourcesCount} Distinct Source Records
               </span>
             </div>
             <h1 className="text-xl font-bold text-[var(--foreground)] mt-1">
@@ -236,11 +236,11 @@ export function TriangulationMatrixView({
           <div className="flex items-center gap-4 flex-wrap">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
-              <strong>Convergent:</strong> 2+ independent sources within this intersection with mutual corroboration and no unresolved contradictions
+              <strong>Convergent:</strong> 2+ distinct eligible source records within this intersection with no recorded contradiction; substantive agreement is not assessed
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
-              <strong>Mixed:</strong> 2+ independent sources within this intersection with documented tensions or dissenting observations
+              <strong>Mixed:</strong> 2+ distinct eligible source records within this intersection with documented tensions or dissenting observations
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
@@ -248,11 +248,11 @@ export function TriangulationMatrixView({
             </span>
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-orange-500/80 inline-block" />
-              <strong>Sparse:</strong> 1 observation or single source (insufficient independent cross-validation)
+              <strong>Sparse:</strong> 1 observation or single source (limited source-record coverage)
             </span>
           </div>
           <span className="text-[10px] text-[var(--muted)] italic">
-            * Cell-level alignment reflects agreement among independent primary sources inside this specific intersection. Supervisory debriefs are strictly excluded from independent source counts.
+            * Cell labels describe source-record coverage and recorded tension inside this intersection; they do not establish truth, confidence, or substantive agreement. Supervisory debriefs are strictly excluded from corroborative source-record counts.
           </span>
         </div>
       </div>
@@ -309,7 +309,7 @@ export function TriangulationMatrixView({
                         tabIndex={cell.evidenceCount > 0 ? 0 : undefined}
                         aria-label={
                           cell.evidenceCount > 0
-                            ? `Intersection ${row.label} and ${col.label}: ${cell.descriptor}, ${cell.evidenceCount} observations across ${cell.independentSourceCount} independent sources${cell.hasContradictions ? ", tensions present" : ""}`
+                            ? `Intersection ${row.label} and ${col.label}: ${cell.descriptor}, ${cell.evidenceCount} observations across ${cell.independentSourceCount} distinct eligible source records${cell.hasContradictions ? ", tensions present" : ""}`
                             : undefined
                         }
                         aria-pressed={cell.evidenceCount > 0 ? Boolean(isSelected) : undefined}
@@ -381,7 +381,7 @@ export function TriangulationMatrixView({
                 {selectedCell.rowLabel} &times; {selectedCell.columnLabel}
               </h3>
               <p className="text-xs text-[var(--muted)]">
-                {selectedCell.evidenceCount} qualified observations across {selectedCell.independentSourceCount} independent field sources.
+                {selectedCell.evidenceCount} qualified observations across {selectedCell.independentSourceCount} distinct eligible source records.
               </p>
             </div>
 

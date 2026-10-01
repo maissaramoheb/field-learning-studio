@@ -294,7 +294,7 @@ describe("Field Intake Studio Operations (v0.9 Phase 3)", () => {
 
       const scope = (await getStudyMeta(studyId))!.scope;
       const profile = computeSupportProfile(dummyFinding, scope, evidenceList, sources);
-      expect(profile.independentSourceCount).toBe(1); // Crucial: 2 observations from 1 source = 1 independent source!
+      expect(profile.independentSourceCount).toBe(0); // Draft observations remain inadmissible until explicitly qualified.
       expect(profile.supportTier).toBe("Emerging");
     });
   });

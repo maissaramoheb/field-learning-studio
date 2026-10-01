@@ -69,6 +69,7 @@ describe("Evidence Gap Detector Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "Plans work",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-002",
@@ -81,6 +82,7 @@ describe("Evidence Gap Detector Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "Plans work",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -133,6 +135,7 @@ describe("Evidence Gap Detector Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "F",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-002",
@@ -145,6 +148,7 @@ describe("Evidence Gap Detector Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "F",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -190,6 +194,7 @@ describe("Evidence Gap Detector Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "F",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -232,6 +237,7 @@ describe("Evidence Gap Detector Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "F",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -277,6 +283,7 @@ describe("Evidence Gap Detector Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "F",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -324,6 +331,7 @@ describe("Evidence Gap Detector Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "F",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -367,6 +375,7 @@ describe("Evidence Gap Detector Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "F",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -422,6 +431,7 @@ describe("Evidence Gap Detector Engine (v0.9 Phase 2)", () => {
             sensitivityFlag: "None",
             potentialFinding: "F",
             qaStatus: "Reviewed",
+            reviewStatus: "usable",
           },
         ],
         debriefs: [],

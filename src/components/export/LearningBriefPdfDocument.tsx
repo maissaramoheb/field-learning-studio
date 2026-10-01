@@ -302,7 +302,7 @@ export function LearningBriefPdfDocument({ model }: { model: BriefExportModel })
                 {r.id}: {r.recommendation}
               </Text>
               <Text style={styles.body}>
-                Linked finding: {r.linkedFindingId} | Responsible: {r.responsibleActor}
+                Linked findings: {r.linkedFindingIds.join(", ")} | Responsible: {r.responsibleActor}
               </Text>
               <Text style={styles.body}>
                 Priority: {r.priority} | Timeframe: {r.timeframe} | Feasibility: {r.feasibility}

@@ -312,7 +312,7 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
         evidenceStrength: "High",
         programmeImplication: "Expand consultative committees.",
         linkedRecommendationIds: ["REC-001"],
-        validationStatus: "Needs Review",
+        validationStatus: "Validated",
         revision: 2,
         rejectionReason: undefined,
       };
@@ -325,6 +325,7 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
         whyItHappened: "Traditional authority structures hold high influence.",
         conditionsRequired: "Briefings must occur prior to team arrival.",
         evidenceBase: ["EV-001"],
+        linkedFindingIds: ["FND-001"],
         transferability: "Rural community programs.",
         validationStatus: "Validated",
         revision: 1,
@@ -337,6 +338,7 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
         description: "15-minute debrief immediately after field visits.",
         whyItWorked: "Captured rapid perishable impressions before forgetting.",
         evidenceBase: ["EV-001"],
+        linkedFindingIds: ["FND-001"],
         conditionsForReplication: "Field team co-located at end of day.",
         risksLimits: "Team fatigue if debriefs exceed 30 minutes.",
         recommendedUse: "All multi-site evaluations.",
@@ -463,6 +465,7 @@ describe("Normalized IndexedDB Storage Foundation (v0.9 Phase 1)", () => {
         sensitivityFlag: "None",
         potentialFinding: "Finding preview",
         qaStatus: "Reviewed",
+        reviewStatus: "usable",
       });
       await saveFinding({
         id: "FND-001",

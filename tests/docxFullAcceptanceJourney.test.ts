@@ -326,7 +326,8 @@ describe("DOCX Field-Visit Full Acceptance Journey (Requirement G)", () => {
     };
 
     // Validate Finding: submit for review first
-    const valFinding = validateArtifact(submitForReview(finding), "Lead Evaluator Karim");
+    initialStudy.evidence = initialStudy.evidence.map(e => ({ ...e, reviewStatus: "usable" }));
+    const valFinding = validateArtifact(submitForReview(finding), "Lead Evaluator Karim", undefined, initialStudy);
     initialStudy.findings = [valFinding];
 
     // -------------------------------------------------------------

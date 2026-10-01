@@ -1,29 +1,33 @@
 {
   "project": "Field Learning Studio",
-  "category": "AI-assisted MEL / learning synthesis app",
-  "status": "phase_4_hardened_ready_for_review",
+  "category": "Human-led browser-local field learning synthesis workbench",
+  "status": "pre_phase5_integrity_local_ready_for_targeted_verification",
   "priority": "high",
-  "current_phase": "Phase 4 Final Micro-Hardening (Evidence Eligibility & Qualification Semantics Aligned)",
-  "next_action": "Review Phase 4 Final Micro-Hardening report.",
+  "current_phase": "Pre-Phase 5 targeted integrity closure",
+  "next_action": "Independently verify the local integrity branch and seven behavioral sequences.",
   "blocker": null,
   "decision_needed": null,
   "repo_url": "https://github.com/maissaramoheb/field-learning-studio",
   "preview_url": "https://field-learning-studio-jvmn92bt1-delta4ce20-5830s-projects.vercel.app",
   "production_url": "https://field-learning-studio.vercel.app",
   "validation_results": {
-    "primary": "passed",
-    "tsc": "0_errors_whole_repo",
-    "lint": "0_errors_0_warnings",
-    "build": "passed_turbopack",
-    "json": "passed",
+    "baseline": "330_tests_26_files_all_gates_passed",
+    "tests": "344_passed_27_files",
+    "behavioral_sequences": "7_passed",
+    "tsc": "passed_0_errors",
+    "lint": "passed_0_errors_0_warnings",
+    "build": "passed_local_production_build",
     "diff_check": "passed",
-    "local_http": "passed",
-    "tests": "330_passed_26_files",
-    "prod_smoke_cdp": "passed_phase4_hardening_qa"
+    "production": "unchanged_not_verified_this_implementation",
+    "json": "passed",
+    "local_browser": "targeted_paths_checked_in_local_production_build_no_release_claim"
   },
   "remaining_risks": [
-    "Browser storage limits in local IndexedDB if hundreds of megabytes of raw field notes are imported (mitigated via SourceFileRepository quota estimation and threshold warnings)."
+    "Browser-local IndexedDB and unencrypted backups; storage and memory limits apply.",
+    "Structured-only backup excludes original files; archives cannot recover files that were never stored or are missing.",
+    "Conservative invalidation can leave review-required records after a failed mutation.",
+    "Deterministic checks do not certify independence, substantive agreement or unlinked free-text grounding."
   ],
-  "recommended_next_step": "Phase 4 Final Micro-Hardening complete on feature/phase-4-analysis-architecture; ready for final review.",
-  "notion_page_update": "Field Learning Studio Phase 4 Final Micro-Hardening completed on feature/phase-4-analysis-architecture. Canonical isEvidenceEligibleForAnalysis helper enforces strict legacy fallback (validationStatus === Validated) and modern qualification (reviewStatus === usable) across Evidence Explorer, Synthesis, Findings Ledger, and Triangulation; validation error copy for pending and needs_clarification aligned to qualification terminology; + Support button disabled for needs_clarification evidence; unsupported 'Field Verification Rule 4.2' removed from demo EV-021 and replaced with a direct defensible reason. All 330 tests pass across 26 test files with 0 TypeScript and 0 lint errors, build clean, and working tree clean."
+  "recommended_next_step": "Independent targeted verification; no merge, push, deployment, Phase 5 or AI authorized.",
+  "notion_page_update": "Local pre-Phase 5 integrity closure implemented on feature/pre-phase5-integrity-closure from main 3c94a523. Canonical eligibility, downstream review invalidation, all-parent output checks, atomic collision rejection, portable file-inclusive archive and truthful Final Review added. DB_VERSION remains 2; navigation, Analytics and copyright preserved. No merge, push, deployment or AI. Independent targeted verification required."
 }

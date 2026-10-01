@@ -57,6 +57,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "Plans work",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-002",
@@ -69,6 +70,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "Plans work",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-003",
@@ -81,6 +83,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "Plans work",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -88,7 +91,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
 
       expect(profile.independentSourceCount).toBe(1);
       expect(profile.supportTier).toBe("Emerging");
-      expect(profile.transparencyFlags).toContain("Only 1 independent source");
+      expect(profile.transparencyFlags).toContain("Only 1 distinct source record");
     });
   });
 
@@ -144,6 +147,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "High attention",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-002",
@@ -157,6 +161,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "High attention",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-003",
@@ -170,6 +175,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "High attention",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -243,6 +249,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "P",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-002",
@@ -256,6 +263,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "P",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-003",
@@ -269,6 +277,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "P",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -335,6 +344,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "P",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-002",
@@ -348,6 +358,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "P",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-003",
@@ -361,6 +372,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "P",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -435,6 +447,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "High workload",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-002",
@@ -448,6 +461,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "High workload",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-003",
@@ -461,6 +475,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "High workload",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -533,6 +548,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "Broad claim",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-002",
@@ -546,6 +562,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "Broad claim",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-003",
@@ -559,6 +576,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "Broad claim",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -630,6 +648,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "Supplies arrived",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-002",
@@ -643,6 +662,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "Supplies arrived",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-003",
@@ -656,6 +676,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "Supplies arrived",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -740,6 +761,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "P",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-002",
@@ -753,6 +775,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "P",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-003",
@@ -766,6 +789,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "P",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
         {
           id: "EV-004",
@@ -779,6 +803,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
           sensitivityFlag: "None",
           potentialFinding: "P",
           qaStatus: "Reviewed",
+          reviewStatus: "usable",
         },
       ];
 
@@ -857,6 +882,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
         sensitivityFlag: "None",
         potentialFinding: "Delays occur",
         qaStatus: "Reviewed",
+        reviewStatus: "usable",
       },
       {
         id: "EV-002",
@@ -870,6 +896,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
         sensitivityFlag: "None",
         potentialFinding: "Delays occur",
         qaStatus: "Reviewed",
+        reviewStatus: "usable",
       },
       {
         id: "EV-003",
@@ -883,6 +910,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
         sensitivityFlag: "None",
         potentialFinding: "Delays occur",
         qaStatus: "Reviewed",
+        reviewStatus: "usable",
       },
       {
         id: "EV-004",
@@ -896,6 +924,7 @@ describe("Evidence Support Profile Engine (v0.9 Phase 2)", () => {
         sensitivityFlag: "None",
         potentialFinding: "Delays occur",
         qaStatus: "Reviewed",
+        reviewStatus: "usable",
       },
     ];
 

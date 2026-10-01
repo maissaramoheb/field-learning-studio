@@ -1,8 +1,8 @@
+import { canonicalizeSite, evidenceSite } from "./siteNormalization";
 import type {
   Finding,
   EvidenceEntry,
   SourceRecord,
-  CollectionMethod,
   TriangulationMetrics,
   StudyScopeConfig,
   FrameworkTheme,
@@ -11,7 +11,7 @@ import type {
   EvidenceEntryId,
 } from "@/lib/types";
 
-import { canonicalizeCollectionMethod, CANONICAL_COLLECTION_METHODS, isStandardCollectionMethod } from "@/lib/methodTaxonomy";
+import { canonicalizeCollectionMethod, CANONICAL_COLLECTION_METHODS } from "@/lib/methodTaxonomy";
 import { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
 
 export interface TriangulationContext {
@@ -47,8 +47,7 @@ export function computeTriangulationMetrics(
   const supportingEvidence = allEvidence.filter(
     (e) =>
       supportingIds.has(e.id) &&
-      e.validationStatus !== "Rejected" &&
-      e.reviewStatus !== "excluded"
+      isEvidenceEligibleForAnalysis(e)
   );
 
   const uniqueSourceIds = new Set<string>();
@@ -86,12 +85,12 @@ export function computeTriangulationMetrics(
   const independentSourceCount = independentSourceIds.size;
 
   // Method diversity across supporting sources
-  const methodsSet = new Set<CollectionMethod>();
+  const methodsSet = new Set<string>();
   for (const srcId of uniqueSourceIds) {
     const src = sourceMap.get(srcId);
     if (src?.sourceType) {
       const normalized = canonicalizeCollectionMethod(src.sourceType);
-      if (isStandardCollectionMethod(normalized)) {
+      if (normalized !== "Unclassified") {
         methodsSet.add(normalized);
       }
     }
@@ -116,13 +115,8 @@ export function computeTriangulationMetrics(
   // Site coverage
   const sitesSet = new Set<string>();
   for (const ev of supportingEvidence) {
-    if (ev.siteId && ev.siteId.trim()) {
-      sitesSet.add(ev.siteId.trim());
-    }
-    const src = sourceMap.get(ev.sourceId);
-    if (src?.location && src.location.trim()) {
-      sitesSet.add(src.location.trim());
-    }
+    const site = evidenceSite(ev, sourceMap.get(ev.sourceId), allSources);
+    if (site) sitesSet.add(site);
   }
   const sitesFound = Array.from(sitesSet);
   const siteCoverageCount = sitesFound.length;
@@ -160,8 +154,8 @@ export function computeTriangulationMetrics(
   if (isSingleSourceDependent) {
     transparencyFlags.push(
       independentSourceCount === 0
-        ? "Finding lacks independent primary field sources (supported only by debriefs or unlinked evidence)."
-        : "Finding relies on a single independent source."
+        ? "Finding lacks eligible non-supervisory source records (supported only by debriefs or unlinked evidence)."
+        : "Finding relies on a single distinct source record."
     );
   }
   if (hasContradictions) {
@@ -223,18 +217,10 @@ export function evaluateFindingValidationEligibility(
   const allEvidence = studyOrContext.evidence || [];
   const evMap = new Map(allEvidence.map((e) => [e.id, e]));
 
-  for (const id of suppIds) {
+  const roleIds = [...suppIds, ...(finding.contradictoryEvidenceIds || []), ...(finding.qualifyingEvidenceIds || [])];
+  for (const id of roleIds) {
     const ev = evMap.get(id);
-    if (!ev) {
-      reasons.push(`Supporting evidence "${id}" was not found in the study.`);
-    } else {
-      if (ev.validationStatus === "Rejected") {
-        reasons.push(`Supporting evidence "${id}" is Rejected and cannot support a finding.`);
-      }
-      if (ev.reviewStatus === "excluded") {
-        reasons.push(`Supporting evidence "${id}" has been excluded from review.`);
-      }
-    }
+    if (!ev || !isEvidenceEligibleForAnalysis(ev)) reasons.push(`Evidence "${id}" is missing or not qualified for analytical use.`);
   }
 
   const metrics = computeTriangulationMetrics(finding, studyOrContext);
@@ -277,7 +263,7 @@ export interface TriangulationMatrixCell {
   distinctSourceCount: number;
   independentSourceCount: number;
   independentSourceIds: string[];
-  methodsFound: CollectionMethod[];
+  methodsFound: string[];
   stakeholdersFound: string[];
   sitesFound: string[];
   hasContradictions: boolean;
@@ -396,12 +382,10 @@ export function computeTriangulationMatrix(
     }
     const knownSet = new Set<string>(CANONICAL_COLLECTION_METHODS.map((m) => m.toLowerCase()));
     for (const s of allSources) {
-      if (s.sourceType) {
-        const canonical = canonicalizeCollectionMethod(s.sourceType);
-        if (!canonical && !knownSet.has(s.sourceType.toLowerCase())) {
-          knownSet.add(s.sourceType.toLowerCase());
-          columns.push({ id: s.sourceType, label: s.sourceType });
-        }
+      const canonical = canonicalizeCollectionMethod(s.sourceType);
+      if (!knownSet.has(canonical.toLowerCase())) {
+        knownSet.add(canonical.toLowerCase());
+        columns.push({ id: canonical, label: canonical });
       }
     }
   } else if (columnDimension === "stakeholder") {
@@ -419,13 +403,14 @@ export function computeTriangulationMatrix(
       columns.push({ id: "General", label: "General Stakeholders" });
     }
   } else if (columnDimension === "site") {
-    const siteSet = new Set<string>(study.scope?.targetSites || []);
+    const siteSet = new Set<string>((study.scope?.targetSites || []).map(site => canonicalizeSite(site, allSources)));
     for (const ev of qualifiedEvidence) {
-      if (ev.siteId?.trim()) siteSet.add(ev.siteId.trim());
+      const site = evidenceSite(ev, sourceMap.get(ev.sourceId), allSources);
+      if (site) siteSet.add(site);
     }
     for (const s of allSources) {
-      if (s.siteId?.trim()) siteSet.add(s.siteId.trim());
-      if (s.location?.trim()) siteSet.add(s.location.trim());
+      const site = canonicalizeSite(s.siteId || s.location, allSources);
+      if (site) siteSet.add(site);
     }
     for (const site of siteSet) {
       columns.push({ id: site, label: site });
@@ -486,7 +471,7 @@ export function computeTriangulationMatrix(
           const st = ev.stakeholderType?.trim() || src?.stakeholderType?.trim();
           return st === col.id;
         } else if (columnDimension === "site") {
-          const site = ev.siteId?.trim() || src?.siteId?.trim() || src?.location?.trim();
+          const site = evidenceSite(ev, src, allSources);
           return site === col.id;
         } else if (columnDimension === "materialCategory") {
           const cat = ev.materialCategory || src?.materialCategory || "primary_evidence";
@@ -497,7 +482,7 @@ export function computeTriangulationMatrix(
 
       const distinctSourceIds = new Set<string>();
       const independentSourceIds = new Set<string>();
-      const cellMethods = new Set<CollectionMethod>();
+      const cellMethods = new Set<string>();
       const cellStakeholders = new Set<string>();
       const cellSites = new Set<string>();
       let cellContradictionCount = 0;
@@ -508,20 +493,22 @@ export function computeTriangulationMatrix(
           const src = sourceMap.get(ev.sourceId.trim());
           const isSupervisory =
             src?.materialCategory === "supervisory_interpretation" ||
-            ev.materialCategory === "supervisory_interpretation";
-          if (!isSupervisory) {
+            ev.materialCategory === "supervisory_interpretation" ||
+            src?.sourceType?.toLowerCase() === "debrief";
+          if (src && !isSupervisory) {
             independentSourceIds.add(ev.sourceId.trim());
             allCellIndependentSourceIds.add(ev.sourceId.trim());
           }
           if (src?.sourceType) {
             const m = canonicalizeCollectionMethod(src.sourceType);
-            if (isStandardCollectionMethod(m)) cellMethods.add(m);
+            if (m !== "Unclassified") cellMethods.add(m);
           }
           if (src?.stakeholderType?.trim()) cellStakeholders.add(src.stakeholderType.trim());
-          if (src?.location?.trim()) cellSites.add(src.location.trim());
+
         }
         if (ev.stakeholderType?.trim()) cellStakeholders.add(ev.stakeholderType.trim());
-        if (ev.siteId?.trim()) cellSites.add(ev.siteId.trim());
+        const site = evidenceSite(ev, sourceMap.get(ev.sourceId), allSources);
+        if (site) cellSites.add(site);
         if (ev.contradictionIds && ev.contradictionIds.length > 0) {
           cellContradictionCount += ev.contradictionIds.length;
         }

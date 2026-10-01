@@ -9,6 +9,8 @@ import type {
   LessonLearned,
   GoodPractice,
 } from "@/lib/types";
+import { getLinkedFindingIds, isFindingExportEligible } from "@/lib/exportPolicy";
+import { isEvidenceEligibleForAnalysis } from "./normalization";
 import type { FieldLearningStudioDBSchema } from "@/lib/storage/indexedDb";
 
 /**
@@ -45,6 +47,7 @@ export async function assertFindingEvidenceIntegrity(
   const evIdsToCheck = [
     ...(finding.supportingEvidenceIds || []),
     ...(finding.contradictoryEvidenceIds || []),
+    ...(finding.qualifyingEvidenceIds || []),
   ];
 
   for (const evId of evIdsToCheck) {
@@ -65,14 +68,10 @@ export async function assertRecommendationFindingIntegrity(
   studyId: StudyId,
   recommendation: Recommendation
 ): Promise<void> {
-  if (recommendation.linkedFindingId) {
-    const finding = await db.get("findings", [studyId, recommendation.linkedFindingId]);
-    if (!finding) {
-      throw new Error(
-        `Cross-study / missing relationship rejected: Linked Finding "${recommendation.linkedFindingId}" does not exist in Study "${studyId}". Recommendation "${recommendation.id}" cannot link to a missing or foreign finding.`
-      );
-    }
+  for (const id of getLinkedFindingIds(recommendation)) {
+    if (!await db.get("findings", [studyId, id])) throw new Error(`Finding "${id}" does not exist in this study for Recommendation "${recommendation.id}".`);
   }
+
 }
 
 /**
@@ -151,21 +150,18 @@ export async function cascadeEvidenceInvalidationToFindings(
         : STALE_QUALIFYING_DEPENDENCY_WARNING_TEXT;
       const reason = warningReason || defaultWarning;
 
-      // Invalidate if Validated, or ensure stale warning is attached
-      if (finding.validationStatus === "Validated" || !finding.staleDependencyWarning) {
-        const updatedFinding: Finding & { studyId: StudyId } = {
-          ...finding,
-          studyId,
-          validationStatus: "Needs Review",
-          previousValidationStatus: finding.validationStatus === "Validated" ? "Validated" : (finding.previousValidationStatus || "Validated"),
-          revision: finding.validationStatus === "Validated" ? (finding.revision ?? 1) + 1 : (finding.revision ?? 1),
-          staleDependencyWarning: reason,
-          updatedAt: now,
-        };
+      const wasValidated = finding.validationStatus === "Validated";
+      const updatedFinding: Finding & { studyId: StudyId } = {
+        ...finding, studyId,
+        validationStatus: wasValidated ? "Needs Review" : finding.validationStatus,
+        previousValidationStatus: wasValidated ? "Validated" : finding.previousValidationStatus,
+        revision: wasValidated ? (finding.revision ?? 1) + 1 : finding.revision,
+        staleDependencyWarning: reason, updatedAt: now,
+      };
+      await db.put("findings", updatedFinding);
+      await cascadeFindingInvalidationToOutputs(db, studyId, finding.id);
+      affectedFindingIds.push(finding.id);
 
-        await db.put("findings", updatedFinding);
-        affectedFindingIds.push(finding.id);
-      }
     }
   }
 
@@ -176,145 +172,49 @@ export async function cascadeEvidenceInvalidationToFindings(
  * Verifies that a Finding satisfies all formal approval prerequisites before it can be saved as Validated.
  * Throws a clear practitioner-language error if any invariant fails.
  */
-export async function assertFindingEvidenceApprovalIntegrity(
-  db: IDBPDatabase<FieldLearningStudioDBSchema>,
-  studyId: StudyId,
-  finding: Finding
-): Promise<void> {
-  // Stale warning guard
-  if (finding.staleDependencyWarning && finding.staleDependencyWarning.trim().length > 0) {
-    throw new Error(
-      `Cannot approve Finding: ${finding.staleDependencyWarning}`
-    );
-  }
+export async function assertFindingEvidenceApprovalIntegrity(db: IDBPDatabase<FieldLearningStudioDBSchema>, studyId: StudyId, finding: Finding): Promise<void> {
+  const context = {
+    evidence: await db.getAllFromIndex("evidence", "by_study", studyId),
+    sources: await db.getAllFromIndex("sources", "by_study", studyId),
+  };
+  if (!isFindingExportEligible(finding, context)) throw new Error(`Cannot approve Finding "${finding.id}": supporting/challenging/qualifying evidence must be qualified, resolve in this study, and have current lineage. Superseded or stale Findings require review.`);
+}
 
-  // Supporting evidence existence guard
-  if (!finding.supportingEvidenceIds || finding.supportingEvidenceIds.length === 0) {
-    throw new Error(
-      `Cannot approve Finding "${finding.id}": A formal Finding must have at least one supporting Evidence link.`
-    );
+/** Require current parents at approval and new lesson/practice authoring boundaries. */
+export async function assertCurrentFindingParents(db: IDBPDatabase<FieldLearningStudioDBSchema>, studyId: StudyId, record: { id: string; linkedFindingIds?: string[]; linkedFindingId?: string }): Promise<void> {
+  const ids = getLinkedFindingIds(record);
+  if (!ids.length) throw new Error(`"${record.id}" requires at least one current Validated parent Finding.`);
+  const context = {
+    evidence: await db.getAllFromIndex("evidence", "by_study", studyId),
+    sources: await db.getAllFromIndex("sources", "by_study", studyId),
+  };
+  for (const id of ids) {
+    const parent = await db.get("findings", [studyId, id]);
+    if (!parent || !isFindingExportEligible(parent, context)) throw new Error(`Linked Finding "${id}" is missing, stale, superseded, or not currently Validated.`);
   }
+}
 
-  // Verify supporting evidence
-  for (const evId of finding.supportingEvidenceIds) {
-    const ev = await db.get("evidence", [studyId, evId]);
-    if (!ev) {
-      throw new Error(
-        `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" does not exist in Study "${studyId}".`
-      );
-    }
-    if (ev.reviewStatus === "usable") {
-      // Qualified
-    } else if (ev.reviewStatus === "excluded") {
-      throw new Error(
-        `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" is marked as excluded and cannot support a Finding.`
-      );
-    } else if (ev.reviewStatus === "pending" || ev.reviewStatus === "needs_clarification") {
-      throw new Error(
-        `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" is not yet qualified for analytical use (reviewStatus: "${ev.reviewStatus}"). Evidence must have reviewStatus 'usable' before it can support a Finding.`
-      );
-    } else if (ev.validationStatus !== "Validated") {
-      throw new Error(
-        `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" is not yet validated (legacy status: "${ev.validationStatus}"). All supporting evidence without a qualification status must be Validated before a Finding can be approved.`
-      );
-    }
-    if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
-      throw new Error(
-        `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
-      );
-    }
-    // Verify parent source
-    if (!ev.sourceId) {
-      throw new Error(
-        `Cannot approve Finding "${finding.id}": Supporting evidence "${evId}" has no parent Source.`
-      );
-    }
-    const source = await db.get("sources", [studyId, ev.sourceId]);
-    if (!source) {
-      throw new Error(
-        `Cannot approve Finding "${finding.id}": Parent Source "${ev.sourceId}" for supporting evidence "${evId}" does not exist in Study "${studyId}".`
-      );
-    }
-  }
+export async function assertRecommendationApprovalIntegrity(db: IDBPDatabase<FieldLearningStudioDBSchema>, studyId: StudyId, recommendation: Recommendation): Promise<void> {
+  await assertCurrentFindingParents(db, studyId, recommendation);
+}
 
-  // Verify contradictory/challenging evidence
-  if (finding.contradictoryEvidenceIds && finding.contradictoryEvidenceIds.length > 0) {
-    for (const evId of finding.contradictoryEvidenceIds) {
-      const ev = await db.get("evidence", [studyId, evId]);
-      if (!ev) {
-        throw new Error(
-          `Cannot approve Finding "${finding.id}": Challenging evidence "${evId}" does not exist in Study "${studyId}".`
-        );
-      }
-      if (ev.validationStatus === "Rejected") {
-        throw new Error(
-          `Cannot approve Finding "${finding.id}": Challenging evidence "${evId}" has been marked as Rejected. Reconsider the challenging evidence before approving this Finding.`
-        );
-      }
-      if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
-        throw new Error(
-          `Cannot approve Finding "${finding.id}": Challenging evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
-        );
-      }
-    }
-  }
-
-  // Verify qualifying evidence
-  if (finding.qualifyingEvidenceIds && finding.qualifyingEvidenceIds.length > 0) {
-    for (const evId of finding.qualifyingEvidenceIds) {
-      const ev = await db.get("evidence", [studyId, evId]);
-      if (!ev) {
-        throw new Error(
-          `Cannot approve Finding "${finding.id}": Qualifying evidence "${evId}" does not exist in Study "${studyId}".`
-        );
-      }
-      if (ev.validationStatus === "Rejected") {
-        throw new Error(
-          `Cannot approve Finding "${finding.id}": Qualifying evidence "${evId}" has been marked as Rejected. Reconsider the qualifying evidence before approving this Finding.`
-        );
-      }
-      if (ev.staleDependencyWarning && ev.staleDependencyWarning.trim().length > 0) {
-        throw new Error(
-          `Cannot approve Finding "${finding.id}": Qualifying evidence "${evId}" has an active stale dependency warning. Review the evidence first.`
-        );
-      }
+export async function assertNewFindingEvidenceAdmissibility(db: IDBPDatabase<FieldLearningStudioDBSchema>, studyId: StudyId, finding: Finding, previous?: Finding): Promise<void> {
+  for (const role of ["supportingEvidenceIds", "contradictoryEvidenceIds", "qualifyingEvidenceIds"] as const) {
+    for (const id of finding[role] || []) {
+      if (previous?.[role]?.includes(id)) continue; // Historical links stay inspectable.
+      const ev = await db.get("evidence", [studyId, id]);
+      if (!ev || !isEvidenceEligibleForAnalysis(ev)) throw new Error(`Cannot add ${role} relationship: evidence "${id}" is not qualified for analytical use.`);
     }
   }
 }
 
-/**
- * Verifies that a Recommendation satisfies all formal approval prerequisites before it can be saved as Validated.
- */
-export async function assertRecommendationApprovalIntegrity(
-  db: IDBPDatabase<FieldLearningStudioDBSchema>,
-  studyId: StudyId,
-  recommendation: Recommendation
-): Promise<void> {
-  if (!recommendation.linkedFindingId || !recommendation.linkedFindingId.trim()) {
-    throw new Error(
-      `Cannot approve Recommendation "${recommendation.id}": A formal Recommendation must be linked to a parent Finding.`
-    );
+/** Keep historical children, but withdraw their current approval when a parent changes. */
+export async function cascadeFindingInvalidationToOutputs(db: IDBPDatabase<FieldLearningStudioDBSchema>, studyId: StudyId, findingId: FindingId): Promise<void> {
+  for (const name of ["lessons", "goodPractices", "recommendations"] as const) {
+    for (const child of await db.getAllFromIndex(name, "by_study", studyId)) {
+      if (getLinkedFindingIds(child).includes(findingId) && child.validationStatus === "Validated") {
+        await db.put(name, { ...child, studyId, validationStatus: "Needs Review", previousValidationStatus: "Validated", revision: (child.revision ?? 1) + 1, updatedAt: Date.now() } as typeof child);
+      }
+    }
   }
-
-  const finding = await db.get("findings", [studyId, recommendation.linkedFindingId]);
-  if (!finding) {
-    throw new Error(
-      `Cannot approve Recommendation "${recommendation.id}": Linked Finding "${recommendation.linkedFindingId}" does not exist in Study "${studyId}".`
-    );
-  }
-
-  if (finding.validationStatus !== "Validated") {
-    throw new Error(
-      `Cannot approve Recommendation "${recommendation.id}": Linked Finding "${finding.id}" is not validated (current status: "${finding.validationStatus}"). Parent Finding must be Validated first.`
-    );
-  }
-
-  if (finding.staleDependencyWarning && finding.staleDependencyWarning.trim().length > 0) {
-    throw new Error(
-      `Cannot approve Recommendation "${recommendation.id}": Linked Finding "${finding.id}" has an active stale dependency warning. Review the parent Finding before approving this Recommendation.`
-    );
-  }
-
-  // Ensure parent finding's supporting evidence is still intact and validated
-  await assertFindingEvidenceApprovalIntegrity(db, studyId, finding);
 }

@@ -24,9 +24,11 @@ describe("v0.8 Baseline: Export Boundaries & Fixtures Characterization", () => {
       expect(model.findings).toHaveLength(8);
       expect(model.lessons).toHaveLength(7);
       expect(model.goodPractices).toHaveLength(4);
-      expect(model.recommendations).toHaveLength(10);
+      expect(model.recommendations).toHaveLength(9);
+      // REC-003 cites EV-012, which is needs_clarification; retain the record but exclude current export.
+      expect(model.recommendations.some(r => r.id === "REC-003")).toBe(false);
       expect(model.limitations).toHaveLength(4);
-      expect(model.safetyNote).toContain("fictional demo data");
+      expect(model.safetyNote).toContain("fictional data");
       expect(model.sandboxEvidence).toBeUndefined();
     });
 
@@ -63,7 +65,7 @@ describe("v0.8 Baseline: Export Boundaries & Fixtures Characterization", () => {
       expect(model.lessons).toHaveLength(5);
       expect(model.goodPractices).toHaveLength(4);
       expect(model.recommendations).toHaveLength(8);
-      expect(model.safetyNote).toContain("sanitized demo derived from prior fieldwork");
+      expect(model.safetyNote).toContain("Sanitized real-world-inspired demo");
       expect(model.sandboxEvidence).toBeUndefined();
     });
 
@@ -140,7 +142,9 @@ describe("v0.8 Baseline: Export Boundaries & Fixtures Characterization", () => {
       const model = buildBriefExportModel(caseWithSandbox, false);
 
       expect(model.findings).toHaveLength(8);
-      expect(model.recommendations).toHaveLength(10);
+      expect(model.recommendations).toHaveLength(9);
+      // REC-003 cites EV-012, which is needs_clarification; retain the record but exclude current export.
+      expect(model.recommendations.some(r => r.id === "REC-003")).toBe(false);
       expect(model.findings.some((f) => f.id.includes("SBX"))).toBe(false);
       expect(model.recommendations.some((r) => r.id.includes("SBX"))).toBe(false);
       expect(model.sandboxEvidence).toBeUndefined();
@@ -156,7 +160,9 @@ describe("v0.8 Baseline: Export Boundaries & Fixtures Characterization", () => {
 
       // Main sections must still ONLY contain validated items
       expect(model.findings).toHaveLength(8);
-      expect(model.recommendations).toHaveLength(10);
+      expect(model.recommendations).toHaveLength(9);
+      // REC-003 cites EV-012, which is needs_clarification; retain the record but exclude current export.
+      expect(model.recommendations.some(r => r.id === "REC-003")).toBe(false);
       expect(model.findings.some((f) => f.id.includes("SBX"))).toBe(false);
       expect(model.recommendations.some((r) => r.id.includes("SBX"))).toBe(false);
 

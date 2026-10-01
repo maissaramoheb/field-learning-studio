@@ -23,6 +23,9 @@ import type {
   FieldStudy,
   StudyMeta,
 } from "@/lib/types";
+import { assessFinalReviewIntegrity } from "@/lib/validation/finalReviewIntegrity";
+import { isEvidenceEligibleForAnalysis } from "@/lib/storage/normalization";
+import { sourceFileRepository } from "@/lib/storage/sourceFileRepository";
 import { generateQAReview } from "@/lib/qa";
 import { generateLearningBriefMarkdown } from "@/lib/generateBrief";
 import { demoCases } from "@/data/cases";
@@ -987,7 +990,7 @@ export function FieldLearningStudioApp({
     setAuditMessage("Opening review gate...");
 
     setTimeout(() => setAuditMessage("Checking evidence-finding linkages..."), 450);
-    setTimeout(() => setAuditMessage("Checking overclaiming and sensitivity flags..."), 900);
+    setTimeout(() => setAuditMessage("Flagging claims and sensitivity for human review..."), 900);
     setTimeout(() => setAuditMessage("Preparing reviewer checklist..."), 1350);
     setTimeout(() => {
       setIsAuditing(false);
@@ -3462,7 +3465,8 @@ function RecommendationsSection({
                   );
                   const depWarning = getRecommendationDependencyWarning(
                     recommendation,
-                    linkedFinding
+                    linkedFinding,
+                    demoCase
                   );
 
                   return (
@@ -3660,22 +3664,25 @@ function QAReviewSection({
   const activeRecs = currentStudy?.recommendations ?? demoCase.recommendations ?? [];
   const activeEvidence = currentStudy?.evidence ?? demoCase.evidence ?? [];
 
-  const eligibleFindings = activeFindings.filter((f) => f.validationStatus === "Validated");
-  const linkedRecommendations = activeRecs.filter((r) =>
-    activeFindings.some((f) => f.id === r.linkedFindingId && f.validationStatus === "Validated")
-  );
-  const needsReviewItems = [
-    ...activeEvidence.filter((e) => e.validationStatus === "Needs Review" || e.validationStatus === "Draft"),
-    ...activeFindings.filter((f) => f.validationStatus !== "Validated"),
-    ...activeRecs.filter((r) => r.validationStatus !== "Validated"),
-  ];
-  const findingsWithLimitations = activeFindings.filter(
-    (f) => Boolean(f.limitationNote && f.limitationNote.trim().length > 0)
-  );
-  const challengingEvidenceCount = activeFindings.reduce(
-    (acc, f) => acc + (f.contradictoryEvidenceIds?.length || (f.contradictoryEvidence ? 1 : 0)),
-    0
-  );
+  const reviewStudy = currentStudy ?? demoCase;
+  const [fileCheck, setFileCheck] = useState<{ study: typeof reviewStudy; availability: Record<string, boolean> } | null>(null);
+  useEffect(() => {
+    let active = true;
+    const ids = [...new Set([...reviewStudy.sources, ...reviewStudy.evidence].map(record => record.sourceFileId).filter((id): id is NonNullable<typeof id> => Boolean(id)))];
+    Promise.all(ids.map(async id => {
+      try {
+        const [meta, content] = await Promise.all([sourceFileRepository.getFileMetadata(id), sourceFileRepository.getFileContent(id)]);
+        return [id, Boolean(meta && content && meta.studyId === reviewStudy.id && content.studyId === reviewStudy.id && (content.blob || content.extractedText !== undefined))] as const;
+      } catch { return [id, false] as const; }
+    })).then(entries => { if (active) setFileCheck({ study: reviewStudy, availability: Object.fromEntries(entries) }); });
+    return () => { active = false; };
+  }, [reviewStudy]);
+  const integrity = assessFinalReviewIntegrity(reviewStudy, fileCheck?.study === reviewStudy ? fileCheck.availability : undefined);
+  const eligibleFindings = integrity.currentFindings;
+  const linkedRecommendations = integrity.currentRecommendations;
+  const needsReviewItems = [...activeEvidence.filter(e => !isEvidenceEligibleForAnalysis(e)), ...activeFindings.filter(f => !eligibleFindings.includes(f)), ...integrity.nonCurrentOutputs];
+  const findingsWithLimitations = activeFindings.filter(f => Boolean(f.limitationNote?.trim()));
+  const challengingEvidenceCount = activeFindings.reduce((count, f) => count + (f.contradictoryEvidenceIds?.length || 0) + (f.qualifyingEvidenceIds?.length || 0), 0);
 
   const stats = {
     pass: qaItems.filter((i) => i.status === "Pass").length,
@@ -3715,7 +3722,7 @@ function QAReviewSection({
     },
     {
       status: "Pass",
-      label: "Passed Verified Checks",
+      label: "Passed Deterministic Checks",
       items: sortedQaItems.filter((item) => item.status === "Pass"),
     },
   ];
@@ -3746,17 +3753,17 @@ function QAReviewSection({
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
             <span className="text-[10px] font-bold uppercase text-[var(--muted)]">1. Eligible Findings</span>
             <p className="mt-1 font-semibold text-[var(--foreground)]">
-              {eligibleFindings.length} of {activeFindings.length} findings validated
+              {eligibleFindings.length} of {activeFindings.length} findings currently eligible
             </p>
-            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Only validated, non-stale findings appear in draft.</p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Current evidence eligibility and supersession are checked; substantive judgment requires human review.</p>
           </div>
 
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
             <span className="text-[10px] font-bold uppercase text-[var(--muted)]">2. Linked Recommendations</span>
             <p className="mt-1 font-semibold text-[var(--foreground)]">
-              {linkedRecommendations.length} of {activeRecs.length} recommendations anchored
+              {linkedRecommendations.length} of {activeRecs.length} recommendations currently eligible
             </p>
-            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Each action is tied to an approved finding.</p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">All linked parents are checked against current output eligibility.</p>
           </div>
 
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
@@ -3764,7 +3771,7 @@ function QAReviewSection({
             <p className={`mt-1 font-semibold ${needsReviewItems.length > 0 ? "text-amber-400" : "text-emerald-400"}`}>
               {needsReviewItems.length} items awaiting review
             </p>
-            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Draft or in-review observations/claims.</p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Non-usable observations or non-current claims; historical records remain visible.</p>
           </div>
 
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
@@ -3778,26 +3785,26 @@ function QAReviewSection({
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
             <span className="text-[10px] font-bold uppercase text-[var(--muted)]">5. Challenging Material</span>
             <p className="mt-1 font-semibold text-[var(--foreground)]">
-              {challengingEvidenceCount > 0 ? `${challengingEvidenceCount} items considered` : "None flagged"}
+              {challengingEvidenceCount > 0 ? `${challengingEvidenceCount} relationships recorded` : "None flagged"}
             </p>
-            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Contradictory and counter-perspectives reviewed.</p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Relationship counts do not establish that challenge material has been considered.</p>
           </div>
 
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
-            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">6. Traceability Verified</span>
-            <p className="mt-1 font-semibold text-emerald-400">
-              Complete source-to-brief lineage
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">6. Stored Lineage Checks</span>
+            <p className={`mt-1 font-semibold ${integrity.lineageState === "CHECKED" ? "text-emerald-400" : "text-amber-400"}`}>
+              {integrity.lineageState} — {integrity.brokenLinks.length + integrity.brokenParents.length} unresolved relationships
             </p>
-            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Clickable audit IDs linked for all claims.</p>
+            <p className="mt-0.5 text-[10px] text-[var(--muted)]">Finding evidence/source links and downstream parent IDs checked. Substantive agreement is not checked.</p>
           </div>
 
           <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-3 text-xs">
-            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">7. Scope Confirmed</span>
-            <p className="mt-1 font-semibold text-emerald-400">
-              Inquiry boundaries active
+            <span className="text-[10px] font-bold uppercase text-[var(--muted)]">7. Original Files / Free Text</span>
+            <p className={`mt-1 font-semibold ${integrity.fileState === "CHECKED" ? "text-emerald-400" : "text-amber-400"}`}>
+              {integrity.fileState} — original source availability
             </p>
             <p className="mt-0.5 text-[10px] text-[var(--muted)]">
-              {currentStudy?.scope ? `${currentStudy.scope.targetSites.length} sites · ${(currentStudy.questions || []).length} questions` : "Standard evaluation scope active"}
+              {integrity.unlinkedFreeText ? "NEEDS ATTENTION: UNLINKED SUBSTANTIVE FREE TEXT. Summary/key-message grounding is not checked." : "No substantive summary/key-message text recorded."}
             </p>
           </div>
         </div>
@@ -3816,7 +3823,7 @@ function QAReviewSection({
             </p>
           </div>
           <span className="rounded border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900">
-            Deterministic verification gate
+            Deterministic checks — human review required
           </span>
         </div>
 
@@ -3868,7 +3875,7 @@ function QAReviewSection({
               Run final review
             </button>
             <span className="text-[10px] text-[var(--muted)] font-semibold uppercase tracking-wider">
-              Deterministic verification gate — not an external certification
+              Deterministic checks — human review required — not an external certification
             </span>
           </div>
         </div>
@@ -4013,9 +4020,9 @@ function LearningBriefSection({
   return (
     <Section
       description={
-        demoCase.id === "school-nutrition"
-          ? "Sanitized real-world-inspired demo data formatted as a draft for professional review."
-          : "Fictional workspace demo data formatted as a draft for professional review."
+        demoCase.isDemoCase === true
+          ? "Showcase data formatted as a draft for professional review."
+          : "Practitioner study formatted as a draft for professional review."
       }
       eyebrow="Draft for Professional Review"
       title="Professional Draft Preview"
@@ -4179,8 +4186,7 @@ function StyledBriefPreview({
           </dl>
 
           <p className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-medium leading-5 text-amber-900">
-            {demoCase.safetyNote ||
-              "This demo brief uses safe static data and requires human review before any external use."}
+            {model.safetyNote} {model.reviewNote}
           </p>
         </header>
 
@@ -4233,7 +4239,7 @@ function StyledBriefPreview({
         <BriefSection title="Main Findings">
           {mainFindings.length === 0 ? (
             <div className="rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] p-6 text-center text-xs text-[var(--muted)]">
-              No formally eligible findings. Only approved findings with verified, current supporting evidence appear in the formal Learning Brief deliverable.
+              No formally eligible findings. Only reviewed findings with eligible, current supporting evidence appear in the formal Learning Brief deliverable.
             </div>
           ) : (
             <div className="space-y-4">
