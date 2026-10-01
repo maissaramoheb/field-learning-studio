@@ -496,14 +496,14 @@ export function FindingsLedgerView({
 
               {/* Renewed Review Communication: Transition from Validated -> Needs Review */}
               {selectedFinding.validationStatus === "Needs Review" && selectedFinding.previousValidationStatus === "Validated" && (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-amber-200">
-                  <div className="font-semibold text-xs flex items-center gap-1.5 text-amber-300">
+                <div className="rounded-xl border border-[var(--warning-border)] bg-[var(--warning-soft)] p-3.5 text-[var(--warning-text)]">
+                  <div className="font-semibold text-xs flex items-center gap-1.5 text-[var(--warning-text)]">
                     <span>ℹ Renewed Review Required</span>
-                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--warning-border)]/40 text-[var(--warning-text)]">
                       Revision {selectedFinding.revision || 2}
                     </span>
                   </div>
-                  <p className="mt-1 text-[11px] leading-relaxed text-amber-200/90">
+                  <p className="mt-1 text-[11px] leading-relaxed text-[var(--warning-text)] opacity-90">
                     This finding was previously validated. A substantive update or upstream evidence change incremented its revision and returned it to Needs Review to guarantee analytical integrity. Prior validation history is safely preserved.
                   </p>
                 </div>
@@ -511,7 +511,7 @@ export function FindingsLedgerView({
 
               {/* Stale Dependency / Invalidation Warning */}
               {selectedFinding.staleDependencyWarning && (
-                <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3.5 text-amber-300">
+                <div className="rounded-xl border border-[var(--warning-border)] bg-[var(--warning-soft)] p-3.5 text-[var(--warning-text)]">
                   <div className="font-semibold text-xs flex items-center gap-1.5">
                     <span>⚠ Invalidation Notice:</span>
                   </div>

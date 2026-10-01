@@ -367,7 +367,8 @@ html[data-theme="day"] .fls-dark-workbench {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  min-height: 40px;
+  padding: 6px 12px;
   border-radius: 6px;
   font-size: 11.5px;
   font-weight: 500;
@@ -962,9 +963,9 @@ html[data-theme="day"] .light-image {
   }
   .fls-back-btn-label { display: none; }
   .fls-back-to-library-btn {
-    padding: 3px 8px;
+    padding: 6px 10px;
     font-size: 12px;
-    min-height: 32px;
+    min-height: 40px;
   }
   .fls-demo-label-full { display: none; }
   .fls-demo-label-compact { display: inline; }
@@ -973,9 +974,14 @@ html[data-theme="day"] .light-image {
     font-size: 9px;
   }
   .fls-app-utilities .fls-button {
-    min-height: 30px;
-    padding: 3px 7px;
-    font-size: 11px;
+    min-height: 40px;
+    padding: 6px 10px;
+    font-size: 11.5px;
+  }
+  .fls-theme-toggle {
+    width: 40px;
+    height: 40px;
+    min-height: 40px;
   }
   .fls-workspace-context-header {
     padding: 10px 12px;

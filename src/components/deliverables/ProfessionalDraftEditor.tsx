@@ -75,7 +75,7 @@ export function ProfessionalDraftEditor({ study, onSaved, onInspect }: { study: 
                   className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wider ${
                     ready
                       ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                      : "bg-amber-500/10 text-amber-400 border border-amber-500/30"
+                      : "bg-[var(--warning-soft)] text-[var(--warning-text)] border border-[var(--warning-border)]"
                   }`}
                 >
                   {state} — snapshot retained
@@ -93,7 +93,7 @@ export function ProfessionalDraftEditor({ study, onSaved, onInspect }: { study: 
                 {!ready && isDraftRecordCurrent(study, item.kind, item.recordId) && (
                   <button
                     type="button"
-                    className="fls-button fls-button-quiet text-xs cursor-pointer border border-amber-500/30 text-amber-300 hover:bg-amber-500/10"
+                    className="fls-button fls-button-quiet text-xs cursor-pointer border border-[var(--warning-border)] text-[var(--warning-text)] hover:bg-[var(--warning-soft)]"
                     onClick={() => setDraft({ ...draft, items: draft.items.map((old) => (old === item ? captureDraftItem(study, item.kind, item.recordId) : old)) })}
                   >
                     ↻ Refresh inclusion
@@ -112,8 +112,8 @@ export function ProfessionalDraftEditor({ study, onSaved, onInspect }: { study: 
         </div>
       )}
 
-      <div className="space-y-3 rounded-lg border border-amber-500/30 bg-amber-500/5 p-4">
-        <div className="flex items-center gap-1.5 text-amber-400 font-bold text-xs uppercase tracking-wider">
+      <div className="space-y-3 rounded-lg border border-[var(--warning-border)] bg-[var(--warning-wash)] p-4">
+        <div className="flex items-center gap-1.5 text-[var(--warning-text)] font-bold text-xs uppercase tracking-wider">
           <span>⚠</span>
           <span>MANUAL — UNLINKED SUBSTANTIVE FREE TEXT</span>
         </div>
