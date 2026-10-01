@@ -229,6 +229,7 @@ export function buildBriefDocxDocument(model: BriefExportModel): Document {
       }),
     );
     model.lessons.forEach(lesson => {
+      children.push(createParagraph(`Linked Findings: ${(lesson.linkedFindingIds || []).join(", ")}`));
       children.push(
         createParagraph(`${lesson.id}: ${lesson.statement}`, {
           heading: HeadingLevel.HEADING_3,
@@ -273,6 +274,7 @@ export function buildBriefDocxDocument(model: BriefExportModel): Document {
       }),
     );
     model.goodPractices.forEach(practice => {
+      children.push(createParagraph(`Linked Findings: ${(practice.linkedFindingIds || []).join(", ")}`));
       children.push(
         createParagraph(`${practice.id}: ${practice.title}`, {
           heading: HeadingLevel.HEADING_3,

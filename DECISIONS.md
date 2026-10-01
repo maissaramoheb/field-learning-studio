@@ -37,3 +37,15 @@
   - Configurable Analytical Framework Lenses & Team Roles Matrix: Store framework lenses and governance assignments purely as typed properties on `StudyMeta` in IndexedDB. No user accounts, passwords, or RBAC systems are introduced.
   - Pure Dynamic Study Readiness: Evaluate study preparation readiness dynamically across 9 deterministic criteria covering brief, questions, methods, framework, and roles. Readiness score and missing-item lists are never stored in IndexedDB.
   - Zero IndexedDB Version Bump: Preserve `DB_VERSION = 2`. All new properties exist as non-breaking, optional fields on the existing `studies` store schema.
+
+
+## Phase 5 — Decision Translation
+
+Authorized from the independently verified, merged/deployed integrity baseline `main @ f7ed3f63bd678f751cec9f839de42a5fd00ea1c1`. Implement locally on `feature/phase5-decision-translation`; do not merge, push or deploy.
+
+- Reuse canonical Recommendation lineage and validation/export policy. Make priority optional rather than recording an invented default; other decision text remains blank unless supplied. Existing priority values stay unchanged. Human review uses the shared accessible dialog.
+- Professional Draft is an optional `StudyMeta.professionalDraft` object in the existing studies store, with format version, optimistic revision, intentional record references, inclusion text/signatures and manual summary/key messages. No new store or DB version.
+- Save it through a read/write metadata patch with revision conflict checks; ordinary metadata saves preserve the latest stored draft. Existing complete-study recovery/backup paths retain its optional field and validate its shape. Concurrent broad study edits are not a new collaboration feature.
+- Recompute authority from current canonical policies. Changed/revalidated material requires explicit inclusion refresh; non-current/missing records retain their snapshot and block professional mode. Current parent Findings accompany selected learning/actions; unrelated analytical records are omitted.
+- Professional downloads reassemble stored records and check referenced study-owned originals. No referenced original file is reported UNAVAILABLE, not invented; an actually referenced unavailable/not-checked file blocks professional mode. Manual text and methodological/confidentiality judgment remain warnings for human review, not software certification.
+- Keep working-draft output with honest warnings and exclusion of stale selected records. Preserve the existing shared serializers, provenance and limitations/challenge/context safeguards. Word handoff stays an export job, not an internal layout/editor platform.

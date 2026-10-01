@@ -2,7 +2,12 @@
 
 ## Current Status
 
-Pre-Phase 5 targeted integrity closure implemented locally on `feature/pre-phase5-integrity-closure`, starting from clean `main == origin/main == 3c94a52344707037d33dcaf5f15ac398759c16da`. This branch is not merged, pushed or deployed. Phase 5 and AI have not begun.
+Integrity closure is independently verified, merged and deployed at `main == origin/main == f7ed3f63bd678f751cec9f839de42a5fd00ea1c1` (owner-confirmed release baseline). Phase 5 decision translation is implemented locally on `feature/phase5-decision-translation` and is not merged, pushed or deployed. No AI.
+
+- Recommendation creation/editing in Deliverables supports multiple current Finding parents, no inferred decision metadata, and human review through the shared dialog. Existing lineage/approval policy is reused; substantive Recommendation edits withdraw reviewed authority.
+- Professional Draft intentionally selects current Findings, Lessons, Good Practices and Recommendations. An optional studies-store metadata field saves references, inclusion snapshots/signatures and manual summary/key messages. DB_VERSION remains 2. Optimistic draft revisions and atomic metadata patches prevent stale draft writers and ordinary metadata saves from overwriting it.
+- Non-current/missing/changed inclusions stay inspectable, are omitted from current output and block professional mode until deliberately removed/refreshed after appropriate review. Selected learning/actions bring current parent Findings into shared output as analytical context.
+- Final Review adds scoped draft readiness, referenced-original availability and manual-text warnings. Professional downloads re-read local records and file ownership/content. Working draft versus professional export are computed output modes, not new ValidationStatus values. Human judgment/sign-off remain separate.
 
 - One canonical admissibility rule: modern observations require `reviewStatus: usable`; legacy observations without that field require `validationStatus: Validated`. SUPPORT, CONTRADICT and QUALIFY share it across analysis, validation and output policy.
 - Substantive evidence/source/finding changes invalidate reviewed conclusions at storage boundaries. Validated records become Needs Review; Draft/Rejected states remain truthful. Prior validation attribution is historical, never renewed automatically.
@@ -16,9 +21,9 @@ Pre-Phase 5 targeted integrity closure implemented locally on `feature/pre-phase
 
 ## Validation Results
 
-- Baseline: 330 tests in 26 files; TypeScript, lint, build and diff check passed.
-- Integrity regression suite: 344 tests in 27 files, including the seven requested behavioral sequences.
-- Final TypeScript: 0 errors. Lint: 0 errors/warnings. Production build: passed. Diff and OPS JSON checks: passed. Targeted local production-browser checks covered finding edit/qualification cascades, lessons, synthesis, matrix, Deliverables/Final Review, backup focus/Escape, absent-provenance import and 390px filters. Engineering checks do not constitute independent methodological or visual approval.
+- Starting integrity baseline: 344 tests in 27 files.
+- Phase 5 adds targeted end-to-end, multi-parent/stale/missing/superseded selection, manual/structured distinction, persistence conflict/metadata preservation, recovery, referenced-file and export-boundary tests.
+- Final gates passed: 358 tests / 28 files; TypeScript with incremental compilation disabled; lint with no errors/warnings; production build; git diff --check. Targeted local browser checks cover only affected Deliverables paths in desktop/mobile and Day/Night. Generated DOCX is reparsed; sample PDF text and rendered pages are checked. Engineering checks do not constitute independent methodological/design approval.
 
 ## Remaining Boundaries
 
@@ -26,11 +31,11 @@ Pre-Phase 5 targeted integrity closure implemented locally on `feature/pre-phase
 - Structured-only backups cannot recover absent original files. File-inclusive archives fail clearly if referenced content is unavailable; they carry what was actually stored and cannot reconstruct missing originals. Base64 JSON uses memory and is subject to browser storage/file-size limits.
 - Invalidation precedes dependency mutations conservatively; the whole graph is not rewritten into a new transactional architecture. A failed mutation may leave records needing review, never automatically recertified.
 - Historical imported records remain visible; current validation/export checks determine present authority. Legacy status-only helper calls are compatibility inspections, not full output certification.
-- Free-text claim grounding, substantive agreement, evidence independence and professional judgment require human review. No Phase 5 traceability engine has been added.
+- Free-text claim grounding, substantive agreement, evidence independence and professional judgment require human review. Manual prose does not acquire structured lineage or validation merely by saving or exporting.
 
 ## Next Recommended Step
 
-Independent targeted verification of this local branch and its seven behavioral sequences. UI polish is a separate bounded task. Do not merge, push, deploy or begin Phase 5/AI without later authorization.
+Independent Phase 5 verification of the local branch. Preserve the fixed evaluator-pilot production build; no merge, push or deployment in this task. Global UI polish, AI and broader publication/editor capabilities are deferred.
 
 ## Historical Milestones
 
@@ -244,4 +249,4 @@ Independent targeted verification of this local branch and its seven behavioral 
 
 ## Last Update
 
-2026-10-01: Local pre-Phase 5 integrity closure against baseline `3c94a523`; no production release claimed. Earlier milestones below/above are historical records, not current deployment status.
+2026-10-01: Local Phase 5 decision translation against verified `f7ed3f63`; ready for independent verification, not merged/pushed/deployed. Earlier milestones are historical records, not current release claims.

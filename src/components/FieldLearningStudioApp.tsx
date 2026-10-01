@@ -29,10 +29,16 @@ import { sourceFileRepository } from "@/lib/storage/sourceFileRepository";
 import { generateQAReview } from "@/lib/qa";
 import { generateLearningBriefMarkdown } from "@/lib/generateBrief";
 import { demoCases } from "@/data/cases";
+import { WorkspaceDialog } from "@/components/WorkspaceDialog";
+import { ProfessionalDraftEditor } from "@/components/deliverables/ProfessionalDraftEditor";
+import { DraftReadiness, useDraftReview } from "@/components/deliverables/DraftReadiness";
+import { prepareDraftExport } from "@/lib/storage/draftExport";
+import { RecommendationAuthoringModal } from "@/components/synthesis/RecommendationAuthoringModal";
+import { getLinkedFindingIds, isFindingExportEligible } from "@/lib/exportPolicy";
 import { buildBriefExportModel } from "@/lib/buildBriefExportModel";
 import { downloadBriefDocx } from "@/lib/exportDocx";
 import { downloadBriefPdf } from "@/lib/exportPdf";
-import { downloadBriefMarkdown } from "@/lib/exportMarkdown";
+import { downloadBriefMarkdown, generateMarkdownFromModel } from "@/lib/exportMarkdown";
 import { runSandboxSafetyCheck, parseSandboxInput } from "@/lib/sandboxParser";
 import { FieldIntakeView } from "@/components/intake/FieldIntakeView";
 import { DocxIntakeModal } from "@/components/intake/DocxIntakeModal";
@@ -205,8 +211,8 @@ export const PRACTITIONER_SPACES: PractitionerSpace[] = [
     icon: "📄",
     defaultTab: "brief",
     tabs: [
-      { id: "brief", label: "Professional Draft", shortLabel: "Draft" },
       { id: "recommendations", label: "Recommendations", shortLabel: "Recommendations" },
+      { id: "brief", label: "Professional Draft", shortLabel: "Draft" },
       { id: "qa", label: "Final Review", shortLabel: "Final Review" },
     ],
   },
@@ -899,19 +905,19 @@ export function FieldLearningStudioApp({
     setDemoProgress((prev) => ({ ...prev, step3: true }));
   }
 
-  async function copyLearningBrief() {
+  async function copyLearningBrief(preparedMarkdown = currentBriefMarkdown) {
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(currentBriefMarkdown);
+        await navigator.clipboard.writeText(preparedMarkdown);
       } else {
-        fallbackCopyText(currentBriefMarkdown);
+        fallbackCopyText(preparedMarkdown);
       }
       setCopyStatus("copied");
       setDemoProgress((prev) => ({ ...prev, step5: true }));
       window.setTimeout(() => setCopyStatus("idle"), 2200);
     } catch {
       try {
-        fallbackCopyText(currentBriefMarkdown);
+        fallbackCopyText(preparedMarkdown);
         setCopyStatus("copied");
         setDemoProgress((prev) => ({ ...prev, step5: true }));
         window.setTimeout(() => setCopyStatus("idle"), 2200);
@@ -1738,6 +1744,8 @@ export function FieldLearningStudioApp({
               includeSandboxInBrief={includeSandboxInBrief}
               setIncludeSandboxInBrief={setIncludeSandboxInBrief}
               hasSandboxItems={sandboxEvidence.length > 0}
+              currentStudy={currentStudy}
+              onRefreshStudy={handleRefreshCurrentStudy}
             />
           ) : null}
         </div>
@@ -3270,6 +3278,14 @@ function RecommendationsSection({
   currentStudy?: FieldStudy | null;
   onRefreshStudy?: () => Promise<void>;
 }) {
+  const [reviewingRec, setReviewingRec] = useState<Recommendation | null>(null);
+  const [reviewerName, setReviewerName] = useState("");
+  const [reviewError, setReviewError] = useState("");
+  const [reviewSaving, setReviewSaving] = useState(false);
+  const [editingRec, setEditingRec] = useState<Recommendation | null>(null);
+  const [recModalOpen, setRecModalOpen] = useState(false);
+  const currentParents = currentStudy?.findings.filter(f => isFindingExportEligible(f, currentStudy)) || [];
+  const anchor = editingRec ? currentStudy?.findings.find(f => f.id === editingRec.linkedFindingId) || currentParents[0] : currentParents[0];
   const normalRecommendations = recommendations.filter((r) => !r.id.includes("SBX"));
   const sandboxRecommendations = recommendations.filter((r) => r.id.includes("SBX"));
   const isEditable = Boolean(currentStudy && !currentStudy.isDemoCase);
@@ -3287,15 +3303,8 @@ function RecommendationsSection({
 
   const handleRecValidate = async (rec: Recommendation) => {
     if (!currentStudy || !onRefreshStudy) return;
-    const cachedReviewer = typeof window !== "undefined" ? localStorage.getItem("fls_reviewer_name") : null;
-    const reviewerName = window.prompt(
-      "Enter reviewer identity for recommendation validation:",
-      cachedReviewer || "Lead Evaluator"
-    );
-    if (!reviewerName?.trim()) return;
-    if (typeof window !== "undefined") {
-      localStorage.setItem("fls_reviewer_name", reviewerName.trim());
-    }
+    if (!reviewerName.trim()) { setReviewError("Enter a human reviewer identity."); return; }
+    setReviewSaving(true); setReviewError("");
     try {
       const updated = validateArtifact(rec, reviewerName.trim(), undefined, {
         findings: currentStudy.findings,
@@ -3304,9 +3313,10 @@ function RecommendationsSection({
       });
       await saveRecommendation({ ...updated, studyId: currentStudy.id });
       await onRefreshStudy();
+      setReviewingRec(null);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to validate recommendation.");
-    }
+      setReviewError(err instanceof Error ? err.message : "Failed to validate recommendation.");
+    } finally { setReviewSaving(false); }
   };
 
   const handleRecReject = async (rec: Recommendation) => {
@@ -3338,10 +3348,27 @@ function RecommendationsSection({
 
   return (
     <Section
-      description="Recommendations are grouped by priority and linked to findings and evidence."
+      description="Create decisions from current validated Findings. Optional priority and decision metadata are practitioner supplied."
       eyebrow="Recommendations"
       title="No recommendation without a finding"
     >
+      {reviewingRec && <WorkspaceDialog labelledBy="recommendation-review-title" onClose={() => { if (!reviewSaving) setReviewingRec(null); }}>
+        <h2 id="recommendation-review-title" className="text-lg font-semibold">Human Recommendation review</h2>
+        <p className="mt-2 text-sm">{reviewingRec.id}: {reviewingRec.recommendation}</p>
+        <p className="mt-2 text-sm text-[var(--muted)]">Current parent and evidence checks run on confirmation. Your identity records human review, not authenticated institutional clearance.</p>
+        <form className="mt-4 space-y-3" onSubmit={event => { event.preventDefault(); void handleRecValidate(reviewingRec); }}>
+          <label className="block text-sm">Reviewer identity<input required value={reviewerName} onChange={event => setReviewerName(event.target.value)} className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-muted)] p-2" /></label>
+          {reviewError && <p role="alert" className="text-sm text-[var(--danger-text)]">{reviewError}</p>}
+          <div className="flex flex-wrap gap-2"><button type="submit" className="fls-button fls-button-primary" disabled={reviewSaving}>Confirm human validation</button><button type="button" className="fls-button" disabled={reviewSaving} onClick={() => setReviewingRec(null)}>Cancel</button></div>
+        </form>
+      </WorkspaceDialog>}
+      {isEditable && <div className="mb-4 flex flex-wrap items-center gap-3">
+        <button type="button" className="fls-button fls-button-primary" disabled={!currentParents.length} onClick={() => { setEditingRec(null); setRecModalOpen(true); }}>Create Recommendation</button>
+        {!currentParents.length && <p className="text-sm text-[var(--muted)]">A current validated Finding is required.</p>}
+      </div>}
+      {isEditable && anchor && currentStudy && <RecommendationAuthoringModal isOpen={recModalOpen} onClose={() => setRecModalOpen(false)} linkedFinding={anchor} study={currentStudy} existingRecommendations={recommendations} initialRecommendation={editingRec}
+        onSaveRecommendation={async rec => { await saveRecommendation({ ...rec, studyId: currentStudy.id }, { isCreate: !editingRec }); await onRefreshStudy?.(); }} />}
+
       <div className="space-y-5">
         {/* Sandbox Draft Recommendations Block */}
         {sandboxRecommendations.length > 0 && (
@@ -3380,12 +3407,7 @@ function RecommendationsSection({
                         id={recommendation.id}
                         onSelect={traceHandlers.onTraceSelect}
                       />
-                      <LinkedTraceField
-                        className=""
-                        id={recommendation.linkedFindingId}
-                        label="Finding"
-                        onTraceSelect={traceHandlers.onTraceSelect}
-                      />
+                      <TraceIdList ids={getLinkedFindingIds(recommendation)} label="Linked Findings" onTraceSelect={traceHandlers.onTraceSelect} />
                     </div>
                     <h4 className="mt-4 text-base font-semibold leading-6 text-[var(--foreground)]">
                       {recommendation.recommendation}
@@ -3439,7 +3461,7 @@ function RecommendationsSection({
         )}
 
         {/* Normal recommendations grouped by priority */}
-        {priorityOrder.map((priority) => {
+        {[...priorityOrder, undefined].map((priority) => {
           const items = normalRecommendations.filter(
             (recommendation) => recommendation.priority === priority,
           );
@@ -3447,10 +3469,10 @@ function RecommendationsSection({
           if (items.length === 0) return null;
 
           return (
-            <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4" key={priority}>
+            <section className="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4" key={priority || "unrecorded"}>
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] pb-3">
                 <div>
-                  <h3 className="text-lg font-semibold">{priority} priority</h3>
+                  <h3 className="text-lg font-semibold">{priority ? `${priority} priority` : "Priority not recorded"}</h3>
                   <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
                     {items.length} recommendation{items.length === 1 ? "" : "s"} requiring executive review.
                   </p>
@@ -3502,12 +3524,7 @@ function RecommendationsSection({
                               </span>
                             )}
                           </div>
-                          <LinkedTraceField
-                            className=""
-                            id={recommendation.linkedFindingId}
-                            label="Finding"
-                            onTraceSelect={traceHandlers.onTraceSelect}
-                          />
+                          <TraceIdList ids={getLinkedFindingIds(recommendation)} label="Linked Findings" onTraceSelect={traceHandlers.onTraceSelect} />
                         </div>
 
                         {depWarning && (
@@ -3553,6 +3570,7 @@ function RecommendationsSection({
                         {/* Governance Action Bar for Editable Studies */}
                         {isEditable && (
                           <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-[var(--border)] pt-3 text-xs">
+                            <button type="button" className="fls-button" onClick={() => { setEditingRec(recommendation); setRecModalOpen(true); }}>Edit Recommendation</button>
                             {(!recommendation.validationStatus ||
                               recommendation.validationStatus === "Draft") && (
                               <button
@@ -3568,7 +3586,7 @@ function RecommendationsSection({
                               <>
                                 <button
                                   type="button"
-                                  onClick={() => handleRecValidate(recommendation)}
+                                  onClick={() => { setReviewError(""); setReviewingRec(recommendation); }}
                                   className="rounded bg-emerald-600/30 border border-emerald-500/40 px-2.5 py-1 text-xs font-semibold text-emerald-200 hover:bg-emerald-600/50"
                                 >
                                   Validate
@@ -3731,8 +3749,9 @@ function QAReviewSection({
     <Section
       description="Actionable verification checks required before circulating or exporting the professional draft."
       eyebrow="Deliverables Check"
-      title="Final Review before Professional Draft"
+      title="Final Review before Professional Export"
     >
+      <DraftReadiness study={reviewStudy} />
       {/* Actionable Pre-Draft Verification Checks */}
       <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
         <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
@@ -3901,7 +3920,7 @@ function QAReviewSection({
                 Review gate complete
               </p>
               <p className="text-[10px] text-amber-700 font-semibold uppercase tracking-wider bg-amber-50 border border-amber-200/50 rounded px-2 py-0.5 mt-1 w-fit">
-                Deterministic demo check — not an AI or human evaluation
+                Deterministic checks — human methodological review and sign-off required
               </p>
             </div>
             <button
@@ -3969,26 +3988,34 @@ function LearningBriefSection({
   includeSandboxInBrief,
   setIncludeSandboxInBrief,
   hasSandboxItems,
+  currentStudy,
+  onRefreshStudy,
 }: {
   demoCase: DemoCase;
   markdown: string;
   copyStatus: "idle" | "copied" | "error";
-  onCopy: () => void;
+  onCopy: (preparedMarkdown?: string) => Promise<void>;
   traceHandlers: TraceHandlers;
   includeSandboxInBrief: boolean;
   setIncludeSandboxInBrief: (val: boolean) => void;
   hasSandboxItems: boolean;
+  currentStudy?: FieldStudy | null;
+  onRefreshStudy: () => Promise<void>;
 }) {
+  const [professionalExport, setProfessionalExport] = useState(false);
+  const draftReview = useDraftReview(demoCase);
+  const [exportError, setExportError] = useState("");
   const [exportStatus, setExportStatus] = React.useState<"idle" | "docx-loading" | "pdf-loading" | "md-loading" | "error">("idle");
 
   const handleDownloadDocx = async () => {
     try {
       setExportStatus("docx-loading");
-      const model = buildBriefExportModel(demoCase, includeSandboxInBrief);
-      downloadBriefDocx(model);
+      const model = await prepareDraftExport(demoCase, includeSandboxInBrief, professionalExport);
+      await downloadBriefDocx(model);
       setExportStatus("idle");
     } catch (err) {
       console.error("Docx export error:", err);
+      setExportError(err instanceof Error ? err.message : "Export failed.");
       setExportStatus("error");
     }
   };
@@ -3996,11 +4023,12 @@ function LearningBriefSection({
   const handleDownloadPdf = async () => {
     try {
       setExportStatus("pdf-loading");
-      const model = buildBriefExportModel(demoCase, includeSandboxInBrief);
+      const model = await prepareDraftExport(demoCase, includeSandboxInBrief, professionalExport);
       await downloadBriefPdf(model);
       setExportStatus("idle");
     } catch (err) {
       console.error("PDF export error:", err);
+      setExportError(err instanceof Error ? err.message : "Export failed.");
       setExportStatus("error");
     }
   };
@@ -4008,11 +4036,12 @@ function LearningBriefSection({
   const handleDownloadMarkdown = async () => {
     try {
       setExportStatus("md-loading");
-      const model = buildBriefExportModel(demoCase, includeSandboxInBrief);
+      const model = await prepareDraftExport(demoCase, includeSandboxInBrief, professionalExport);
       downloadBriefMarkdown(model);
       setExportStatus("idle");
     } catch (err) {
       console.error("Markdown export error:", err);
+      setExportError(err instanceof Error ? err.message : "Export failed.");
       setExportStatus("error");
     }
   };
@@ -4028,10 +4057,13 @@ function LearningBriefSection({
       title="Professional Draft Preview"
     >
       <div className="flex flex-col gap-4">
+        {currentStudy && !currentStudy.isDemoCase ? <ProfessionalDraftEditor key={`${currentStudy.id}:${currentStudy.professionalDraft?.revision || 0}`} study={currentStudy} onSaved={onRefreshStudy} onInspect={traceHandlers.onTraceSelect} /> : <p className="text-sm text-[var(--muted)]">Showcase preview is read-only. Clone the study to save intentional draft selections.</p>}
+        <DraftReadiness study={demoCase} />
+        <label className="block text-sm">Output mode<select className="mt-1 block w-full min-w-0 rounded border border-[var(--border)] bg-[var(--surface)] p-2" value={professionalExport ? "professional" : "working"} onChange={event => setProfessionalExport(event.target.value === "professional")}><option value="working">Working draft — human review required</option><option value="professional" disabled={!draftReview.ready || includeSandboxInBrief}>Professional export — deterministic conditions checked</option></select></label>
         <div className="fls-export-toolbar">
           <div className="flex flex-wrap items-center gap-2" role="status">
             {exportStatus === "pdf-loading" && <span className="text-xs text-[var(--warning-text)]">Preparing PDF…</span>}
-            {exportStatus === "error" && <span className="text-xs text-[var(--danger-text)]">Export failed. Please try again.</span>}
+            {exportStatus === "error" && <span className="text-xs text-[var(--danger-text)]">{exportError} <button type="button" className="underline" onClick={() => setExportStatus("idle")}>Try again</button></span>}
           </div>
           {/* Toggle sandbox inclusion */}
           {hasSandboxItems && (
@@ -4056,7 +4088,7 @@ function LearningBriefSection({
           <div className="flex flex-wrap items-center gap-3">
             <button
               className="fls-button fls-button-primary"
-              disabled={exportStatus !== "idle"}
+              disabled={exportStatus !== "idle" || (professionalExport && (!draftReview.ready || includeSandboxInBrief))}
               onClick={handleDownloadDocx}
               type="button"
             >
@@ -4066,7 +4098,7 @@ function LearningBriefSection({
             <div className="inline-flex items-center rounded-md border border-[var(--border)] bg-[var(--surface-muted)] p-0.5 text-xs">
               <button
                 className="rounded px-3 py-1 font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-elevated)] transition disabled:opacity-50 cursor-pointer"
-                disabled={exportStatus !== "idle"}
+                disabled={exportStatus !== "idle" || (professionalExport && (!draftReview.ready || includeSandboxInBrief))}
                 onClick={handleDownloadPdf}
                 type="button"
               >
@@ -4075,7 +4107,7 @@ function LearningBriefSection({
 
               <button
                 className="rounded px-3 py-1 font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-elevated)] transition disabled:opacity-50 cursor-pointer"
-                disabled={exportStatus !== "idle"}
+                disabled={exportStatus !== "idle" || (professionalExport && (!draftReview.ready || includeSandboxInBrief))}
                 onClick={handleDownloadMarkdown}
                 type="button"
               >
@@ -4084,7 +4116,7 @@ function LearningBriefSection({
 
               <button
                 className="rounded px-3 py-1 font-medium text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface-elevated)] transition cursor-pointer"
-                onClick={onCopy}
+                onClick={async () => { try { const model = await prepareDraftExport(demoCase, includeSandboxInBrief, professionalExport); await onCopy(generateMarkdownFromModel(model)); } catch (err) { setExportError(err instanceof Error ? err.message : "Copy failed."); setExportStatus("error"); } }}
                 type="button"
               >
                 {copyStatus === "copied" ? "✓ Copied" : "Copy MD"}
@@ -4192,7 +4224,7 @@ function StyledBriefPreview({
 
       <div className="space-y-8">
         <BriefSection title="Executive Summary">
-          <p>{demoCase.executiveSummary}</p>
+          <p>{model.executiveSummary}</p>
         </BriefSection>
 
         {demoCase.purposeAndScope ? (
@@ -4212,7 +4244,7 @@ function StyledBriefPreview({
 
         <BriefSection title="Key Messages">
           <ul className="space-y-2">
-            {demoCase.keyMessages.map((message) => (
+            {model.keyMessages.map((message) => (
               <li className="flex gap-3" key={message}>
                 <span className="mt-2 h-2 w-2 flex-none rounded-full bg-[var(--accent)]" />
                 <span>{message}</span>
@@ -4282,6 +4314,7 @@ function StyledBriefPreview({
                   {lesson.statement}
                 </p>
                 <p className="mt-2">{lesson.transferability}</p>
+                <TraceIdList ids={lesson.linkedFindingIds || []} label="Linked Findings" onTraceSelect={traceHandlers.onTraceSelect} />
               </div>
             ))}
           </div>
@@ -4302,6 +4335,7 @@ function StyledBriefPreview({
                   {practice.title}
                 </p>
                 <p className="mt-2">{practice.description}</p>
+                <TraceIdList ids={practice.linkedFindingIds || []} label="Linked Findings" onTraceSelect={traceHandlers.onTraceSelect} />
               </div>
             ))}
           </div>
@@ -4314,7 +4348,7 @@ function StyledBriefPreview({
             </div>
           ) : (
             <div className="space-y-3">
-              {priorityOrder.map((priority) => {
+              {[...priorityOrder, "Not recorded"].map((priority) => {
                 const recommendations = mainRecommendations.filter(
                   (recommendation) => recommendation.priority === priority,
                 );
@@ -4341,15 +4375,7 @@ function StyledBriefPreview({
                           <p className="mt-2 font-semibold text-[var(--foreground)]">
                             {recommendation.recommendation}
                           </p>
-                          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
-                            <span className="text-[var(--muted)]">
-                              Linked finding
-                            </span>
-                            <TraceButton
-                              id={recommendation.linkedFindingId}
-                              onSelect={traceHandlers.onTraceSelect}
-                            />
-                          </div>
+                          <TraceIdList ids={recommendation.linkedFindingIds} label="Linked Findings" onTraceSelect={traceHandlers.onTraceSelect} />
                         </div>
                       ))}
                     </div>
@@ -4562,7 +4588,7 @@ function StrengthBadge({ value }: { value: EvidenceStrength }) {
   );
 }
 
-function PriorityBadge({ value }: { value: RecommendationPriority }) {
+function PriorityBadge({ value }: { value?: RecommendationPriority }) {
   const className =
     value === "High"
       ? "border-red-200 bg-red-50 text-red-800"
@@ -4574,7 +4600,7 @@ function PriorityBadge({ value }: { value: RecommendationPriority }) {
     <span
       className={`inline-flex min-h-7 items-center rounded-lg border px-2.5 py-1 text-xs font-semibold ${className}`}
     >
-      {value}
+      {value || "Not recorded"}
     </span>
   );
 }
@@ -4889,29 +4915,6 @@ function CompactField({
         {label}
       </span>
       <span className="text-[var(--foreground)] leading-5 block">{value}</span>
-    </div>
-  );
-}
-
-function LinkedTraceField({
-  label,
-  id,
-  onTraceSelect,
-  className = "mt-4",
-}: {
-  label: string;
-  id: string;
-  onTraceSelect: (id: string) => void;
-  className?: string;
-}) {
-  return (
-    <div className={className}>
-      <p className="text-xs font-semibold text-[var(--muted)]">
-        {label}
-      </p>
-      <div className="mt-2">
-        <TraceButton id={id} onSelect={onTraceSelect} />
-      </div>
     </div>
   );
 }

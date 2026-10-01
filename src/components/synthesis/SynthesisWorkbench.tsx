@@ -564,6 +564,7 @@ export function SynthesisWorkbench({
           onSaveRecommendation={handleSaveRecommendation}
           existingRecommendations={study.recommendations}
           linkedFinding={recLinkedFinding}
+          study={study}
         />
       )}
 

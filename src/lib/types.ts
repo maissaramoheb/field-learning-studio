@@ -311,6 +311,27 @@ export interface StudyOutputConfig {
   includeGoodPractices: boolean;
 }
 
+export type DraftRecordKind = "findings" | "lessons" | "goodPractices" | "recommendations";
+
+/** An intentional inclusion snapshot, not a new validation/publishing lifecycle. */
+export interface ProfessionalDraftItem {
+  kind: DraftRecordKind;
+  recordId: string;
+  label: string;
+  snapshotText: string;
+  signature: string;
+  includedAt: number;
+}
+
+export interface ProfessionalDraft {
+  formatVersion: 1;
+  revision: number;
+  items: ProfessionalDraftItem[];
+  manualExecutiveSummary: string;
+  manualKeyMessages: string[];
+  updatedAt: number;
+}
+
 export interface StudyMeta {
   id: StudyId;
   title: string;
@@ -325,6 +346,7 @@ export interface StudyMeta {
   questions?: StudyQuestion[];
   patternNotes?: PatternNote[];
   outputConfig?: StudyOutputConfig;
+  professionalDraft?: ProfessionalDraft;
   createdAt: number;
   updatedAt: number;
 
@@ -512,7 +534,7 @@ export interface Recommendation {
   audit?: OriginMetadata;
   evidenceBase: EvidenceEntryId[];
   responsibleActor: string;
-  priority: RecommendationPriority;
+  priority?: RecommendationPriority;
   timeframe: string;
   feasibility: string;
   riskSensitivity: string;
@@ -543,6 +565,7 @@ export interface LearningBriefSection {
 }
 
 export interface DemoCase {
+  professionalDraft?: ProfessionalDraft;
   isDemoCase?: boolean;
   id: string;
   project: string;

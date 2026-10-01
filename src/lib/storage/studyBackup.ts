@@ -1,3 +1,4 @@
+import { isProfessionalDraft } from "@/lib/professionalDraft";
 import { assembleStudy, getStudyMeta } from "./studyStore";
 import { getLinkedFindingIds } from "@/lib/exportPolicy";
 import { sourceFileRepository } from "./sourceFileRepository";
@@ -162,6 +163,7 @@ export function validateStudyBackupEnvelope(data: unknown): BackupInspectionResu
       for (const key of ["id", "title", "statement", "recommendation", "sourceId", "linkedFindingId", "sourceFileId", "sourceType", "date", "stakeholderType", "location", "siteId", "summary", "rawText", "rawEvidence", "rawObservation", "potentialFinding", "interpretation", "primaryTheme", "secondaryTheme", "explanation", "limitationNote", "alternativeInterpretations", "staleDependencyWarning"]) if (record[key] !== undefined && typeof record[key] !== "string") errors.push(`${field}[${index}].${key} must be a string.`);
     }
   }
+  if (study.professionalDraft !== undefined && !isProfessionalDraft(study.professionalDraft)) errors.push("Invalid Professional Draft structure in study metadata.");
   if (study.patternNotes !== undefined && (!Array.isArray(study.patternNotes) || !study.patternNotes.every(note => note && typeof note === "object" && Array.isArray(note.evidenceIds) && note.evidenceIds.every((id: unknown) => typeof id === "string")))) errors.push("Study patternNotes and evidenceIds must have valid array shapes.");
   if (errors.length) return { valid: false, errors, warnings };
 

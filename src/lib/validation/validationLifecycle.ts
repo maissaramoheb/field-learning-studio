@@ -605,6 +605,13 @@ export function isSubstantiveRecommendationChange(
   original: Recommendation,
   proposed: Partial<Recommendation>
 ): boolean {
+  for (const key of ["feasibility", "riskSensitivity"] as const) {
+    if (key in proposed && normalizeComparableText(proposed[key]) !== normalizeComparableText(original[key])) return true;
+  }
+  if ("priority" in proposed && proposed.priority !== original.priority) return true;
+  for (const key of ["linkedFindingIds", "linkedLessonIds", "evidenceBase"] as const) {
+    if (key in proposed && JSON.stringify([...(proposed[key] || [])].sort()) !== JSON.stringify([...(original[key] || [])].sort())) return true;
+  }
   if (
     proposed.recommendation !== undefined &&
     normalizeComparableText(proposed.recommendation) !== normalizeComparableText(original.recommendation)

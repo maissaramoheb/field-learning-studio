@@ -1,315 +1,76 @@
 "use client";
 
 import React, { useState } from "react";
-import type {
-  Recommendation,
-  Finding,
-  RecommendationPriority,
-} from "@/lib/types";
+import type { Recommendation, Finding, FieldStudy, FindingId, RecommendationPriority } from "@/lib/types";
 import { getNextRecommendationId } from "@/lib/idGenerator";
+import { getLinkedFindingIds, isFindingExportEligible } from "@/lib/exportPolicy";
+import { WorkspaceDialog } from "@/components/WorkspaceDialog";
 
-interface RecommendationAuthoringModalProps {
+interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSaveRecommendation: (recommendation: Recommendation) => void;
+  onSaveRecommendation: (recommendation: Recommendation) => void | Promise<void>;
   existingRecommendations: Recommendation[];
   linkedFinding: Finding;
+  study?: FieldStudy;
   initialRecommendation?: Recommendation | null;
 }
 
-export function RecommendationAuthoringModal(props: RecommendationAuthoringModalProps) {
-  if (!props.isOpen) return null;
-
-  return (
-    <RecommendationAuthoringModalContent
-      key={props.initialRecommendation?.id || props.linkedFinding.id}
-      {...props}
-    />
-  );
+export function RecommendationAuthoringModal(props: Props) {
+  return props.isOpen ? <RecommendationForm key={props.initialRecommendation?.id || props.linkedFinding.id} {...props} /> : null;
 }
 
-function RecommendationAuthoringModalContent({
-  onClose,
-  onSaveRecommendation,
-  existingRecommendations,
-  linkedFinding,
-  initialRecommendation = null,
-}: Omit<RecommendationAuthoringModalProps, "isOpen">) {
-  const [recommendationText, setRecommendationText] = useState(
-    initialRecommendation ? initialRecommendation.recommendation : ""
-  );
-  const [responsibleActor, setResponsibleActor] = useState(
-    initialRecommendation ? initialRecommendation.responsibleActor : ""
-  );
-  const [priority, setPriority] = useState<RecommendationPriority>(
-    initialRecommendation ? initialRecommendation.priority : "Medium"
-  );
-  const [timeframe, setTimeframe] = useState(
-    initialRecommendation ? initialRecommendation.timeframe : ""
-  );
-  const [feasibility, setFeasibility] = useState(
-    initialRecommendation ? initialRecommendation.feasibility : "Medium"
-  );
-  const [riskSensitivity, setRiskSensitivity] = useState(
-    initialRecommendation ? initialRecommendation.riskSensitivity : "Medium"
-  );
-  const [expectedBenefit, setExpectedBenefit] = useState(
-    initialRecommendation ? initialRecommendation.expectedBenefit : ""
-  );
-  const [successIndicator, setSuccessIndicator] = useState(
-    initialRecommendation ? initialRecommendation.successIndicator : ""
-  );
-  const [error, setError] = useState<string | null>(null);
+function RecommendationForm({ onClose, onSaveRecommendation, existingRecommendations, linkedFinding, study, initialRecommendation }: Props) {
+  const [text, setText] = useState(initialRecommendation?.recommendation || "");
+  const [parents, setParents] = useState<string[]>(initialRecommendation ? getLinkedFindingIds(initialRecommendation) : [linkedFinding.id]);
+  const [priority, setPriority] = useState<RecommendationPriority | "">(initialRecommendation?.priority || "");
+  const [metadata, setMetadata] = useState({ responsibleActor: initialRecommendation?.responsibleActor || "", timeframe: initialRecommendation?.timeframe || "",
+    feasibility: initialRecommendation?.feasibility || "", riskSensitivity: initialRecommendation?.riskSensitivity || "",
+    expectedBenefit: initialRecommendation?.expectedBenefit || "", successIndicator: initialRecommendation?.successIndicator || "" });
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const findings = study?.findings || [linkedFinding];
+  const current = (finding: Finding) => study ? isFindingExportEligible(finding, study) : finding.validationStatus === "Validated" && !finding.supersededByFindingId && !finding.supersededAt;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!recommendationText.trim()) {
-      setError("Recommendation action is required.");
-      return;
+  async function submit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!text.trim() || !parents.length || parents.some(id => !findings.some(f => f.id === id && current(f)))) {
+      setError("Enter an action and select one or more current validated Findings. Remove or replace non-current parents before saving."); return;
     }
+    setSaving(true); setError("");
+    try {
+      await onSaveRecommendation({ ...initialRecommendation,
+        id: initialRecommendation?.id || getNextRecommendationId(existingRecommendations.map(r => r.id)),
+        studyId: study?.id || linkedFinding.studyId, recommendation: text.trim(),
+        linkedFindingId: parents[0] as FindingId, linkedFindingIds: parents as FindingId[],
+        evidenceBase: [...new Set(findings.filter(f => parents.includes(f.id)).flatMap(f => f.supportingEvidenceIds))],
+        ...Object.fromEntries(Object.entries(metadata).map(([key, value]) => [key, value.trim()])) as typeof metadata,
+        priority: priority || undefined, validationStatus: initialRecommendation?.validationStatus || "Draft",
+        revision: initialRecommendation?.revision || 1, createdAt: initialRecommendation?.createdAt || Date.now(), updatedAt: Date.now() });
+      onClose();
+    } catch (err) { setError(err instanceof Error ? err.message : "Could not save Recommendation."); }
+    finally { setSaving(false); }
+  }
 
-    const nextId =
-      initialRecommendation?.id ||
-      getNextRecommendationId(existingRecommendations.map((r) => r.id));
-
-    const finalRec: Recommendation = {
-      id: nextId,
-      studyId: linkedFinding.studyId,
-      recommendation: recommendationText.trim(),
-      linkedFindingId: linkedFinding.id,
-      evidenceBase: linkedFinding.supportingEvidenceIds || [],
-      responsibleActor: responsibleActor.trim() || "Responsibility to be agreed",
-      priority,
-      timeframe: timeframe.trim() || "To be scheduled",
-      feasibility: feasibility.trim() || "To be assessed",
-      riskSensitivity: riskSensitivity.trim() || "To be assessed",
-      expectedBenefit: expectedBenefit.trim() || "",
-      successIndicator: successIndicator.trim() || "",
-      validationStatus: initialRecommendation ? initialRecommendation.validationStatus : "Draft",
-      revision: initialRecommendation ? initialRecommendation.revision : 1,
-      createdAt: initialRecommendation?.createdAt || Date.now(),
-      updatedAt: Date.now(),
-    };
-
-    onSaveRecommendation(finalRec);
-    onClose();
-  };
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm overflow-y-auto"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="rec-modal-title"
-    >
-      <div className="my-8 w-full max-w-2xl rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[var(--border)] pb-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
-                Actionable Output
-              </span>
-              <span className="rounded bg-slate-500/10 border border-slate-500/30 px-1.5 py-0.2 text-[9px] font-semibold text-[var(--muted)]">
-                Draft · Linked to {linkedFinding.id}
-              </span>
-            </div>
-            <h3 id="rec-modal-title" className="text-lg font-semibold text-[var(--foreground)]">
-              {initialRecommendation ? "Edit Recommendation" : "Draft Recommendation"}
-            </h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-lg text-[var(--muted)] hover:text-[var(--foreground)] cursor-pointer"
-          >
-            ✕
-          </button>
+  return <WorkspaceDialog labelledBy="recommendation-title" onClose={onClose}>
+    <div className="flex items-center justify-between gap-3"><h2 id="recommendation-title" className="text-lg font-semibold">{initialRecommendation ? "Edit Recommendation" : "Create Recommendation"}</h2>
+      <button type="button" className="fls-button" onClick={onClose} disabled={saving}>Close</button></div>
+    <p className="mt-2 text-sm text-[var(--muted)]">Ground the action in current Findings. Decision metadata is recorded only when you supply it. Editing reviewed substance requires review again.</p>
+    <form onSubmit={submit} className="mt-4 space-y-4">
+      {error && <p role="alert" className="text-sm text-[var(--danger-text)]">{error}</p>}
+      <label className="block text-sm">Recommendation action<textarea required rows={3} value={text} onChange={event => setText(event.target.value)} className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface-muted)] p-3" /></label>
+      <fieldset className="space-y-2"><legend className="mb-2 text-sm font-semibold">Supporting Findings — select all relied-upon parents</legend>
+        {findings.filter(f => current(f) || parents.includes(f.id)).map(f => <label key={f.id} className="flex items-start gap-2 text-sm">
+          <input type="checkbox" checked={parents.includes(f.id)} disabled={!current(f) && !parents.includes(f.id)} onChange={event => setParents(event.target.checked ? [...parents, f.id] : parents.filter(id => id !== f.id))} />
+          <span>{f.id}: {f.statement}{!current(f) && " — NON-CURRENT; remove or replace"}</span></label>)}
+      </fieldset>
+      <details className="rounded border border-[var(--border)] p-3"><summary className="cursor-pointer text-sm">Optional decision metadata</summary>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="block text-sm">Priority<select value={priority} onChange={event => setPriority(event.target.value as RecommendationPriority | "")} className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2"><option value="">Not recorded</option>{["High", "Medium", "Low"].map(value => <option key={value}>{value}</option>)}</select></label>
+          {Object.entries(metadata).map(([key, value]) => <label key={key} className="block text-sm">{{ responsibleActor: "Responsible actor", timeframe: "Timeframe", feasibility: "Feasibility / constraints", riskSensitivity: "Risk / sensitivity", expectedBenefit: "Expected benefit", successIndicator: "Success indicator" }[key]}<input value={value} onChange={event => setMetadata({ ...metadata, [key]: event.target.value })} className="mt-1 w-full rounded border border-[var(--border)] bg-[var(--surface)] p-2" /></label>)}
         </div>
-
-        {/* Linked Finding Banner */}
-        <div className="mt-4 rounded-lg border border-[var(--trace)]/30 bg-[var(--trace-wash)] p-3.5">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-xs font-bold text-[var(--trace)]">
-              Anchored Finding: {linkedFinding.id}
-            </span>
-            <span className="rounded bg-emerald-500/20 px-1.5 py-0.2 text-[9px] font-bold uppercase text-emerald-300">
-              {linkedFinding.validationStatus || "Validated"}
-            </span>
-          </div>
-          <p className="mt-1 text-xs font-medium text-[var(--foreground)]">
-            {linkedFinding.statement}
-          </p>
-          <div className="mt-1 flex items-center gap-1 text-[10px] text-[var(--muted)]">
-            <span>Evidence lineage:</span>
-            {linkedFinding.supportingEvidenceIds.map((evId) => (
-              <span key={evId} className="font-mono font-bold text-[var(--trace)]">
-                {evId}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          {error && (
-            <div className="rounded-lg border border-red-500/40 bg-red-950/20 p-3 text-xs text-red-300">
-              {error}
-            </div>
-          )}
-
-          {/* Primary Action */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted-strong)]">
-              Action / Recommendation Statement <span className="text-red-400">*</span>
-            </label>
-            <textarea
-              rows={3}
-              value={recommendationText}
-              onChange={(e) => setRecommendationText(e.target.value)}
-              placeholder="e.g. Introduce routine comparison of delivery logs with observed serving times and beneficiary feedback."
-              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-sm text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
-              required
-            />
-          </div>
-
-          {/* Intended Actor */}
-          <div>
-            <div className="flex items-center justify-between">
-              <label className="block text-xs font-bold uppercase tracking-wider text-[var(--muted-strong)]">
-                Intended Actor / Responsible Body
-              </label>
-              <button
-                type="button"
-                onClick={() => setResponsibleActor("Responsibility to be agreed")}
-                className="text-[10px] text-[var(--trace)] hover:underline cursor-pointer"
-              >
-                Set &ldquo;Responsibility to be agreed&rdquo;
-              </button>
-            </div>
-            <input
-              type="text"
-              value={responsibleActor}
-              onChange={(e) => setResponsibleActor(e.target.value)}
-              placeholder="e.g. Program Coordinator, Field Team, or 'Responsibility to be agreed'"
-              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-2 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
-            />
-            <p className="mt-1 text-[11px] text-[var(--muted)]">
-              May remain unresolved during early drafting; approval requires an identified actor or explicit &ldquo;Responsibility to be agreed&rdquo;.
-            </p>
-          </div>
-
-          {/* Progressive Disclosure: Implementation Parameters */}
-          <details className="group rounded-xl border border-[var(--border)] bg-[var(--surface-muted)] p-3.5 transition">
-            <summary className="flex cursor-pointer items-center justify-between text-xs font-semibold text-[var(--muted-strong)] hover:text-[var(--foreground)] select-none">
-              <span>Implementation Parameters (Priority, Timeframe, Constraints, Risks, Indicators)</span>
-              <span className="text-xs text-[var(--muted)] transition-transform group-open:rotate-180">▼</span>
-            </summary>
-
-            <div className="mt-4 space-y-4 border-t border-[var(--border)] pt-4">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                    Priority (optional)
-                  </label>
-                  <select
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value as RecommendationPriority)}
-                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
-                  >
-                    <option value="Medium">Medium Priority</option>
-                    <option value="High">High Priority</option>
-                    <option value="Low">Low Priority</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                    Timeframe (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={timeframe}
-                    onChange={(e) => setTimeframe(e.target.value)}
-                    placeholder="e.g. Next grant cycle, 1-3 months (no default)"
-                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                    Feasibility / Constraints (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={feasibility}
-                    onChange={(e) => setFeasibility(e.target.value)}
-                    placeholder="e.g. Medium - dependent on school calendar"
-                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                    Risk / Sensitivity (optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={riskSensitivity}
-                    onChange={(e) => setRiskSensitivity(e.target.value)}
-                    placeholder="e.g. Requires strict confidentiality"
-                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                    Expected Benefit
-                  </label>
-                  <input
-                    type="text"
-                    value={expectedBenefit}
-                    onChange={(e) => setExpectedBenefit(e.target.value)}
-                    placeholder="e.g. Reduces distribution delays by 75%"
-                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-[var(--muted)]">
-                    Success Indicator
-                  </label>
-                  <input
-                    type="text"
-                    value={successIndicator}
-                    onChange={(e) => setSuccessIndicator(e.target.value)}
-                    placeholder="e.g. Monthly delivery audit reconciliation signed"
-                    className="mt-1 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs text-[var(--foreground)] focus:border-[var(--trace)] focus:outline-none"
-                  />
-                </div>
-              </div>
-            </div>
-          </details>
-
-          <div className="flex justify-end gap-3 border-t border-[var(--border)] pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-[var(--border)] px-4 py-2 text-xs font-semibold text-[var(--foreground)] hover:bg-[var(--surface-muted)] cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="rounded-lg bg-[var(--accent)] px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-[var(--accent-strong)] cursor-pointer"
-            >
-              {initialRecommendation ? "Save Recommendation Changes" : "Save as Draft Recommendation"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+      </details>
+      <button type="submit" disabled={saving} className="fls-button fls-button-primary">{saving ? "Saving…" : "Save Recommendation"}</button>
+    </form>
+  </WorkspaceDialog>;
 }

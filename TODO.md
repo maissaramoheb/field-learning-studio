@@ -1,12 +1,23 @@
 # TODO
 
+## Phase 5 local handoff
+
+- [x] Complete Recommendation → saved Professional Draft → scoped Final Review → shared export, without new storage stores/lifecycle states.
+- [x] Keep manual text warnings, inclusion snapshots, stale/missing/superseded exclusions and explicit output modes.
+- [ ] Independently verify the local Phase 5 branch before any separate merge/deploy decision.
+- [ ] Global rail typography/subtitle/icons/counts/truncation and broader mobile polish remain a separate Antigravity task.
+- [ ] Optional Recommendation-to-Lesson authoring needs an explicit lesson-currentness contract before new UI links; preserved legacy linkedLessonIds do not certify lesson grounding.
+- [ ] AI and Phase 6 remain out of scope.
+- [ ] Deferred UI / UX observation: the existing context-header badge/title row spills beyond a 390px viewport in Professional Draft. New draft controls fit; global header, rail and breakpoints remain unchanged.
+
+
 ## Current Integrity Closure
 
 - [x] Implement pre-Phase 5 integrity contracts on `feature/pre-phase5-integrity-closure` from `3c94a523`.
 - [x] Exercise seven behavioral sequences, including fresh-database binary recovery and atomic collision rejection.
-- [ ] Independent targeted verification of the local committed branch. No merge, push or deployment authorized.
+- [x] Integrity closure independently verified, merged and deployed at `f7ed3f63` (owner-confirmed baseline).
 - [ ] Separate bounded UI polish: workspace title hierarchy, subtitle readability, description truncation, count treatment and icon consistency. Preserve navigation and themes.
-- [ ] Phase 5 / AI remain deferred pending independent review and later authorization.
+- [x] Phase 5 implemented locally under later authorization; independent verification pending. AI remains deferred.
 
 The milestones below are historical; their test counts and branch references are not current release claims.
 
