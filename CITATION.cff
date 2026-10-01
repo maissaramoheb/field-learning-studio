@@ -5,7 +5,7 @@ type: software
 authors:
   - family-names: "Selim"
     given-names: "Maissara"
-version: "0.10.0"
+version: "0.11.0"
 date-released: 2026-10-01
 abstract: "A human-led, browser-local field learning synthesis application for monitoring, evaluation, learning, donor reporting, and programme learning teams, supporting traceable workflows from field evidence through findings, lessons, recommendations, quality review, and learning briefs."
 repository-code: "https://github.com/maissaramoheb/field-learning-studio"
